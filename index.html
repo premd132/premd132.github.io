@@ -2,238 +2,178 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Secure Pattern Analysis</title>
+<title>Matka AI System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
+  margin:0;
   font-family: Arial, sans-serif;
-  background:#f2f2f2;
-  padding:20px;
-}
-h2{text-align:center;}
-.box{
-  background:#fff;
-  max-width:800px;
-  margin:0 auto;
-  padding:15px;
-  border-radius:6px;
-  box-shadow:0 0 6px rgba(0,0,0,0.2);
-}
-textarea,input{
-  width:100%;
-  padding:8px;
-  margin-bottom:10px;
-}
-button{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  background:#007bff;
+  background:#0f172a;
   color:#fff;
-  border:none;
-  cursor:pointer;
-  font-size:15px;
 }
-button.secondary{background:#28a745;}
-button.danger{background:#dc3545;}
-table{
-  margin:15px auto;
-  border-collapse:collapse;
-  background:#fff;
+
+/* ---------- HOME PAGE ---------- */
+#home{
+  display:flex;
+  height:100vh;
 }
-td{
-  border:1px solid #000;
-  padding:8px;
-  min-width:55px;
+.left{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   text-align:center;
-  font-weight:bold;
+  padding:40px;
 }
-.green{background:#90ee90;}
-.red{background:#f08080;}
-canvas{
-  display:block;
-  margin:5px auto 30px auto;
+.left h1{
+  font-size:36px;
+  line-height:1.4;
+  color:#38bdf8;
 }
-.history{
-  background:#fff;
+.right{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#020617;
+}
+.login-box{
+  background:#111827;
+  padding:30px;
+  width:320px;
+  border-radius:8px;
+  box-shadow:0 0 20px rgba(0,0,0,0.6);
+}
+.login-box h2{
+  text-align:center;
+  margin-bottom:20px;
+}
+.login-box input{
+  width:100%;
   padding:10px;
-  margin-top:20px;
-  border-radius:6px;
+  margin-bottom:15px;
+  border:none;
+  border-radius:4px;
 }
-.hidden{display:none;}
-.login{
-  max-width:350px;
-  margin:120px auto;
-  background:#fff;
-  padding:20px;
-  border-radius:6px;
-  box-shadow:0 0 8px rgba(0,0,0,0.3);
+.login-box button{
+  width:100%;
+  padding:10px;
+  background:#38bdf8;
+  border:none;
+  font-size:16px;
+  cursor:pointer;
+}
+.error{
+  color:red;
   text-align:center;
+  margin-top:10px;
 }
-.error{color:red;}
+
+/* ---------- DASHBOARD ---------- */
+#dashboard{
+  display:none;
+  min-height:100vh;
+  background:#020617;
+}
+.header{
+  background:#020617;
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  border-bottom:1px solid #1e293b;
+}
+.content{
+  padding:30px;
+  max-width:900px;
+  margin:auto;
+}
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:8px;
+  margin-bottom:20px;
+}
+.logout{
+  background:#dc2626;
+  padding:10px;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<!-- 🔐 LOGIN SCREEN -->
-<div id="loginBox" class="login">
-  <h2>🔐 Enter Password</h2>
-  <input type="password" id="passwordInput" placeholder="Password">
-  <button onclick="checkPassword()">Login</button>
-  <p id="errorMsg" class="error"></p>
+<!-- ================= HOME PAGE ================= -->
+<div id="home">
+  <div class="left">
+    <h1>
+      Welcome to the world of<br>
+      <b>The Kings of Matka</b><br><br>
+      AI Generate_Perfect Gussing
+    </h1>
+  </div>
+
+  <div class="right">
+    <div class="login-box">
+      <h2>Login</h2>
+      <input type="password" id="password" placeholder="Enter Password">
+      <button onclick="login()">Login</button>
+      <div id="error" class="error"></div>
+    </div>
+  </div>
 </div>
 
-<!-- 🔓 MAIN CONTENT -->
-<div id="mainContent" class="hidden">
+<!-- ================= SECOND PAGE / DASHBOARD ================= -->
+<div id="dashboard">
+  <div class="header">
+    Kings of Matka – AI Dashboard
+  </div>
 
-<h2>Secure Pattern Analysis</h2>
+  <div class="content">
+    <div class="card">
+      <h3>Welcome 👑</h3>
+      <p>
+        You are successfully logged in.<br>
+        This is your private analysis dashboard.
+      </p>
+    </div>
 
-<div class="box">
-<b>Old Records (har line = 1 row)</b>
-<textarea id="oldData">33,38,83,30
-49,16,71,07
-18,83,30,07</textarea>
+    <div class="card">
+      <h3>System Status</h3>
+      <p>
+        • Secure Login Active ✅<br>
+        • Analysis Tools Enabled ✅<br>
+        • Private Access Only 🔒
+      </p>
+    </div>
 
-<b>New Records</b>
-<textarea id="newData">31,16,61,10
-49,17,08,72
-19,84,31,09</textarea>
-
-<button onclick="analyze()">Check Pattern</button>
-<button class="secondary" onclick="saveHistory()">Save History</button>
-<button class="danger" onclick="downloadImage()">Download Image</button>
-</div>
-
-<div id="result"></div>
-
-<div class="history">
-<h3>Saved History</h3>
-<ul id="historyList"></ul>
-</div>
-
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <script>
 /* 🔑 CHANGE PASSWORD HERE */
 const PASSWORD = "1234";
 
-/* LOGIN CHECK */
-function checkPassword(){
-  const input=document.getElementById("passwordInput").value;
-  if(input===PASSWORD){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("mainContent").classList.remove("hidden");
+function login(){
+  const input = document.getElementById("password").value;
+  if(input === PASSWORD){
+    document.getElementById("home").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
   }else{
-    document.getElementById("errorMsg").innerText="Wrong password!";
+    document.getElementById("error").innerText = "Wrong password!";
   }
 }
 
-/* FAMILY RULE */
-function sameFamily(a,b){
-  return Math.abs(a-b)%5===0;
+function logout(){
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("home").style.display = "flex";
+  document.getElementById("password").value = "";
 }
-
-/* MAIN ANALYSIS */
-function analyze(){
-  const oldLines=document.getElementById("oldData").value.trim().split("\n");
-  const newLines=document.getElementById("newData").value.trim().split("\n");
-  const result=document.getElementById("result");
-  result.innerHTML="";
-
-  for(let r=0;r<newLines.length;r++){
-    const oldArr=oldLines[r].split(",").map(Number);
-    const newArr=newLines[r].split(",").map(Number);
-
-    const table=document.createElement("table");
-    const row=document.createElement("tr");
-
-    for(let i=0;i<newArr.length;i++){
-      const td=document.createElement("td");
-      if(sameFamily(oldArr[i],newArr[i])){
-        td.className="green";
-        td.innerText=newArr[i];
-      }else{
-        td.className="red";
-        td.innerText=newArr[i]+" ❌";
-      }
-      row.appendChild(td);
-    }
-    table.appendChild(row);
-    result.appendChild(table);
-
-    const canvas=document.createElement("canvas");
-    canvas.width=80*newArr.length;
-    canvas.height=70;
-    const ctx=canvas.getContext("2d");
-
-    let x=40,y=35,dir=1;
-    for(let i=0;i<newArr.length-1;i++){
-      if(sameFamily(oldArr[i],newArr[i])){
-        ctx.strokeStyle="green";
-        ctx.lineWidth=3;
-        ctx.beginPath();
-        ctx.moveTo(x,y);
-        y=y+(dir*15);
-        ctx.lineTo(x+70,y);
-        ctx.stroke();
-        dir*=-1;
-      }else{
-        ctx.strokeStyle="red";
-        ctx.lineWidth=3;
-        ctx.beginPath();
-        ctx.moveTo(x-10,y-15);
-        ctx.lineTo(x+10,y+15);
-        ctx.moveTo(x-10,y+15);
-        ctx.lineTo(x+10,y-15);
-        ctx.stroke();
-      }
-      x+=70;
-    }
-    result.appendChild(canvas);
-  }
-}
-
-/* SAVE HISTORY */
-function saveHistory(){
-  const entry={
-    old:oldData.value,
-    new:newData.value,
-    time:new Date().toLocaleString()
-  };
-  let h=JSON.parse(localStorage.getItem("patternHistory")||"[]");
-  h.push(entry);
-  localStorage.setItem("patternHistory",JSON.stringify(h));
-  loadHistory();
-}
-
-/* LOAD HISTORY */
-function loadHistory(){
-  const list=document.getElementById("historyList");
-  list.innerHTML="";
-  let h=JSON.parse(localStorage.getItem("patternHistory")||"[]");
-  h.forEach(e=>{
-    const li=document.createElement("li");
-    li.innerText=e.time+" | OLD: "+e.old.replace(/\n/g," / ")+" | NEW: "+e.new.replace(/\n/g," / ");
-    list.appendChild(li);
-  });
-}
-
-/* DOWNLOAD IMAGE */
-function downloadImage(){
-  html2canvas(document.body).then(canvas=>{
-    const link=document.createElement("a");
-    link.download="pattern-analysis.png";
-    link.href=canvas.toDataURL();
-    link.click();
-  });
-}
-
-loadHistory();
 </script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
 </html>
