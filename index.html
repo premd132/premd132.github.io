@@ -2,47 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pattern Analysis</title>
+  <title>Old vs New Pattern Analysis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f2f2f2;
+      padding:20px;
+    }
+    h2{
+      text-align:center;
+      margin-bottom:20px;
+    }
+    .box{
+      background:#fff;
+      max-width:420px;
+      margin:0 auto;
+      padding:15px;
+      border-radius:6px;
+      box-shadow:0 0 5px rgba(0,0,0,0.2);
+    }
+    label{
+      font-weight:bold;
+    }
+    input{
+      width:100%;
+      padding:8px;
+      margin:6px 0 12px 0;
+    }
+    button{
+      width:100%;
+      padding:10px;
+      background:#007bff;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-size:16px;
+    }
+    table{
+      margin:20px auto;
+      border-collapse:collapse;
+    }
+    td{
+      border:1px solid #000;
+      padding:10px;
+      width:55px;
+      height:40px;
+      text-align:center;
+      font-weight:bold;
+    }
+    canvas{
+      display:block;
+      margin:10px auto;
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>Old vs New Pattern</h2>
+<h2>Old vs New Pattern (Line / ❌)</h2>
 
-<input id="oldInput" placeholder="33,38,83,30"><br><br>
-<input id="newInput" placeholder="31,16,61,10"><br><br>
+<div class="box">
+  <label>Old Record (comma se)</label>
+  <input id="oldInput" placeholder="33,38,83,30">
 
-<button onclick="runAnalysis()">Check</button>
+  <label>New Record (comma se)</label>
+  <input id="newInput" placeholder="31,16,61,10">
 
-<table id="resultTable" border="1" cellpadding="10"></table>
+  <button onclick="runAnalysis()">Check Pattern</button>
+</div>
+
+<table id="resultTable"></table>
+
+<canvas id="drawCanvas" width="400" height="120"></canvas>
 
 <script>
-function sameFamily(a, b) {
-  return Math.abs(a - b) % 5 === 0;
-}
-
-function runAnalysis() {
-  const oldArr = document.getElementById("oldInput").value.split(",").map(Number);
-  const newArr = document.getElementById("newInput").value.split(",").map(Number);
-  const table = document.getElementById("resultTable");
-  table.innerHTML = "";
-
-  const row = document.createElement("tr");
-
-  for (let i = 0; i < newArr.length; i++) {
-    const cell = document.createElement("td");
-    if (sameFamily(oldArr[i], newArr[i])) {
-      cell.style.background = "lightgreen";
-      cell.innerText = newArr[i];
-    } else {
-      cell.style.background = "lightcoral";
-      cell.innerText = newArr[i] + " ❌";
-    }
-    row.appendChild(cell);
+  // FAMILY RULE
+  function sameFamily(a, b){
+    return Math.abs(a - b) % 5 === 0;
   }
-  table.appendChild(row);
-}
+
+  function runAnalysis(){
+    const oldArr = document.getElementById("oldInput").value.split(",").map(Number);
+    const newArr = document.getElementById("newInput").value.split(",").map(Number);
+
+    const table = document.getElementById("resultTable");
+    table.innerHTML = "";
+
+    const row = document.createElement("tr");
+
+    for(let i=0;i<newArr.length;i++){
+      const cell = document.createElement("td");
+
+      if(sameFamily(oldArr[i], newArr[i])){
+        cell.style.background = "#90ee90"; // green
+        cell.innerText = newArr[i];
+      }else{
+        cell.style.background = "#f08080"; // red
+        cell.innerText = newArr[i] + " ❌";
+      }
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+
+    drawLines(oldArr, newArr);
+  }
+
+  function drawLines(oldArr, newArr){
+    const canvas = document.getElementById("drawCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    let x = 40;
+    let y = 60;
+    let gap = 80;
+
+    for(let i=0;i<newArr.length-1;i++){
+      if(sameFamily(oldArr[i], newArr[i])){
+        // LINE
+        ctx.strokeStyle = "green";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + gap, y);
+        ctx.stroke();
+      }else{
+        // CROSS
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x-10, y-15);
+        ctx.lineTo(x+10, y+15);
+        ctx.moveTo(x-10, y+15);
+        ctx.lineTo(x+10, y-15);
+        ctx.stroke();
+      }
+      x += gap;
+    }
+  }
 </script>
 
 </body>
