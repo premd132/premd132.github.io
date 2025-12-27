@@ -2,234 +2,102 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AI Pattern Analyzer (Excel + Chart)</title>
+<title>Result Chart Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#0b1220;
-  color:#fff;
-  margin:0;
-  padding:15px;
-}
-h1{
-  text-align:center;
-  color:#38bdf8;
-}
-.card{
-  background:#020617;
-  border:1px solid #334155;
-  padding:12px;
-  margin-bottom:15px;
-  border-radius:6px;
-}
-textarea{
-  width:100%;
-  height:90px;
-  background:#020617;
-  color:#fff;
-  border:1px solid #38bdf8;
-  padding:8px;
-  font-size:15px;
-}
-button{
-  width:100%;
-  padding:12px;
-  background:#38bdf8;
-  border:none;
-  font-size:18px;
-  cursor:pointer;
-  border-radius:6px;
-}
-button:hover{ background:#0ea5e9; }
-.drop{
-  border:2px dashed #38bdf8;
-  padding:20px;
-  text-align:center;
-  border-radius:6px;
-}
-.top{
-  color:#22c55e;
-  font-size:18px;
-  font-weight:bold;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th,td{
-  border:1px solid #334155;
-  padding:6px;
-  text-align:center;
-}
-canvas{
-  background:#020617;
-  margin-top:15px;
-  border-radius:6px;
-}
-select{
-  width:100%;
-  padding:8px;
-  background:#020617;
-  color:#fff;
-  border:1px solid #38bdf8;
-}
+body{margin:0;font-family:Arial;background:#f1f5f9;color:#000}
+header{background:#0f172a;color:#fff;padding:12px;text-align:center;font-size:20px}
+nav{display:flex;background:#020617}
+nav button{flex:1;padding:10px;border:none;background:#020617;color:#fff}
+nav button.active{background:#2563eb}
+.section{display:none;padding:10px}
+.section.active{display:block}
+table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
+th,td{border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:14px}
+.drop{border:2px dashed #2563eb;padding:15px;text-align:center;margin-top:10px}
+canvas{background:#fff;margin-top:15px}
+h3{margin:10px 0}
 </style>
 </head>
 
 <body>
 
-<h1>AI Pattern Analyzer</h1>
+<header>Result & Chart Dashboard</header>
 
-<div class="card">
-  <h3>Option 1: Manual Data</h3>
-  <p>Old numbers (comma separated):</p>
-  <textarea id="manual">2,5,7,2,9,5,1,7,3</textarea>
-  <button onclick="analyzeManual()">Analyze Manual Data</button>
+<nav>
+<button class="active" onclick="showTab('jodi')">Jodi Chart</button>
+<button onclick="showTab('panel')">Panel Chart</button>
+<button onclick="showTab('trend')">Trend</button>
+</nav>
+
+<!-- JODI -->
+<div class="section active" id="jodi">
+<h3>Jodi Chart</h3>
+<input type="text" id="jodiInput" placeholder="Ex: 12,34,56,78" style="width:100%;padding:6px">
+<button onclick="renderTable('jodiInput','jodiTable')">Show</button>
+<table id="jodiTable"></table>
 </div>
 
-<div class="card">
-  <h3>Option 2: Excel Upload (.xlsx)</h3>
-  <div class="drop" id="drop">
-    Drag & Drop Excel here<br><br>
-    OR<br><br>
-    <input type="file" id="file" accept=".xlsx">
-  </div>
-  <br>
-  <select id="sheetSelect" onchange="readSheet()"></select>
+<!-- PANEL -->
+<div class="section" id="panel">
+<h3>Panel Chart</h3>
+<input type="text" id="panelInput" placeholder="Ex: 123,456,789" style="width:100%;padding:6px">
+<button onclick="renderTable('panelInput','panelTable')">Show</button>
+<table id="panelTable"></table>
 </div>
 
-<div class="card" id="result"></div>
-
+<!-- TREND -->
+<div class="section" id="trend">
+<h3>Trend Graph</h3>
+<div class="drop">
+Upload Excel (.xlsx)
+<input type="file" id="file" accept=".xlsx">
+</div>
 <canvas id="chart"></canvas>
+</div>
 
 <script>
-let workbook = null;
-let chart = null;
+function showTab(id){
+document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+event.target.classList.add('active');
+}
 
-// ---------- Excel Upload ----------
-document.getElementById("file").addEventListener("change", e=>{
-  loadExcel(e.target.files[0]);
+function renderTable(input,tableId){
+const data=document.getElementById(input).value.split(",");
+let html="<tr>";
+data.forEach(d=>html+="<td>"+d.trim()+"</td>");
+html+="</tr>";
+document.getElementById(tableId).innerHTML=html;
+}
+
+let chart;
+document.getElementById("file").addEventListener("change",e=>{
+const reader=new FileReader();
+reader.onload=ev=>{
+const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
+const sheet=wb.Sheets[wb.SheetNames[0]];
+const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+const nums=[];
+rows.forEach(r=>r.forEach(c=>{if(!isNaN(c))nums.push(c)}));
+drawChart(nums);
+};
+reader.readAsArrayBuffer(e.target.files[0]);
 });
-
-const drop = document.getElementById("drop");
-drop.addEventListener("dragover", e=>{ e.preventDefault(); drop.style.background="#020617"; });
-drop.addEventListener("drop", e=>{
-  e.preventDefault();
-  loadExcel(e.dataTransfer.files[0]);
-});
-
-function loadExcel(file){
-  const reader = new FileReader();
-  reader.onload = e=>{
-    const data = new Uint8Array(e.target.result);
-    workbook = XLSX.read(data,{type:"array"});
-    const select = document.getElementById("sheetSelect");
-    select.innerHTML = "";
-    workbook.SheetNames.forEach(name=>{
-      const op = document.createElement("option");
-      op.value = name; op.text = name;
-      select.appendChild(op);
-    });
-    readSheet();
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function readSheet(){
-  if(!workbook) return;
-  const name = document.getElementById("sheetSelect").value;
-  const sheet = workbook.Sheets[name];
-  const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
-  const nums = [];
-  rows.forEach(r=>{
-    r.forEach(c=>{
-      if(!isNaN(c)) nums.push(parseInt(c));
-    });
-  });
-  analyze(nums);
-}
-
-// ---------- Manual ----------
-function analyzeManual(){
-  const raw = document.getElementById("manual").value;
-  const nums = raw.split(",").map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
-  analyze(nums);
-}
-
-// ---------- AI-Style Pattern Engine ----------
-function analyze(numbers){
-  if(numbers.length < 3){
-    alert("Kam se kam 3 numbers chahiye");
-    return;
-  }
-
-  // frequency
-  const freq = {};
-  numbers.forEach(n=>freq[n]=(freq[n]||0)+1);
-
-  // gap
-  const gap = {};
-  numbers.forEach((n,i)=>gap[n]=numbers.length-i);
-
-  // trend (simple moving effect)
-  const trend = {};
-  numbers.forEach((n,i)=>{
-    if(i>0) trend[n]=(trend[n]||0)+(numbers[i]-numbers[i-1]);
-  });
-
-  // score
-  const score = {};
-  Object.keys(freq).forEach(n=>{
-    score[n]=(freq[n]*1.5 + gap[n]*0.4 + (trend[n]||0)*0.2).toFixed(2);
-  });
-
-  const sorted = Object.entries(score).sort((a,b)=>b[1]-a[1]);
-
-  // output
-  let html = `<div class="top">Top Pattern: ${sorted[0][0]} (Score ${sorted[0][1]})</div><br>`;
-  html += `<table><tr><th>Number</th><th>Score</th></tr>`;
-  sorted.forEach(s=>{ html+=`<tr><td>${s[0]}</td><td>${s[1]}</td></tr>`; });
-  html += `</table>`;
-  document.getElementById("result").innerHTML = html;
-
-  drawChart(sorted);
-}
 
 function drawChart(data){
-  const labels = data.map(d=>d[0]);
-  const values = data.map(d=>d[1]);
-
-  if(chart) chart.destroy();
-  chart = new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
-      labels,
-      datasets:[{
-        label:"AI Pattern Score",
-        data:values,
-        borderColor:"#38bdf8",
-        backgroundColor:"rgba(56,189,248,0.25)",
-        tension:0.3,
-        fill:true,
-        pointRadius:5
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{ legend:{labels:{color:"#fff"}}},
-      scales:{
-        x:{ticks:{color:"#fff"}},
-        y:{ticks:{color:"#fff"}}
-      }
-    }
-  });
+if(chart)chart.destroy();
+chart=new Chart(document.getElementById("chart"),{
+type:"line",
+data:{labels:data.map((_,i)=>i+1),
+datasets:[{data,borderColor:"#2563eb",fill:false}]},
+options:{responsive:true}
+});
 }
 </script>
 
