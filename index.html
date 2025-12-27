@@ -2,104 +2,168 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Advanced Jodi Chart</title>
+<title>Final AI Pattern Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 body{font-family:Arial;background:#f1f5f9;margin:0;padding:10px}
 h2{text-align:center;background:#111827;color:#fff;padding:10px}
-.controls{display:flex;gap:6px;margin-bottom:10px}
-button{flex:1;padding:6px;border:none;background:#2563eb;color:#fff}
-table{border-collapse:collapse;width:100%;background:#fff}
-th,td{border:1px solid #000;padding:5px;text-align:center;font-size:13px}
+.section{background:#fff;border:2px solid #000;padding:10px;margin-bottom:12px}
+.section h3{margin:0 0 6px 0;border-bottom:1px solid #ccc}
+.upload{border:2px dashed #2563eb;padding:10px;text-align:center;margin-bottom:12px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #000;padding:6px;text-align:center;font-size:14px}
 th{background:#e5e7eb}
 .hot{background:#bbf7d0;font-weight:bold}
 .due{background:#fecaca;font-weight:bold}
-.box{border:2px solid #111827;padding:6px;margin-top:8px;background:#fff}
-.upload{border:2px dashed #2563eb;padding:10px;text-align:center;margin-bottom:10px}
+.box{padding:6px;border:1px solid #000;margin:4px 0}
+.small{font-size:12px}
 </style>
 </head>
 
 <body>
 
-<h2>Advanced Jodi Chart (dpboss Style)</h2>
+<h2>FINAL AI PATTERN DASHBOARD</h2>
 
 <div class="upload">
-Upload Excel (Date | Jodi)<br>
+<b>Upload Excel (Date | Jodi | Optional Panel)</b><br>
 <input type="file" id="file" accept=".xlsx">
 </div>
 
-<div class="controls">
-<button onclick="render(30)">Last 30</button>
-<button onclick="render(60)">Last 60</button>
-<button onclick="render(9999)">All</button>
+<div class="section">
+<h3>1️⃣ Original Record (Last 20)</h3>
+<table id="record"></table>
 </div>
 
-<div class="box">
-<b>🔥 Top Important Jodi</b>
-<div id="top"></div>
+<div class="section">
+<h3>2️⃣ Jodi Touch Line</h3>
+<table id="jodiTL"></table>
 </div>
 
-<table id="chart"></table>
+<div class="section">
+<h3>3️⃣ Single Ank Touch Line</h3>
+<table id="singleTL"></table>
+</div>
+
+<div class="section">
+<h3>4️⃣ 🔥 HOT Jodi</h3>
+<div id="hotJodi"></div>
+</div>
+
+<div class="section">
+<h3>5️⃣ ⏳ DUE Jodi</h3>
+<div id="dueJodi"></div>
+</div>
+
+<div class="section">
+<h3>6️⃣ ❌ Cross / X Pattern</h3>
+<div id="crossPattern"></div>
+</div>
+
+<div class="section">
+<h3>7️⃣ 🔢 Panel Pattern</h3>
+<div id="panelPattern"></div>
+</div>
+
+<div class="section">
+<h3>8️⃣ 📅 Date-wise Daily Touch Line</h3>
+<table id="dailyTL"></table>
+</div>
 
 <script>
-let allData=[];
-
 document.getElementById("file").addEventListener("change",e=>{
   const reader=new FileReader();
   reader.onload=ev=>{
     const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
-    const sheet=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-    allData=[];
-    rows.forEach(r=>{
-      if(r[1] && !isNaN(r[1])) allData.push(r[1].toString().padStart(2,'0'));
-    });
-    render(30);
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sh,{header:1});
+    process(rows);
   };
   reader.readAsArrayBuffer(e.target.files[0]);
 });
 
-function render(limit){
-  const data=allData.slice(-limit);
-
-  const freq={}, gap={};
-  data.forEach((j,i)=>{
-    freq[j]=(freq[j]||0)+1;
-    gap[j]=data.length-i;
-  });
-
-  // top jodi
-  const sorted=Object.keys(freq)
-    .map(j=>({j,score:freq[j]*1.5+gap[j]*0.3}))
-    .sort((a,b)=>b.score-a.score)
-    .slice(0,5);
-
-  document.getElementById("top").innerHTML=
-    sorted.map(s=>`${s.j}`).join(" , ");
-
-  let html="<tr><th>Day</th>";
-  for(let i=0;i<=9;i++) html+=`<th>${i}</th>`;
-  html+="</tr>";
-
-  data.forEach((j,i)=>{
-    html+=`<tr><th>D${i+1}</th>`;
-    for(let d=0;d<=9;d++){
-      let cls="";
-      if(j[0]==d||j[1]==d){
-        if(freq[j]>=Math.max(...Object.values(freq))-1) cls="hot";
-        if(gap[j]>data.length*0.7) cls="due";
-        html+=`<td class="${cls}">${j}</td>`;
-      }else{
-        html+="<td></td>";
-      }
+function process(rows){
+  let data=[];
+  rows.forEach(r=>{
+    if(r[0] && r[1] && !isNaN(r[1])){
+      data.push({
+        date:r[0],
+        jodi:r[1].toString().padStart(2,'0'),
+        panel:r[2]?r[2].toString():""
+      });
     }
-    html+="</tr>";
   });
 
-  document.getElementById("chart").innerHTML=html;
+  // 1️⃣ Original Record
+  let r="<tr><th>Date</th><th>Jodi</th></tr>";
+  data.slice(-20).forEach(d=>{
+    r+=`<tr><td class="small">${d.date}</td><td>${d.jodi}</td></tr>`;
+  });
+  document.getElementById("record").innerHTML=r;
+
+  // Frequency & gap
+  const freq={}, gap={};
+  data.forEach((d,i)=>{
+    freq[d.jodi]=(freq[d.jodi]||0)+1;
+    gap[d.jodi]=data.length-i;
+  });
+
+  const sorted=Object.keys(freq)
+    .map(j=>({j,score:freq[j]*1.5+gap[j]*0.4}))
+    .sort((a,b)=>b.score-a.score);
+
+  // 2️⃣ Jodi TL
+  document.getElementById("jodiTL").innerHTML=
+    `<tr><th>TL1</th><th>TL2</th><th>TL3</th></tr>
+     <tr><td class="hot">${sorted[0].j}</td>
+         <td>${sorted[1].j}</td>
+         <td>${sorted[2].j}</td></tr>`;
+
+  // 3️⃣ Single TL
+  const sf={};
+  data.map(d=>d.jodi).join("").split("").forEach(n=>sf[n]=(sf[n]||0)+1);
+  const s=Object.keys(sf).sort((a,b)=>sf[b]-sf[a]);
+  document.getElementById("singleTL").innerHTML=
+    `<tr><th>TL1</th><th>TL2</th><th>TL3</th></tr>
+     <tr><td class="hot">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`;
+
+  // 4️⃣ HOT
+  document.getElementById("hotJodi").innerText=
+    sorted.slice(0,6).map(x=>x.j).join(" , ");
+
+  // 5️⃣ DUE
+  document.getElementById("dueJodi").innerText=
+    sorted.slice(-6).map(x=>x.j).join(" , ");
+
+  // 6️⃣ Cross Pattern
+  const cross=[];
+  data.slice(-10).forEach(d=>{
+    cross.push(`${d.jodi[0]}✕${d.jodi[1]}`);
+  });
+  document.getElementById("crossPattern").innerText=cross.join(" | ");
+
+  // 7️⃣ Panel Pattern
+  const panels=data.map(d=>d.panel).filter(p=>p);
+  document.getElementById("panelPattern").innerText=
+    panels.slice(-10).join(" , ");
+
+  // 8️⃣ Daily TL
+  let dt="<tr><th>Date</th><th>TL1</th><th>TL2</th><th>TL3</th></tr>";
+  for(let i=15;i<data.length;i++){
+    const sub=data.slice(0,i);
+    const f={},g={};
+    sub.forEach((d,idx)=>{
+      f[d.jodi]=(f[d.jodi]||0)+1;
+      g[d.jodi]=sub.length-idx;
+    });
+    const s2=Object.keys(f)
+      .map(j=>({j,sc:f[j]*1.5+g[j]*0.4}))
+      .sort((a,b)=>b.sc-a.sc);
+    dt+=`<tr><td class="small">${data[i].date}</td>
+         <td>${s2[0].j}</td><td>${s2[1].j}</td><td>${s2[2].j}</td></tr>`;
+  }
+  document.getElementById("dailyTL").innerHTML=dt;
 }
 </script>
 
