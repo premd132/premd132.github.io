@@ -4,95 +4,45 @@
   <meta charset="UTF-8">
   <title>Pattern Analysis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-    }
-    .box {
-      background: #fff;
-      padding: 15px;
-      max-width: 400px;
-      margin: 0 auto;
-      border-radius: 6px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.2);
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin: 8px 0;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-    }
-    td {
-      border: 1px solid #000;
-      padding: 10px;
-      width: 50px;
-      height: 40px;
-      text-align: center;
-      font-weight: bold;
-    }
-  </style>
 </head>
 
 <body>
 
-<h2>Old vs New Pattern (Line / ❌)</h2>
+<h2>Old vs New Pattern</h2>
 
-<div class="box">
-  <label>Old Record (comma se)</label>
-  <input id="oldInput" placeholder="33,38,83,30">
+<input id="oldInput" placeholder="33,38,83,30"><br><br>
+<input id="newInput" placeholder="31,16,61,10"><br><br>
 
-  <label>New Record (comma se)</label>
-  <input id="newInput" placeholder="31,16,61,10">
+<button onclick="runAnalysis()">Check</button>
 
-  <button onclick="runAnalysis()">Check Pattern</button>
-</div>
-
-<table id="resultTable"></table>
+<table id="resultTable" border="1" cellpadding="10"></table>
 
 <script>
-  function sameFamily(a, b) {
-    return Math.abs(a - b) % 5 === 0;
-  }
+function sameFamily(a, b) {
+  return Math.abs(a - b) % 5 === 0;
+}
 
-  function runAnalysis() {
-    const oldArr = document.getElementById("oldInput").value.split(",").map(Number);
-    const newArr = document.getElementById("newInput").value.split(",").map(Number);
+function runAnalysis() {
+  const oldArr = document.getElementById("oldInput").value.split(",").map(Number);
+  const newArr = document.getElementById("newInput").value.split(",").map(Number);
+  const table = document.getElementById("resultTable");
+  table.innerHTML = "";
 
-    const table = document.getElementById("resultTable");
-    table.innerHTML = "";
+  const row = document.createElement("tr");
 
-    const row = document.createElement("tr");
-
-    for (let i = 0; i < newArr.length; i++) {
-      const cell = document.createElement("td");
-
-      if (sameFamily(oldArr[i], newArr[i])) {
-        cell.style.background = "#90ee90"; // green line
-        cell.innerText = newArr[i];
-      } else {
-        cell.style.background = "#f08080"; // red cross
-        cell.innerText = newArr[i] + " ❌";
-      }
-      row.appendChild(cell);
+  for (let i = 0; i < newArr.length; i++) {
+    const cell = document.createElement("td");
+    if (sameFamily(oldArr[i], newArr[i])) {
+      cell.style.background = "lightgreen";
+      cell.innerText = newArr[i];
+    } else {
+      cell.style.background = "lightcoral";
+      cell.innerText = newArr[i] + " ❌";
     }
-    table.appendChild(row);
+    row.appendChild(cell);
   }
+  table.appendChild(row);
+}
 </script>
 
 </body>
