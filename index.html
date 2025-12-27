@@ -1,13 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pradeep Dehariya</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
 </head>
 
-<body
+<body class="bg-gray-100 text-gray-800">
 
+  <!-- Navbar -->
+  <nav class="bg-white shadow fixed w-full top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <span class="font-bold text-xl text-blue-600">Pradeep</span>
+      <div class="space-x-4">
+        <a href="#home" class="hover:text-blue-600">Home</a>
+        <a href="#about" class="hover:text-blue-600">About</a>
+        <a href="#projects" class="hover:text-blue-600">Projects</a>
+        <a href="#contact" class="hover:text-blue-600">Contact</a>
+      </div>
+    </div>
+  </nav>
 
-  
+  <!-- Spacer for fixed navbar -->
+  <div class="h-16"></div>
+
+  <!-- Home -->
+  <section id="home" class="bg-blue-600 text-white text-center py-20">
+    <h1 class="text-4xl font-bold">Welcome Pradeep</h1>
+    <p class="mt-4 text-lg">My GitHub Pages website is live 🚀</p>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="max-w-4xl mx-auto py-16 px-4 text-center">
+    <h2 class="text-3xl font-semibold mb-4">About Me</h2>
+    <p class="text-gray-700">
+      Hi! I am Pradeep Dehariya.  
+      This is my personal website hosted on GitHub Pages.
+      I am learning web development and building projects.
+    </p>
+  </section>
+
+  <!-- Projects -->
+  <section id="projects" class="bg-white py-16 px-4">
+    <h2 class="text-3xl font-semibold text-center mb-10">My Projects</h2>
+    <div class="flex flex-wrap justify-center gap-6">
+      <div class="bg-gray-100 p-6 rounded shadow w-72 hover:scale-105 transition">
+        <h3 class="font-bold text-xl mb-2">Project One</h3>
+        <p>My first GitHub project.</p>
+      </div>
+      <div class="bg-gray-100 p-6 rounded shadow w-72 hover:scale-105 transition">
+        <h3 class="font-bold text-xl mb-2">Project Two</h3>
+        <p>Learning HTML & CSS.</p>
+      </div>
+      <div class="bg-gray-100 p-6 rounded shadow w-72 hover:scale-105 transition">
+        <h3 class="font-bold text-xl mb-2">Project Three</h3>
+        <p>More projects coming soon.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="py-16 text-center px-4">
+    <h2 class="text-3xl font-semibold mb-4">Contact</h2>
+    <p>Email: <strong>your-email@gmail.com</strong></p>
+    <p class="mt-2">
+      GitHub:
+      <a href="https://github.com/premd132" class="text-blue-600 underline">
+        github.com/premd132
+      </a>
+    </p>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-blue-600 text-white text-center py-6">
+    © 2025 Pradeep Dehariya | GitHub Pages
+  </footer>
+
+</body>
+</html>
