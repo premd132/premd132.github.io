@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Complete Pattern Analysis</title>
+<title>Secure Pattern Analysis</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -20,9 +20,8 @@ h2{text-align:center;}
   border-radius:6px;
   box-shadow:0 0 6px rgba(0,0,0,0.2);
 }
-textarea{
+textarea,input{
   width:100%;
-  height:80px;
   padding:8px;
   margin-bottom:10px;
 }
@@ -62,12 +61,34 @@ canvas{
   margin-top:20px;
   border-radius:6px;
 }
+.hidden{display:none;}
+.login{
+  max-width:350px;
+  margin:120px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+  box-shadow:0 0 8px rgba(0,0,0,0.3);
+  text-align:center;
+}
+.error{color:red;}
 </style>
 </head>
 
 <body>
 
-<h2>Full Pattern Analysis (Line / ❌ / Zig-Zag)</h2>
+<!-- 🔐 LOGIN SCREEN -->
+<div id="loginBox" class="login">
+  <h2>🔐 Enter Password</h2>
+  <input type="password" id="passwordInput" placeholder="Password">
+  <button onclick="checkPassword()">Login</button>
+  <p id="errorMsg" class="error"></p>
+</div>
+
+<!-- 🔓 MAIN CONTENT -->
+<div id="mainContent" class="hidden">
+
+<h2>Secure Pattern Analysis</h2>
 
 <div class="box">
 <b>Old Records (har line = 1 row)</b>
@@ -92,13 +113,29 @@ canvas{
 <ul id="historyList"></ul>
 </div>
 
+</div>
+
 <script>
-// FAMILY RULE
+/* 🔑 CHANGE PASSWORD HERE */
+const PASSWORD = "1234";
+
+/* LOGIN CHECK */
+function checkPassword(){
+  const input=document.getElementById("passwordInput").value;
+  if(input===PASSWORD){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("mainContent").classList.remove("hidden");
+  }else{
+    document.getElementById("errorMsg").innerText="Wrong password!";
+  }
+}
+
+/* FAMILY RULE */
 function sameFamily(a,b){
   return Math.abs(a-b)%5===0;
 }
 
-// MAIN ANALYSIS
+/* MAIN ANALYSIS */
 function analyze(){
   const oldLines=document.getElementById("oldData").value.trim().split("\n");
   const newLines=document.getElementById("newData").value.trim().split("\n");
@@ -109,7 +146,6 @@ function analyze(){
     const oldArr=oldLines[r].split(",").map(Number);
     const newArr=newLines[r].split(",").map(Number);
 
-    // TABLE
     const table=document.createElement("table");
     const row=document.createElement("tr");
 
@@ -127,16 +163,12 @@ function analyze(){
     table.appendChild(row);
     result.appendChild(table);
 
-    // CANVAS (DIAGONAL / ZIG-ZAG)
     const canvas=document.createElement("canvas");
     canvas.width=80*newArr.length;
     canvas.height=70;
     const ctx=canvas.getContext("2d");
 
-    let x=40;
-    let y=35;
-    let dir=1;
-
+    let x=40,y=35,dir=1;
     for(let i=0;i<newArr.length-1;i++){
       if(sameFamily(oldArr[i],newArr[i])){
         ctx.strokeStyle="green";
@@ -163,33 +195,32 @@ function analyze(){
   }
 }
 
-// SAVE HISTORY (LOCAL)
+/* SAVE HISTORY */
 function saveHistory(){
-  const oldData=document.getElementById("oldData").value;
-  const newData=document.getElementById("newData").value;
-  const time=new Date().toLocaleString();
-  const entry={oldData,newData,time};
-
-  let history=JSON.parse(localStorage.getItem("patternHistory")||"[]");
-  history.push(entry);
-  localStorage.setItem("patternHistory",JSON.stringify(history));
+  const entry={
+    old:oldData.value,
+    new:newData.value,
+    time:new Date().toLocaleString()
+  };
+  let h=JSON.parse(localStorage.getItem("patternHistory")||"[]");
+  h.push(entry);
+  localStorage.setItem("patternHistory",JSON.stringify(h));
   loadHistory();
 }
 
-// LOAD HISTORY
+/* LOAD HISTORY */
 function loadHistory(){
   const list=document.getElementById("historyList");
   list.innerHTML="";
-  const history=JSON.parse(localStorage.getItem("patternHistory")||"[]");
-
-  history.forEach(h=>{
+  let h=JSON.parse(localStorage.getItem("patternHistory")||"[]");
+  h.forEach(e=>{
     const li=document.createElement("li");
-    li.innerText=h.time+" | OLD: "+h.oldData.replace(/\n/g," / ")+" | NEW: "+h.newData.replace(/\n/g," / ");
+    li.innerText=e.time+" | OLD: "+e.old.replace(/\n/g," / ")+" | NEW: "+e.new.replace(/\n/g," / ");
     list.appendChild(li);
   });
 }
 
-// DOWNLOAD IMAGE
+/* DOWNLOAD IMAGE */
 function downloadImage(){
   html2canvas(document.body).then(canvas=>{
     const link=document.createElement("a");
@@ -199,11 +230,9 @@ function downloadImage(){
   });
 }
 
-// AUTO LOAD HISTORY
 loadHistory();
 </script>
 
-<!-- IMAGE EXPORT LIB -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
