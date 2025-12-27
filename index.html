@@ -2,102 +2,94 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Result Chart Dashboard</title>
+<title>Matka Result Chart Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f1f5f9;color:#000}
-header{background:#0f172a;color:#fff;padding:12px;text-align:center;font-size:20px}
-nav{display:flex;background:#020617}
-nav button{flex:1;padding:10px;border:none;background:#020617;color:#fff}
-nav button.active{background:#2563eb}
+body{margin:0;font-family:Arial;background:#eef2f7}
+header{background:#111827;color:#fff;padding:12px;text-align:center;font-size:20px}
+.market{background:#fff;margin:10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.market h3{margin:0;padding:10px;background:#1f2933;color:#fff;border-radius:6px 6px 0 0}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:14px}
+th{background:#f8fafc}
+.tabs{display:flex}
+.tabs button{flex:1;padding:8px;border:none;background:#e5e7eb}
+.tabs button.active{background:#2563eb;color:#fff}
 .section{display:none;padding:10px}
 .section.active{display:block}
-table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
-th,td{border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:14px}
-.drop{border:2px dashed #2563eb;padding:15px;text-align:center;margin-top:10px}
-canvas{background:#fff;margin-top:15px}
-h3{margin:10px 0}
+input{width:100%;padding:6px;margin:6px 0}
+canvas{background:#fff;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<header>Result & Chart Dashboard</header>
+<header>Matka Result & Chart</header>
 
-<nav>
-<button class="active" onclick="showTab('jodi')">Jodi Chart</button>
-<button onclick="showTab('panel')">Panel Chart</button>
-<button onclick="showTab('trend')">Trend</button>
-</nav>
+<div class="market">
+<h3>Kalyan Night</h3>
 
-<!-- JODI -->
-<div class="section active" id="jodi">
-<h3>Jodi Chart</h3>
-<input type="text" id="jodiInput" placeholder="Ex: 12,34,56,78" style="width:100%;padding:6px">
-<button onclick="renderTable('jodiInput','jodiTable')">Show</button>
-<table id="jodiTable"></table>
+<div class="tabs">
+<button class="active" onclick="tab(this,'jodi1')">Jodi Chart</button>
+<button onclick="tab(this,'panel1')">Panel Chart</button>
+<button onclick="tab(this,'trend1')">Trend</button>
 </div>
 
-<!-- PANEL -->
-<div class="section" id="panel">
-<h3>Panel Chart</h3>
-<input type="text" id="panelInput" placeholder="Ex: 123,456,789" style="width:100%;padding:6px">
-<button onclick="renderTable('panelInput','panelTable')">Show</button>
-<table id="panelTable"></table>
+<div id="jodi1" class="section active">
+<input placeholder="Jodi numbers (12,34,56,78)" id="jodiInput1">
+<button onclick="render('jodiInput1','jodiTable1')">Show</button>
+<table id="jodiTable1"></table>
 </div>
 
-<!-- TREND -->
-<div class="section" id="trend">
-<h3>Trend Graph</h3>
-<div class="drop">
-Upload Excel (.xlsx)
-<input type="file" id="file" accept=".xlsx">
+<div id="panel1" class="section">
+<input placeholder="Panel (123,456,789)" id="panelInput1">
+<button onclick="render('panelInput1','panelTable1')">Show</button>
+<table id="panelTable1"></table>
 </div>
-<canvas id="chart"></canvas>
+
+<div id="trend1" class="section">
+<canvas id="chart1"></canvas>
+</div>
+
 </div>
 
 <script>
-function showTab(id){
-document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-document.getElementById(id).classList.add('active');
-event.target.classList.add('active');
+function tab(btn,id){
+  const box=btn.parentElement.parentElement;
+  box.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  box.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
 }
 
-function renderTable(input,tableId){
-const data=document.getElementById(input).value.split(",");
-let html="<tr>";
-data.forEach(d=>html+="<td>"+d.trim()+"</td>");
-html+="</tr>";
-document.getElementById(tableId).innerHTML=html;
+function render(input,table){
+  const data=document.getElementById(input).value.split(",");
+  let html="<tr>";
+  data.forEach(d=>html+="<td>"+d.trim()+"</td>");
+  html+="</tr>";
+  document.getElementById(table).innerHTML=html;
+  drawChart(data.map(d=>parseInt(d)));
 }
 
 let chart;
-document.getElementById("file").addEventListener("change",e=>{
-const reader=new FileReader();
-reader.onload=ev=>{
-const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
-const sheet=wb.Sheets[wb.SheetNames[0]];
-const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-const nums=[];
-rows.forEach(r=>r.forEach(c=>{if(!isNaN(c))nums.push(c)}));
-drawChart(nums);
-};
-reader.readAsArrayBuffer(e.target.files[0]);
-});
-
 function drawChart(data){
-if(chart)chart.destroy();
-chart=new Chart(document.getElementById("chart"),{
-type:"line",
-data:{labels:data.map((_,i)=>i+1),
-datasets:[{data,borderColor:"#2563eb",fill:false}]},
-options:{responsive:true}
-});
+  if(chart)chart.destroy();
+  chart=new Chart(document.getElementById("chart1"),{
+    type:"line",
+    data:{
+      labels:data.map((_,i)=>i+1),
+      datasets:[{
+        label:"Trend",
+        data,
+        borderColor:"#2563eb",
+        fill:false
+      }]
+    },
+    options:{responsive:true}
+  });
 }
 </script>
 
