@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Jodi Chart</title>
+<title>Advanced Jodi Chart</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -10,57 +10,96 @@
 <style>
 body{font-family:Arial;background:#f1f5f9;margin:0;padding:10px}
 h2{text-align:center;background:#111827;color:#fff;padding:10px}
+.controls{display:flex;gap:6px;margin-bottom:10px}
+button{flex:1;padding:6px;border:none;background:#2563eb;color:#fff}
 table{border-collapse:collapse;width:100%;background:#fff}
-th,td{border:1px solid #000;padding:6px;text-align:center;font-size:14px}
+th,td{border:1px solid #000;padding:5px;text-align:center;font-size:13px}
 th{background:#e5e7eb}
-.highlight{background:#dcfce7;font-weight:bold}
+.hot{background:#bbf7d0;font-weight:bold}
+.due{background:#fecaca;font-weight:bold}
+.box{border:2px solid #111827;padding:6px;margin-top:8px;background:#fff}
 .upload{border:2px dashed #2563eb;padding:10px;text-align:center;margin-bottom:10px}
 </style>
 </head>
 
 <body>
 
-<h2>Jodi Chart (dpboss Style)</h2>
+<h2>Advanced Jodi Chart (dpboss Style)</h2>
 
 <div class="upload">
 Upload Excel (Date | Jodi)<br>
 <input type="file" id="file" accept=".xlsx">
 </div>
 
-<table id="chartTable"></table>
+<div class="controls">
+<button onclick="render(30)">Last 30</button>
+<button onclick="render(60)">Last 60</button>
+<button onclick="render(9999)">All</button>
+</div>
+
+<div class="box">
+<b>🔥 Top Important Jodi</b>
+<div id="top"></div>
+</div>
+
+<table id="chart"></table>
 
 <script>
-document.getElementById("file").addEventListener("change", e=>{
+let allData=[];
+
+document.getElementById("file").addEventListener("change",e=>{
   const reader=new FileReader();
   reader.onload=ev=>{
     const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
     const sheet=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-    buildChart(rows);
+    allData=[];
+    rows.forEach(r=>{
+      if(r[1] && !isNaN(r[1])) allData.push(r[1].toString().padStart(2,'0'));
+    });
+    render(30);
   };
   reader.readAsArrayBuffer(e.target.files[0]);
 });
 
-function buildChart(rows){
-  const data=[];
-  rows.forEach(r=>{
-    if(r[1] && !isNaN(r[1])) data.push(r[1].toString().padStart(2,'0'));
+function render(limit){
+  const data=allData.slice(-limit);
+
+  const freq={}, gap={};
+  data.forEach((j,i)=>{
+    freq[j]=(freq[j]||0)+1;
+    gap[j]=data.length-i;
   });
 
-  let html="<tr><th>Date</th>";
+  // top jodi
+  const sorted=Object.keys(freq)
+    .map(j=>({j,score:freq[j]*1.5+gap[j]*0.3}))
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,5);
+
+  document.getElementById("top").innerHTML=
+    sorted.map(s=>`${s.j}`).join(" , ");
+
+  let html="<tr><th>Day</th>";
   for(let i=0;i<=9;i++) html+=`<th>${i}</th>`;
   html+="</tr>";
 
-  data.slice(-30).forEach((jodi,i)=>{
+  data.forEach((j,i)=>{
     html+=`<tr><th>D${i+1}</th>`;
     for(let d=0;d<=9;d++){
-      const cell=(jodi[0]==d.toString()||jodi[1]==d.toString())?`<td class="highlight">${jodi}</td>`:"<td></td>";
-      html+=cell;
+      let cls="";
+      if(j[0]==d||j[1]==d){
+        if(freq[j]>=Math.max(...Object.values(freq))-1) cls="hot";
+        if(gap[j]>data.length*0.7) cls="due";
+        html+=`<td class="${cls}">${j}</td>`;
+      }else{
+        html+="<td></td>";
+      }
     }
     html+="</tr>";
   });
 
-  document.getElementById("chartTable").innerHTML=html;
+  document.getElementById("chart").innerHTML=html;
 }
 </script>
 
