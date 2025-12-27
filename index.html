@@ -2,48 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Matka AI System</title>
+<title>Kings of Matka AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+/* ====== GLOBAL ====== */
 body{
   margin:0;
   font-family: Arial, sans-serif;
-  background:#0f172a;
   color:#fff;
 }
 
-/* ---------- HOME PAGE ---------- */
+/* ====== HOME PAGE ====== */
 #home{
   display:flex;
-  height:100vh;
+  min-height:100vh;
+  background:url("https://images.unsplash.com/photo-1519681393784-d120267933ba") center/cover no-repeat;
 }
-.left{
+.overlay{
+  display:flex;
+  width:100%;
+  background:rgba(0,0,0,0.75);
+}
+.home-left{
   flex:1;
   display:flex;
   align-items:center;
   justify-content:center;
-  text-align:center;
   padding:40px;
+  text-align:center;
 }
-.left h1{
-  font-size:36px;
+.home-left h1{
+  font-size:38px;
   line-height:1.4;
   color:#38bdf8;
 }
-.right{
+.home-right{
   flex:1;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:#020617;
 }
 .login-box{
-  background:#111827;
+  background:#020617;
   padding:30px;
   width:320px;
   border-radius:8px;
-  box-shadow:0 0 20px rgba(0,0,0,0.6);
+  box-shadow:0 0 25px rgba(0,0,0,0.7);
 }
 .login-box h2{
   text-align:center;
@@ -64,29 +69,24 @@ body{
   font-size:16px;
   cursor:pointer;
 }
-.error{
-  color:red;
-  text-align:center;
-  margin-top:10px;
-}
+.error{color:red;text-align:center;}
 
-/* ---------- DASHBOARD ---------- */
+/* ====== DASHBOARD ====== */
 #dashboard{
   display:none;
   min-height:100vh;
   background:#020617;
 }
 .header{
-  background:#020617;
   padding:15px;
   text-align:center;
   font-size:22px;
   border-bottom:1px solid #1e293b;
 }
-.content{
-  padding:30px;
+.container{
   max-width:900px;
   margin:auto;
+  padding:25px;
 }
 .card{
   background:#111827;
@@ -94,10 +94,40 @@ body{
   border-radius:8px;
   margin-bottom:20px;
 }
+textarea{
+  width:100%;
+  height:70px;
+  padding:8px;
+}
+button.action{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  background:#22c55e;
+  border:none;
+  cursor:pointer;
+  font-size:15px;
+}
+table{
+  margin:15px auto;
+  border-collapse:collapse;
+  background:#fff;
+  color:#000;
+}
+td{
+  border:1px solid #000;
+  padding:8px;
+  min-width:55px;
+  text-align:center;
+  font-weight:bold;
+}
+.green{background:#90ee90;}
+.red{background:#f08080;}
+canvas{display:block;margin:5px auto 25px auto;}
 .logout{
   background:#dc2626;
-  padding:10px;
   border:none;
+  padding:10px;
   color:#fff;
   cursor:pointer;
 }
@@ -106,72 +136,129 @@ body{
 
 <body>
 
-<!-- ================= HOME PAGE ================= -->
+<!-- ================= HOME ================= -->
 <div id="home">
-  <div class="left">
-    <h1>
-      Welcome to the world of<br>
-      <b>The Kings of Matka</b><br><br>
-      AI Generate_Perfect Gussing
-    </h1>
-  </div>
+  <div class="overlay">
+    <div class="home-left">
+      <h1>
+        Welcome to the world of<br>
+        <b>The Kings of Matka</b><br><br>
+        AI Generate_Perfect Gussing
+      </h1>
+    </div>
 
-  <div class="right">
-    <div class="login-box">
-      <h2>Login</h2>
-      <input type="password" id="password" placeholder="Enter Password">
-      <button onclick="login()">Login</button>
-      <div id="error" class="error"></div>
+    <div class="home-right">
+      <div class="login-box">
+        <h2>Login</h2>
+        <input type="password" id="password" placeholder="Enter Password">
+        <button onclick="login()">Login</button>
+        <div id="error" class="error"></div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ================= SECOND PAGE / DASHBOARD ================= -->
+<!-- ================= DASHBOARD ================= -->
 <div id="dashboard">
-  <div class="header">
-    Kings of Matka – AI Dashboard
-  </div>
+  <div class="header">Kings of Matka – AI Dashboard</div>
 
-  <div class="content">
-    <div class="card">
-      <h3>Welcome 👑</h3>
-      <p>
-        You are successfully logged in.<br>
-        This is your private analysis dashboard.
-      </p>
-    </div>
+  <div class="container">
 
     <div class="card">
-      <h3>System Status</h3>
-      <p>
-        • Secure Login Active ✅<br>
-        • Analysis Tools Enabled ✅<br>
-        • Private Access Only 🔒
-      </p>
+      <h3>Old Records</h3>
+      <textarea id="oldData">33,38,83,30
+49,16,71,07</textarea>
+
+      <h3>New Records</h3>
+      <textarea id="newData">31,16,61,10
+49,17,08,72</textarea>
+
+      <button class="action" onclick="analyze()">Run Analysis</button>
     </div>
+
+    <div id="result"></div>
 
     <button class="logout" onclick="logout()">Logout</button>
   </div>
 </div>
 
 <script>
-/* 🔑 CHANGE PASSWORD HERE */
+/* ===== PASSWORD ===== */
 const PASSWORD = "1234";
 
+/* ===== LOGIN ===== */
 function login(){
-  const input = document.getElementById("password").value;
-  if(input === PASSWORD){
-    document.getElementById("home").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
+  if(password.value===PASSWORD){
+    home.style.display="none";
+    dashboard.style.display="block";
   }else{
-    document.getElementById("error").innerText = "Wrong password!";
+    error.innerText="Wrong password!";
   }
 }
-
 function logout(){
-  document.getElementById("dashboard").style.display = "none";
-  document.getElementById("home").style.display = "flex";
-  document.getElementById("password").value = "";
+  dashboard.style.display="none";
+  home.style.display="flex";
+  password.value="";
+}
+
+/* ===== FAMILY RULE ===== */
+function sameFamily(a,b){return Math.abs(a-b)%5===0;}
+
+/* ===== ANALYSIS ===== */
+function analyze(){
+  const oldLines=oldData.value.trim().split("\n");
+  const newLines=newData.value.trim().split("\n");
+  result.innerHTML="";
+
+  for(let r=0;r<newLines.length;r++){
+    const oldArr=oldLines[r].split(",").map(Number);
+    const newArr=newLines[r].split(",").map(Number);
+
+    const table=document.createElement("table");
+    const row=document.createElement("tr");
+
+    for(let i=0;i<newArr.length;i++){
+      const td=document.createElement("td");
+      if(sameFamily(oldArr[i],newArr[i])){
+        td.className="green"; td.innerText=newArr[i];
+      }else{
+        td.className="red"; td.innerText=newArr[i]+" ❌";
+      }
+      row.appendChild(td);
+    }
+    table.appendChild(row);
+    result.appendChild(table);
+
+    const canvas=document.createElement("canvas");
+    canvas.width=80*newArr.length;
+    canvas.height=60;
+    const ctx=canvas.getContext("2d");
+
+    let x=40,y=30,dir=1;
+    for(let i=0;i<newArr.length-1;i++){
+      if(sameFamily(oldArr[i],newArr[i])){
+        ctx.strokeStyle="green";
+        ctx.lineWidth=3;
+        ctx.beginPath();
+        ctx.moveTo(x,y);
+        y+=dir*12;
+        ctx.lineTo(x+70,y);
+        ctx.stroke();
+        dir*=-1;
+      }else{
+        ctx.strokeStyle="red";
+        ctx.lineWidth=3;
+        ctx.beginPath();
+        ctx.moveTo(x-8,y-12);
+        ctx.lineTo(x+8,y+12);
+        ctx.moveTo(x-8,y+12);
+        ctx.lineTo(x+8,y-12);
+        ctx.stroke();
+      }
+      x+=70;
+    }
+    result.appendChild(canvas);
+  }
 }
 </script>
 
