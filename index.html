@@ -29,6 +29,23 @@
 <div id="chart-container" style="display:flex;justify-content:center;">
   <table id="record-table"></table>
 </div>
+<h2 style="text-align:center;">Enter Records</h2>
+
+<div style="text-align:center;">
+  <p>Old Record (comma se alag karo)</p>
+  <input id="oldInput" placeholder="33,38,83,30" style="width:250px;"><br><br>
+
+  <p>New Record (comma se alag karo)</p>
+  <input id="newInput" placeholder="31,16,61,10" style="width:250px;"><br><br>
+
+  <button onclick="runAnalysis()">Check Pattern</button>
+</div>
+
+<br>
+
+<div style="display:flex;justify-content:center;">
+  <table id="resultTable"></table>
+</div>
 
 <body class="bg-gray-100 text-gray-800">
 
@@ -139,6 +156,39 @@
     }
     table.appendChild(row);
   }
+</script>
+<script>
+function sameFamily(a, b) {
+  return Math.abs(a - b) % 5 === 0;
+}
+
+function runAnalysis() {
+  const oldArr = document.getElementById("oldInput").value.split(",").map(Number);
+  const newArr = document.getElementById("newInput").value.split(",").map(Number);
+
+  const table = document.getElementById("resultTable");
+  table.innerHTML = "";
+
+  const row = document.createElement("tr");
+
+  for (let i = 0; i < newArr.length; i++) {
+    const cell = document.createElement("td");
+
+    if (sameFamily(oldArr[i], newArr[i])) {
+      cell.style.background = "lightgreen";
+      cell.innerText = newArr[i];
+    } else {
+      cell.style.background = "lightcoral";
+      cell.innerText = newArr[i] + " ❌";
+    }
+
+    cell.style.border = "1px solid black";
+    cell.style.padding = "10px";
+    row.appendChild(cell);
+  }
+
+  table.appendChild(row);
+}
 </script>
 
 </body>
