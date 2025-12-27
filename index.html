@@ -2,110 +2,119 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Multi Row Pattern Analysis</title>
+<title>Complete Pattern Analysis</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-  body{
-    font-family: Arial, sans-serif;
-    background:#f2f2f2;
-    padding:20px;
-  }
-  h2{
-    text-align:center;
-    margin-bottom:10px;
-  }
-  .box{
-    background:#fff;
-    max-width:700px;
-    margin:0 auto;
-    padding:15px;
-    border-radius:6px;
-    box-shadow:0 0 6px rgba(0,0,0,0.2);
-  }
-  textarea{
-    width:100%;
-    height:80px;
-    padding:8px;
-    margin-bottom:10px;
-  }
-  button{
-    width:100%;
-    padding:10px;
-    background:#007bff;
-    color:#fff;
-    border:none;
-    cursor:pointer;
-    font-size:16px;
-  }
-  table{
-    margin:20px auto;
-    border-collapse:collapse;
-    background:#fff;
-  }
-  th,td{
-    border:1px solid #000;
-    padding:8px;
-    text-align:center;
-    min-width:50px;
-    font-weight:bold;
-  }
-  th{
-    background:#ddd;
-  }
-  .green{ background:#90ee90; }
-  .red{ background:#f08080; }
-  canvas{
-    display:block;
-    margin:10px auto 30px auto;
-  }
+body{
+  font-family: Arial, sans-serif;
+  background:#f2f2f2;
+  padding:20px;
+}
+h2{text-align:center;}
+.box{
+  background:#fff;
+  max-width:800px;
+  margin:0 auto;
+  padding:15px;
+  border-radius:6px;
+  box-shadow:0 0 6px rgba(0,0,0,0.2);
+}
+textarea{
+  width:100%;
+  height:80px;
+  padding:8px;
+  margin-bottom:10px;
+}
+button{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  background:#007bff;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-size:15px;
+}
+button.secondary{background:#28a745;}
+button.danger{background:#dc3545;}
+table{
+  margin:15px auto;
+  border-collapse:collapse;
+  background:#fff;
+}
+td{
+  border:1px solid #000;
+  padding:8px;
+  min-width:55px;
+  text-align:center;
+  font-weight:bold;
+}
+.green{background:#90ee90;}
+.red{background:#f08080;}
+canvas{
+  display:block;
+  margin:5px auto 30px auto;
+}
+.history{
+  background:#fff;
+  padding:10px;
+  margin-top:20px;
+  border-radius:6px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Multi-Row Old vs New Pattern (Line / ❌)</h2>
+<h2>Full Pattern Analysis (Line / ❌ / Zig-Zag)</h2>
 
 <div class="box">
-  <p><b>Format (har line = 1 row)</b></p>
-  <p>Example:</p>
-  <p><code>33,38,83,30</code></p>
-  <p><code>49,16,71,07</code></p>
-
-  <label><b>Old Records</b></label>
-  <textarea id="oldData">33,38,83,30
+<b>Old Records (har line = 1 row)</b>
+<textarea id="oldData">33,38,83,30
 49,16,71,07
 18,83,30,07</textarea>
 
-  <label><b>New Records</b></label>
-  <textarea id="newData">31,16,61,10
+<b>New Records</b>
+<textarea id="newData">31,16,61,10
 49,17,08,72
 19,84,31,09</textarea>
 
-  <button onclick="analyze()">Check Full Pattern</button>
+<button onclick="analyze()">Check Pattern</button>
+<button class="secondary" onclick="saveHistory()">Save History</button>
+<button class="danger" onclick="downloadImage()">Download Image</button>
 </div>
 
 <div id="result"></div>
 
+<div class="history">
+<h3>Saved History</h3>
+<ul id="historyList"></ul>
+</div>
+
 <script>
+// FAMILY RULE
 function sameFamily(a,b){
   return Math.abs(a-b)%5===0;
 }
 
+// MAIN ANALYSIS
 function analyze(){
-  const oldLines = document.getElementById("oldData").value.trim().split("\n");
-  const newLines = document.getElementById("newData").value.trim().split("\n");
-  const result = document.getElementById("result");
-  result.innerHTML = "";
+  const oldLines=document.getElementById("oldData").value.trim().split("\n");
+  const newLines=document.getElementById("newData").value.trim().split("\n");
+  const result=document.getElementById("result");
+  result.innerHTML="";
 
   for(let r=0;r<newLines.length;r++){
-    const oldArr = oldLines[r].split(",").map(Number);
-    const newArr = newLines[r].split(",").map(Number);
+    const oldArr=oldLines[r].split(",").map(Number);
+    const newArr=newLines[r].split(",").map(Number);
 
-    const table = document.createElement("table");
-    const row = document.createElement("tr");
+    // TABLE
+    const table=document.createElement("table");
+    const row=document.createElement("tr");
 
     for(let i=0;i<newArr.length;i++){
-      const td = document.createElement("td");
+      const td=document.createElement("td");
       if(sameFamily(oldArr[i],newArr[i])){
         td.className="green";
         td.innerText=newArr[i];
@@ -118,22 +127,26 @@ function analyze(){
     table.appendChild(row);
     result.appendChild(table);
 
-    // CANVAS
+    // CANVAS (DIAGONAL / ZIG-ZAG)
     const canvas=document.createElement("canvas");
-    canvas.width=70*newArr.length;
-    canvas.height=60;
+    canvas.width=80*newArr.length;
+    canvas.height=70;
     const ctx=canvas.getContext("2d");
 
-    let x=35;
-    let y=30;
+    let x=40;
+    let y=35;
+    let dir=1;
+
     for(let i=0;i<newArr.length-1;i++){
       if(sameFamily(oldArr[i],newArr[i])){
         ctx.strokeStyle="green";
         ctx.lineWidth=3;
         ctx.beginPath();
         ctx.moveTo(x,y);
+        y=y+(dir*15);
         ctx.lineTo(x+70,y);
         ctx.stroke();
+        dir*=-1;
       }else{
         ctx.strokeStyle="red";
         ctx.lineWidth=3;
@@ -149,7 +162,49 @@ function analyze(){
     result.appendChild(canvas);
   }
 }
+
+// SAVE HISTORY (LOCAL)
+function saveHistory(){
+  const oldData=document.getElementById("oldData").value;
+  const newData=document.getElementById("newData").value;
+  const time=new Date().toLocaleString();
+  const entry={oldData,newData,time};
+
+  let history=JSON.parse(localStorage.getItem("patternHistory")||"[]");
+  history.push(entry);
+  localStorage.setItem("patternHistory",JSON.stringify(history));
+  loadHistory();
+}
+
+// LOAD HISTORY
+function loadHistory(){
+  const list=document.getElementById("historyList");
+  list.innerHTML="";
+  const history=JSON.parse(localStorage.getItem("patternHistory")||"[]");
+
+  history.forEach(h=>{
+    const li=document.createElement("li");
+    li.innerText=h.time+" | OLD: "+h.oldData.replace(/\n/g," / ")+" | NEW: "+h.newData.replace(/\n/g," / ");
+    list.appendChild(li);
+  });
+}
+
+// DOWNLOAD IMAGE
+function downloadImage(){
+  html2canvas(document.body).then(canvas=>{
+    const link=document.createElement("a");
+    link.download="pattern-analysis.png";
+    link.href=canvas.toDataURL();
+    link.click();
+  });
+}
+
+// AUTO LOAD HISTORY
+loadHistory();
 </script>
+
+<!-- IMAGE EXPORT LIB -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </body>
 </html>
