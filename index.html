@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+  <style>
+  table {
+    border-collapse: collapse;
+  }
+  td {
+    border: 1px solid #000;
+    padding: 8px;
+    width: 45px;
+    height: 40px;
+    text-align: center;
+    font-weight: bold;
+  }
+</style>
+
 <head>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pradeep Dehariya</title>
@@ -9,6 +24,11 @@
     html { scroll-behavior: smooth; }
   </style>
 </head>
+<h2 style="text-align:center;">Pattern Analysis (Example)</h2>
+
+<div id="chart-container" style="display:flex;justify-content:center;">
+  <table id="record-table"></table>
+</div>
 
 <body class="bg-gray-100 text-gray-800">
 
@@ -79,6 +99,47 @@
   <footer class="bg-blue-600 text-white text-center py-6">
     © 2025 Pradeep Dehariya | GitHub Pages
   </footer>
+<script>
+  // OLD RECORD (example)
+  const oldRecord = [
+    [33, 38, 83, 30],
+    [49, 16, 71, 07],
+    [18, 83, 30, 07]
+  ];
+
+  // NEW RECORD (example)
+  const newRecord = [
+    [31, 16, 61, 10],
+    [49, 17, 08, 72],
+    [19, 84, 31, 09]
+  ];
+
+  function sameFamily(a, b) {
+    return Math.abs(a - b) % 5 === 0;
+  }
+
+  const table = document.getElementById("record-table");
+
+  for (let i = 0; i < newRecord.length; i++) {
+    const row = document.createElement("tr");
+
+    for (let j = 0; j < newRecord[i].length; j++) {
+      const cell = document.createElement("td");
+      const oldVal = oldRecord[i][j];
+      const newVal = newRecord[i][j];
+
+      if (sameFamily(oldVal, newVal)) {
+        cell.style.background = "#90ee90"; // green
+        cell.innerText = newVal;
+      } else {
+        cell.style.background = "#f08080"; // red
+        cell.innerText = newVal + " ❌";
+      }
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  }
+</script>
 
 </body>
 </html>
