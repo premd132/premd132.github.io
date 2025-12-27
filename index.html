@@ -1,95 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Matka Result Chart Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jodi Chart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#eef2f7}
-header{background:#111827;color:#fff;padding:12px;text-align:center;font-size:20px}
-.market{background:#fff;margin:10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.market h3{margin:0;padding:10px;background:#1f2933;color:#fff;border-radius:6px 6px 0 0}
-table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:14px}
-th{background:#f8fafc}
-.tabs{display:flex}
-.tabs button{flex:1;padding:8px;border:none;background:#e5e7eb}
-.tabs button.active{background:#2563eb;color:#fff}
-.section{display:none;padding:10px}
-.section.active{display:block}
-input{width:100%;padding:6px;margin:6px 0}
-canvas{background:#fff;margin-top:10px}
+body{font-family:Arial;background:#f1f5f9;margin:0;padding:10px}
+h2{text-align:center;background:#111827;color:#fff;padding:10px}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{border:1px solid #000;padding:6px;text-align:center;font-size:14px}
+th{background:#e5e7eb}
+.highlight{background:#dcfce7;font-weight:bold}
+.upload{border:2px dashed #2563eb;padding:10px;text-align:center;margin-bottom:10px}
 </style>
 </head>
 
 <body>
 
-<header>Matka Result & Chart</header>
+<h2>Jodi Chart (dpboss Style)</h2>
 
-<div class="market">
-<h3>Kalyan Night</h3>
-
-<div class="tabs">
-<button class="active" onclick="tab(this,'jodi1')">Jodi Chart</button>
-<button onclick="tab(this,'panel1')">Panel Chart</button>
-<button onclick="tab(this,'trend1')">Trend</button>
+<div class="upload">
+Upload Excel (Date | Jodi)<br>
+<input type="file" id="file" accept=".xlsx">
 </div>
 
-<div id="jodi1" class="section active">
-<input placeholder="Jodi numbers (12,34,56,78)" id="jodiInput1">
-<button onclick="render('jodiInput1','jodiTable1')">Show</button>
-<table id="jodiTable1"></table>
-</div>
-
-<div id="panel1" class="section">
-<input placeholder="Panel (123,456,789)" id="panelInput1">
-<button onclick="render('panelInput1','panelTable1')">Show</button>
-<table id="panelTable1"></table>
-</div>
-
-<div id="trend1" class="section">
-<canvas id="chart1"></canvas>
-</div>
-
-</div>
+<table id="chartTable"></table>
 
 <script>
-function tab(btn,id){
-  const box=btn.parentElement.parentElement;
-  box.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  box.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-}
+document.getElementById("file").addEventListener("change", e=>{
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+    buildChart(rows);
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+});
 
-function render(input,table){
-  const data=document.getElementById(input).value.split(",");
-  let html="<tr>";
-  data.forEach(d=>html+="<td>"+d.trim()+"</td>");
-  html+="</tr>";
-  document.getElementById(table).innerHTML=html;
-  drawChart(data.map(d=>parseInt(d)));
-}
-
-let chart;
-function drawChart(data){
-  if(chart)chart.destroy();
-  chart=new Chart(document.getElementById("chart1"),{
-    type:"line",
-    data:{
-      labels:data.map((_,i)=>i+1),
-      datasets:[{
-        label:"Trend",
-        data,
-        borderColor:"#2563eb",
-        fill:false
-      }]
-    },
-    options:{responsive:true}
+function buildChart(rows){
+  const data=[];
+  rows.forEach(r=>{
+    if(r[1] && !isNaN(r[1])) data.push(r[1].toString().padStart(2,'0'));
   });
+
+  let html="<tr><th>Date</th>";
+  for(let i=0;i<=9;i++) html+=`<th>${i}</th>`;
+  html+="</tr>";
+
+  data.slice(-30).forEach((jodi,i)=>{
+    html+=`<tr><th>D${i+1}</th>`;
+    for(let d=0;d<=9;d++){
+      const cell=(jodi[0]==d.toString()||jodi[1]==d.toString())?`<td class="highlight">${jodi}</td>`:"<td></td>";
+      html+=cell;
+    }
+    html+="</tr>";
+  });
+
+  document.getElementById("chartTable").innerHTML=html;
 }
 </script>
 
