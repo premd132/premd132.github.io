@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Excel Upload</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    background:#e9ecef;
+}
+.container{
+    max-width:100%;
+    margin:20px;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+input[type=file]{
+    display:block;
+    margin:15px auto;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+th,td{
+    border:1px solid #333;
+    padding:8px;
+    text-align:center;
+    font-size:14px;
+}
+th{
+    background:#000;
+    color:#fff;
+}
+tr:nth-child(even){
+    background:#f2f2f2;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Excel File Upload & View</h2>
+
+    <input type="file" id="excelFile" accept=".xls,.xlsx,.csv">
+
+    <table id="excelTable"></table>
+</div>
+
+<!-- Excel Read Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+document.getElementById("excelFile").addEventListener("change", function(e){
+
+    var file = e.target.files[0];
+    if(!file){
+        alert("Excel file select nahi hui");
+        return;
+    }
+
+    var reader = new FileReader();
+
+    reader.onload = function(event){
+        var data = new Uint8Array(event.target.result);
+        var workbook = XLSX.read(data, {type: "array"});
+
+        var sheetName = workbook.SheetNames[0];
+        var sheet = workbook.Sheets[sheetName];
+
+        var excelData = XLSX.utils.sheet_to_json(sheet, {header:1});
+
+        var table = document.getElementById("excelTable");
+        table.innerHTML = "";
+
+        for(var i=0;i<excelData.length;i++){
+            var row = table.insertRow();
+
+            for(var j=0;j<excelData[i].length;j++){
+                var cell;
+                if(i === 0){
+                    cell = document.createElement("th");
+                }else{
+                    cell = document.createElement("td");
+                }
+                cell.innerHTML = excelData[i][j] || "";
+                row.appendChild(cell);
+            }
+        }
+
+        alert("Excel file successfully load ho gayi ✔");
+    };
+
+    reader.readAsArrayBuffer(file);
+});
+</script>
+
+</body>
+</html>
