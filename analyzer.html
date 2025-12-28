@@ -1,168 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>👑 Kings of Matka – Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Record Line Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{margin:0;font-family:Arial;background:#f1f5f9}
-h2{text-align:center;margin:10px}
-#top{background:#020617;color:#fff;padding:10px;text-align:center}
-#modeBtns button{margin:4px;padding:6px 10px}
-#bubbleWrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px}
-.bubble{border-radius:50%;display:flex;align-items:center;justify-content:center;
-color:#fff;font-weight:bold;cursor:pointer}
-#tableWrap{position:relative;overflow-x:auto;margin-top:10px}
-table{border-collapse:collapse;margin:auto;background:#fff}
-td{border:1px solid #ccc;width:45px;height:35px;text-align:center;font-weight:bold}
-td.hit{background:#2563eb;color:#fff}
-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-#checkLine{max-width:360px;margin:10px auto}
-#checkLine div{display:flex;justify-content:space-between;
-background:#e5e7eb;padding:6px;margin:4px 0;border-radius:4px}
-</style>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 10px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .controls label {
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .box {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="top">
-  <h2 id="title">Analyzer</h2>
-  <div id="modeBtns">
-    <button onclick="setMode(1)">Normal</button>
-    <button onclick="setMode(2)">2nd Touch</button>
-    <button onclick="setMode(3)">3rd Touch</button>
-    <button onclick="setMode(99)">Combo</button>
+  <h2>📊 Record Line Analyzer</h2>
+
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="lineToggle" checked>
+      Check Line
+    </label>
   </div>
-</div>
 
-<div id="bubbleWrap"></div>
+  <div class="box">
+    <canvas id="lineChart" height="300"></canvas>
+  </div>
 
-<div id="checkLine"></div>
+  <script>
+    // ====== SAMPLE RECORD DATA ======
+    // Is array me aap DAILY record add kar sakte ho
+    const labels = [
+      '01-01', '02-01', '03-01', '04-01', '05-01',
+      '06-01', '07-01', '08-01', '09-01', '10-01'
+    ];
 
-<div id="tableWrap">
-  <svg id="lines"></svg>
-</div>
+    const recordData = [
+      12, 45, 23, 78, 34,
+      56, 90, 41, 67, 29
+    ];
 
-<script>
-// ========= GAME & RECORD =========
-const game = localStorage.getItem("currentGame") || "kalyan";
-document.getElementById("title").innerText =
-  game.replace("_"," ").toUpperCase();
+    // ====== CHART CREATE ======
+    const ctx = document.getElementById('lineChart').getContext('2d');
 
-const recordText = localStorage.getItem("record_"+game) || "";
+    const lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Daily Record Line',
+          data: recordData,
+          borderColor: 'blue',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: true
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
 
-// ========= GLOBAL =========
-let rows=[],cells=[],current=null,mode=1;
-const bubbleWrap=document.getElementById("bubbleWrap");
-const tableWrap=document.getElementById("tableWrap");
-const lines=document.getElementById("lines");
-const checkLine=document.getElementById("checkLine");
-
-// ========= PARSE =========
-function parse(){
- rows=[];
- recordText.trim().split("\n").forEach(l=>{
-  const p=l.trim().split(/\s+/);
-  if(p.length>1) rows.push(p.slice(1).map(Number));
- });
-}
-
-// ========= TABLE =========
-function buildTable(){
- tableWrap.innerHTML="";cells=[];
- const t=document.createElement("table");
- rows.forEach((r,ri)=>{
-  const tr=document.createElement("tr");
-  r.forEach((n,ci)=>{
-   const td=document.createElement("td");
-   td.innerText=n;
-   td.onclick=()=>selectJodi(n);
-   cells.push({td,val:n});
-   tr.appendChild(td);
-  });
-  t.appendChild(tr);
- });
- tableWrap.appendChild(t);
- tableWrap.appendChild(lines);
-}
-
-// ========= BUBBLES =========
-function buildBubbles(){
- bubbleWrap.innerHTML="";
- const f={};
- rows.flat().forEach(n=>f[n]=(f[n]||0)+1);
- Object.keys(f).sort((a,b)=>f[b]-f[a]).forEach(k=>{
-  const b=document.createElement("div");
-  b.className="bubble";
-  b.style.width=b.style.height=(38+f[k]*6)+"px";
-  b.style.background=`hsl(${k*4},70%,50%)`;
-  b.innerText=k;
-  b.onclick=()=>selectJodi(Number(k));
-  bubbleWrap.appendChild(b);
- });
-}
-
-// ========= MODE =========
-function setMode(m){mode=m;draw();}
-
-// ========= SELECT =========
-function selectJodi(j){
- current=j;
- buildCheckLine(j);
- draw();
-}
-
-// ========= DRAW =========
-function draw(){
- document.querySelectorAll("td").forEach(td=>td.classList.remove("hit"));
- lines.innerHTML="";
- if(current==null) return;
- let hits=cells.filter(c=>c.val===current);
- if(mode===2) hits=hits.slice(1);
- if(mode===3) hits=hits.slice(2);
- hits.forEach(h=>h.td.classList.add("hit"));
- for(let i=0;i<hits.length-1;i++){
-  connect(hits[i].td,hits[i+1].td);
- }
-}
-
-// ========= CURVE =========
-function connect(a,b){
- const r1=a.getBoundingClientRect(),r2=b.getBoundingClientRect(),p=tableWrap.getBoundingClientRect();
- const x1=r1.left+r1.width/2-p.left,y1=r1.top+r1.height/2-p.top;
- const x2=r2.left+r2.width/2-p.left,y2=r2.top+r2.height/2-p.top;
- const path=document.createElementNS("http://www.w3.org/2000/svg","path");
- path.setAttribute("d",`M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`);
- path.setAttribute("stroke","#dc2626");
- path.setAttribute("stroke-width","3");
- path.setAttribute("fill","none");
- lines.appendChild(path);
-}
-
-// ========= CHECK LINE =========
-function buildCheckLine(j){
- checkLine.innerHTML="";
- for(let i=25;i<=30;i++){
-  const d=document.createElement("div");
-  d.innerHTML=`<span>${j}-${i}-${(i*2)%100}</span>
-  <button onclick="selectJodi(${j})">Check</button>`;
-  checkLine.appendChild(d);
- }
-}
-
-// ========= INIT =========
-parse();
-buildTable();
-buildBubbles();
-
-// auto last jodi
-if(rows.length){
- const last=rows[rows.length-1];
- selectJodi(last[last.length-1]);
-}
-</script>
+    // ====== CHECKBOX LINE ON / OFF ======
+    document.getElementById('lineToggle').addEventListener('change', function () {
+      lineChart.data.datasets[0].hidden = !this.checked;
+      lineChart.update();
+    });
+  </script>
 
 </body>
 </html>
-
