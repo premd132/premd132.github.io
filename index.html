@@ -2,24 +2,45 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Kings of Matka – Analysis System</title>
+<title>Kings of Matka – Ultimate Analysis Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- XLSX -->
+<!-- XLSX + html2canvas -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
+:root{
+  --bg:#020617; --card:#111827; --text:#fff; --accent:#38bdf8;
+}
+.light{
+  --bg:#f1f5f9; --card:#ffffff; --text:#020617; --accent:#2563eb;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:var(--bg);color:var(--text);text-align:center}
 .hidden{display:none}
-button{padding:12px 30px;font-size:16px;margin-top:15px}
-.card{background:#111827;padding:20px;border-radius:10px;margin:15px}
-table{border-collapse:collapse;margin:15px auto;background:#fff;color:#000}
-td{border:1px solid #000;width:50px;height:40px;font-weight:bold;position:relative}
-.line::after{content:"╲";color:green;font-size:22px;position:absolute;left:16px;top:6px}
-.cross::after{content:"✖";color:red}
+button{padding:10px 22px;border:none;border-radius:6px;margin-top:10px}
+.card{background:var(--card);padding:16px;border-radius:10px;margin:14px}
+select,textarea,input{width:90%;padding:8px;margin-top:8px;border-radius:6px}
+small{opacity:.7}
+
+/* TABLE */
+table{border-collapse:collapse;margin:16px auto;background:#fff;color:#000}
+td{
+  border:1px solid #000;
+  width:46px;height:38px;
+  font-weight:bold;position:relative
+}
+.line::after{content:"╲";color:green;font-size:22px;position:absolute;left:14px;top:5px}
+.cross::after{content:"❌";color:red;font-size:16px}
 .doublecross{background:#7f1d1d;color:#fff}
-.doublecross::after{content:"✖✖"}
-textarea{width:90%;height:70px}
+.doublecross::after{content:"❌❌";font-size:13px}
+
+/* TOP */
+.top{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px;border-bottom:1px solid #334155
+}
 </style>
 </head>
 
@@ -28,78 +49,106 @@ textarea{width:90%;height:70px}
 <!-- HOME -->
 <div id="home">
   <h1>👑 Kings of Matka 👑</h1>
-  <p>Analysis & Cross Chart System</p>
-  <button id="enterBtn">Enter</button>
+  <p>Ultimate Cross-Chart Analysis Tool</p>
+  <button id="enterBtn" style="background:var(--accent);color:#fff">Enter</button>
 </div>
 
 <!-- LOGIN -->
 <div id="login" class="hidden">
   <h2>Login</h2>
-  <input type="password" id="pass" placeholder="Password 1234">
+  <input type="password" id="pass" placeholder="Password (default 1234)">
   <br>
-  <button id="loginBtn">Login</button>
-  <p id="err" style="color:red"></p>
+  <button id="loginBtn" style="background:var(--accent);color:#fff">Login</button>
+  <p id="err" style="color:#f87171"></p>
 </div>
 
 <!-- DASHBOARD -->
 <div id="dash" class="hidden">
 
-  <h2>Dashboard</h2>
+  <div class="top">
+    <b>Dashboard</b>
+    <div>
+      <button id="themeBtn">Theme</button>
+      <button id="logoutBtn" style="background:#dc2626;color:#fff">Logout</button>
+    </div>
+  </div>
 
   <div class="card">
-    <select>
+    <h3>Game</h3>
+    <select id="game">
       <option>Milan Day</option>
       <option>Kalyan</option>
       <option>Milan Night</option>
       <option>Rajdhani Night</option>
     </select>
+    <small>Logic same, dataset context different</small>
   </div>
 
   <div class="card">
+    <h3>Upload Excel</h3>
     <input type="file" id="excel" accept=".xlsx">
-    <p>Excel format: Date | N1 | N2 | N3 | N4</p>
+    <small>Format: Date | N1 | N2 | N3 | N4</small>
   </div>
 
   <div class="card">
-    <h3>Old Record</h3>
+    <h3>Old Records</h3>
     <textarea id="oldData"></textarea>
 
     <h3>New Record</h3>
     <textarea id="newData" placeholder="31,16,61,10"></textarea>
 
-    <button id="runBtn">Generate Cross Chart</button>
+    <h3>Filter Rows</h3>
+    <input type="number" id="fromRow" placeholder="From row (1)">
+    <input type="number" id="toRow" placeholder="To row (leave blank = all)">
+
+    <button id="runBtn" style="background:#22c55e;color:#fff">Generate Chart</button>
+    <button id="imgBtn" style="background:#2563eb;color:#fff">Download Image</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div class="card">
+    <h3>Password Change</h3>
+    <input type="password" id="newPass" placeholder="New password">
+    <button id="savePassBtn">Save</button>
+  </div>
+
+  <div class="card">
+    <h3>Help</h3>
+    <small>
+      1) Upload Excel<br>
+      2) Enter new record<br>
+      3) Generate cross chart<br>
+      ❌❌ means danger / line closed
+    </small>
   </div>
 
   <div id="result"></div>
-
-  <button id="logoutBtn">Logout</button>
 </div>
 
 <script>
-// NAVIGATION (same as test code)
-enterBtn.onclick=function(){
-  home.classList.add("hidden");
-  login.classList.remove("hidden");
+// ===== BASE =====
+let PASSWORD=localStorage.getItem("pwd")||"1234";
+
+enterBtn.onclick=()=>{home.classList.add("hidden");login.classList.remove("hidden")}
+loginBtn.onclick=()=>{
+  if(pass.value===PASSWORD){
+    login.classList.add("hidden");dash.classList.remove("hidden");err.innerText="";
+  }else err.innerText="Wrong password";
+}
+logoutBtn.onclick=()=>{
+  dash.classList.add("hidden");home.classList.remove("hidden");pass.value="";
+}
+themeBtn.onclick=()=>document.body.classList.toggle("light");
+
+// ===== PASSWORD SAVE =====
+savePassBtn.onclick=()=>{
+  if(newPass.value.length<4){alert("Min 4 chars");return;}
+  PASSWORD=newPass.value;localStorage.setItem("pwd",PASSWORD);
+  newPass.value="";alert("Password saved");
 };
 
-loginBtn.onclick=function(){
-  if(pass.value==="1234"){
-    login.classList.add("hidden");
-    dash.classList.remove("hidden");
-  }else{
-    err.innerText="Wrong password";
-  }
-};
-
-logoutBtn.onclick=function(){
-  dash.classList.add("hidden");
-  home.classList.remove("hidden");
-  pass.value="";
-  err.innerText="";
-};
-
-// EXCEL LOAD
-excel.onchange=function(e){
+// ===== EXCEL LOAD =====
+excel.onchange=e=>{
   const r=new FileReader();
   r.onload=x=>{
     const wb=XLSX.read(x.target.result,{type:"binary"});
@@ -112,34 +161,56 @@ excel.onchange=function(e){
   r.readAsBinaryString(e.target.files[0]);
 };
 
-// ANALYSIS LOGIC
+// ===== LOGIC =====
 function sameFamily(a,b){return Math.abs(a-b)%5===0}
 
-runBtn.onclick=function(){
+runBtn.onclick=()=>{
   result.innerHTML="";
   if(!oldData.value||!newData.value) return;
 
-  const o=oldData.value.split("\n")[0].split(",").map(Number);
-  const n=newData.value.split(",").map(Number);
+  let rows=oldData.value.trim().split("\n");
+  const from=parseInt(fromRow.value)||1;
+  const to=parseInt(toRow.value)||rows.length;
+  rows=rows.slice(from-1,to);
 
-  let cross=0,alive=true;
-  const table=document.createElement("table");
-  const tr=document.createElement("tr");
+  const newNums=newData.value.split(",").map(Number);
 
-  for(let i=0;i<n.length;i++){
-    const td=document.createElement("td");
-    if(alive && sameFamily(o[i],n[i])){
-      td.classList.add("line"); cross=0;
-    }else{
-      cross++;
-      if(cross===1) td.classList.add("cross");
-      else{ td.classList.add("doublecross"); alive=false; }
+  rows.forEach(row=>{
+    const oldNums=row.split(",").map(Number);
+    let cross=0,alive=true;
+
+    const table=document.createElement("table");
+    const tr=document.createElement("tr");
+
+    for(let i=0;i<newNums.length;i++){
+      const td=document.createElement("td");
+      if(alive&&sameFamily(oldNums[i],newNums[i])){
+        td.classList.add("line");cross=0;
+      }else{
+        cross++;
+        if(cross===1) td.classList.add("cross");
+        else{td.classList.add("doublecross");alive=false;}
+      }
+      td.innerText=newNums[i];
+      tr.appendChild(td);
     }
-    td.innerText=n[i];
-    tr.appendChild(td);
-  }
-  table.appendChild(tr);
-  result.appendChild(table);
+    table.appendChild(tr);
+    result.appendChild(table);
+  });
+};
+
+// ===== EXPORT =====
+imgBtn.onclick=()=>{
+  html2canvas(result).then(c=>{
+    const a=document.createElement("a");
+    a.download="cross-chart.png";
+    a.href=c.toDataURL();
+    a.click();
+  });
+};
+
+clearBtn.onclick=()=>{
+  oldData.value="";newData.value="";result.innerHTML="";
 };
 </script>
 
