@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Kings of Matka – Analysis Tool</title>
+<title>Kings of Matka – Analysis Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- XLSX + HTML2CANVAS -->
+<!-- XLSX + html2canvas -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -19,7 +19,7 @@ body{
 }
 .hidden{display:none}
 
-/* ---------- HOME ---------- */
+/* HOME */
 #home{
   min-height:100vh;
   background:linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7)),
@@ -41,8 +41,8 @@ body{
   border-radius:6px;
 }
 
-/* ---------- LOGIN ---------- */
-#login{
+/* LOGIN */
+#loginPage{
   min-height:100vh;
   display:flex;
   align-items:center;
@@ -63,7 +63,7 @@ body{
 .login-box button{background:#38bdf8;border:none}
 .error{color:#f87171;text-align:center}
 
-/* ---------- DASHBOARD ---------- */
+/* DASHBOARD */
 #dashboard{min-height:100vh}
 .header{
   text-align:center;
@@ -91,7 +91,7 @@ button.run{background:#22c55e;border:none}
 button.export{background:#2563eb;border:none}
 button.logout{background:#dc2626;border:none}
 
-/* ---------- TABLE ---------- */
+/* TABLE */
 table{
   border-collapse:collapse;
   margin:15px auto;
@@ -147,11 +147,11 @@ td{
 </div>
 
 <!-- LOGIN -->
-<div id="login" class="hidden">
+<div id="loginPage" class="hidden">
   <div class="login-box">
     <h2>Login</h2>
     <input type="password" id="password" placeholder="Password">
-    <button onclick="login()">Login</button>
+    <button id="loginBtn">Login</button>
     <div id="error" class="error"></div>
   </div>
 </div>
@@ -170,7 +170,7 @@ td{
         <option>Milan Night</option>
         <option>Rajdhani Night</option>
       </select>
-      <p class="note">Same logic, different dataset context.</p>
+      <p class="note">Same analysis logic, different dataset context.</p>
     </div>
 
     <div class="card">
@@ -186,90 +186,106 @@ td{
       <h3>New Record</h3>
       <textarea id="newData" placeholder="31,16,61,10"></textarea>
 
-      <button class="run" onclick="analyze()">Run Analysis</button>
-      <button class="export" onclick="exportImage()">Download Chart Image</button>
+      <button class="run" id="runBtn">Run Analysis</button>
+      <button class="export" id="exportBtn">Download Chart Image</button>
     </div>
 
     <div id="result"></div>
   </div>
 
   <div class="container">
-    <button class="logout" onclick="logout()">Logout</button>
+    <button class="logout" id="logoutBtn">Logout</button>
   </div>
 </div>
 
 <script>
-const PASSWORD="1234";
+/* PASSWORD */
+const PASSWORD = "1234";
 
-/* NAV */
-enterBtn.onclick=()=>{
-  home.classList.add("hidden");
-  login.classList.remove("hidden");
+/* NAVIGATION */
+document.getElementById("enterBtn").onclick = () => {
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
 };
-function login(){
-  if(password.value===PASSWORD){
-    login.classList.add("hidden");
-    dashboard.classList.remove("hidden");
-  }else error.innerText="Wrong password";
-}
-function logout(){
-  dashboard.classList.add("hidden");
-  home.classList.remove("hidden");
-}
 
-/* EXCEL */
-excelFile.onchange=e=>{
-  const r=new FileReader();
-  r.onload=x=>{
-    const wb=XLSX.read(x.target.result,{type:"binary"});
-    const sh=wb.Sheets[wb.SheetNames[0]];
-    const d=XLSX.utils.sheet_to_json(sh,{header:1});
+document.getElementById("loginBtn").onclick = () => {
+  if(document.getElementById("password").value === PASSWORD){
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+  }else{
+    document.getElementById("error").innerText = "Wrong password";
+  }
+};
+
+document.getElementById("logoutBtn").onclick = () => {
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("home").classList.remove("hidden");
+};
+
+/* EXCEL READ */
+document.getElementById("excelFile").onchange = e => {
+  const reader = new FileReader();
+  reader.onload = x => {
+    const wb = XLSX.read(x.target.result, {type:"binary"});
+    const sh = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sh, {header:1});
     let out="";
-    for(let i=1;i<d.length;i++) out+=d[i].slice(1).join(",")+"\n";
-    oldData.value=out.trim();
+    for(let i=1;i<data.length;i++){
+      out += data[i].slice(1).join(",") + "\n";
+    }
+    document.getElementById("oldData").value = out.trim();
   };
-  r.readAsBinaryString(e.target.files[0]);
+  reader.readAsBinaryString(e.target.files[0]);
 };
 
-/* ANALYSIS (DEMO LOGIC) */
-function sameFamily(a,b){return Math.abs(a-b)%5===0}
+/* ANALYSIS LOGIC */
+function sameFamily(a,b){
+  return Math.abs(a-b) % 5 === 0;
+}
 
-function analyze(){
-  result.innerHTML="";
-  if(!oldData.value||!newData.value) return;
+document.getElementById("runBtn").onclick = () => {
+  const result = document.getElementById("result");
+  result.innerHTML = "";
 
-  const o=oldData.value.trim().split("\n")[0].split(",").map(Number);
-  const n=newData.value.trim().split(",").map(Number);
+  if(!oldData.value || !newData.value) return;
 
-  let cross=0,alive=true;
-  const table=document.createElement("table");
-  const tr=document.createElement("tr");
+  const o = oldData.value.split("\n")[0].split(",").map(Number);
+  const n = newData.value.split(",").map(Number);
+
+  let cross = 0, alive = true;
+  const table = document.createElement("table");
+  const tr = document.createElement("tr");
 
   for(let i=0;i<n.length;i++){
-    const td=document.createElement("td");
-    if(alive && sameFamily(o[i],n[i])){
-      td.classList.add("line"); cross=0;
+    const td = document.createElement("td");
+    if(alive && sameFamily(o[i], n[i])){
+      td.classList.add("line");
+      cross = 0;
     }else{
       cross++;
-      if(cross===1) td.classList.add("cross");
-      else{ td.classList.add("doublecross"); alive=false; }
+      if(cross === 1){
+        td.classList.add("cross");
+      }else{
+        td.classList.add("doublecross");
+        alive = false;
+      }
     }
-    td.innerText=n[i];
+    td.innerText = n[i];
     tr.appendChild(td);
   }
   table.appendChild(tr);
   result.appendChild(table);
-}
+};
 
 /* EXPORT IMAGE */
-function exportImage(){
+document.getElementById("exportBtn").onclick = () => {
   html2canvas(document.getElementById("captureArea")).then(canvas=>{
-    const a=document.createElement("a");
-    a.download="analysis-chart.png";
-    a.href=canvas.toDataURL();
+    const a = document.createElement("a");
+    a.download = "analysis-chart.png";
+    a.href = canvas.toDataURL();
     a.click();
   });
-}
+};
 </script>
 
 </body>
