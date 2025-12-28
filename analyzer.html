@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>👑 Jodi Analyzer – PRO MAX</title>
+<title>Jodi Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
@@ -13,35 +14,19 @@ body{
 }
 h2{text-align:center}
 
-textarea{
-  width:100%;
-  height:140px;
-  font-size:14px;
-}
-
-button{
-  padding:10px 14px;
-  border:none;
-  border-radius:6px;
-  background:#2563eb;
-  color:#fff;
-  font-size:14px;
-  cursor:pointer;
-}
-
 #bubbleWrap{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
-  margin-top:15px;
   justify-content:center;
+  margin:15px 0;
 }
 
 .bubble{
+  border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:50%;
   color:#fff;
   font-weight:bold;
   cursor:pointer;
@@ -49,13 +34,14 @@ button{
 
 #tableWrap{
   position:relative;
-  margin-top:25px;
+  margin-top:20px;
   overflow-x:auto;
 }
 
 table{
   border-collapse:collapse;
   margin:auto;
+  background:#fff;
 }
 
 td{
@@ -67,7 +53,7 @@ td{
 }
 
 td.selected{
-  background:#60a5fa;
+  background:#3b82f6;
   color:#fff;
 }
 
@@ -84,22 +70,7 @@ svg{
 
 <body>
 
-<h2>👑 Jodi Analyzer – PRO MAX</h2>
-
-<textarea id="input">
-27/10/25 59 44 59 42 90
-03/11/25 55 02 93 00 05
-10/11/25 91 10 84 20 84
-17/11/25 52 96 53 11 70
-24/11/25 91 07 67 79 09
-01/12/25 78 52 12 72 64
-08/12/25 16 43 78 91 27
-15/12/25 64 30 97 55 97
-22/12/25 33 38 53 32 84
-</textarea>
-
-<br><br>
-<button onclick="init()">Generate</button>
+<h2 id="title">Analyzer</h2>
 
 <div id="bubbleWrap"></div>
 
@@ -108,55 +79,54 @@ svg{
 </div>
 
 <script>
-const bubbleWrap=document.getElementById("bubbleWrap");
-const tableWrap=document.getElementById("tableWrap");
-const lines=document.getElementById("lines");
+// ================= GAME & RECORD LOAD =================
+const game = localStorage.getItem("currentGame") || "kalyan";
+document.getElementById("title").innerText =
+  game.replace("_"," ").toUpperCase();
 
-let rows=[],cells=[],current=null;
+const recordText =
+  localStorage.getItem("record_" + game) || "";
 
-/* PARSE DATA */
+// ================= GLOBAL =================
+let rows = [];
+let cells = [];
+let current = null;
+
+const bubbleWrap = document.getElementById("bubbleWrap");
+const tableWrap  = document.getElementById("tableWrap");
+const lines      = document.getElementById("lines");
+
+// ================= PARSE RECORD =================
 function parse(){
-  rows=[];
-  const txt=document.getElementById("input").value.trim();
-  txt.split("\n").forEach(line=>{
-    const p=line.trim().split(/\s+/);
-    if(p.length>1){
+  rows = [];
+  recordText.trim().split("\n").forEach(line=>{
+    const p = line.trim().split(/\s+/);
+    if(p.length > 1){
       rows.push(p.slice(1).map(Number));
     }
   });
 }
 
-/* BUILD BUBBLES */
-function buildBubbles(){
-  bubbleWrap.innerHTML="";
-  const freq={};
-
-  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
-
-  Object.keys(freq).forEach(k=>{
-    const size=40+freq[k]*8;
-    const b=document.createElement("div");
-    b.className="bubble";
-    b.style.width=b.style.height=size+"px";
-    b.style.background=`hsl(${k*4},70%,50%)`;
-    b.innerText=k;
-    b.onclick=()=>selectJodi(Number(k));
-    bubbleWrap.appendChild(b);
-  });
-}
-
-/* BUILD TABLE */
+// ================= BUILD TABLE =================
 function buildTable(){
-  tableWrap.innerHTML="";
-  cells=[];
-  const table=document.createElement("table");
+  tableWrap.innerHTML = "";
+  cells = [];
 
-  rows.forEach((r,ri)=>{
-    const tr=document.createElement("tr");
-    r.forEach((n,ci)=>{
-      const td=document.createElement("td");
-      td.innerText=n;
-      cells.push({td,val:n,row:ri,col:ci});
+  const table = document.createElement("table");
+
+  rows.forEach((row,r)=>{
+    const tr = document.createElement("tr");
+    row.forEach((num,c)=>{
+      const td = document.createElement("td");
+      td.innerText = num;
+
+      cells.push({
+        td: td,
+        val: num,
+        row: r,
+        col: c
+      });
+
       tr.appendChild(td);
     });
     table.appendChild(tr);
@@ -166,53 +136,79 @@ function buildTable(){
   tableWrap.appendChild(lines);
 }
 
-/* SELECT JODI */
-function selectJodi(j){
-  current=j;
+// ================= BUILD BUBBLES =================
+function buildBubbles(){
+  bubbleWrap.innerHTML = "";
+  const freq = {};
+
+  rows.flat().forEach(n=>{
+    freq[n] = (freq[n] || 0) + 1;
+  });
+
+  Object.keys(freq).forEach(k=>{
+    const size = 40 + freq[k] * 8;
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.style.width = b.style.height = size + "px";
+    b.style.background = `hsl(${k*4},70%,50%)`;
+    b.innerText = k;
+    b.onclick = ()=> selectJodi(Number(k));
+    bubbleWrap.appendChild(b);
+  });
+}
+
+// ================= SELECT JODI =================
+function selectJodi(jodi){
+  current = jodi;
   draw();
 }
 
-/* DRAW HIGHLIGHT + LINES */
+// ================= DRAW HIGHLIGHT & LINE =================
 function draw(){
-  document.querySelectorAll("td").forEach(td=>td.classList.remove("selected"));
-  lines.innerHTML="";
-  if(current===null) return;
+  document.querySelectorAll("td").forEach(td=>{
+    td.classList.remove("selected");
+  });
+  lines.innerHTML = "";
 
-  const hits=cells.filter(c=>c.val===current);
-  hits.forEach(h=>h.td.classList.add("selected"));
+  if(current === null) return;
+
+  const hits = cells.filter(c => c.val === current);
+
+  hits.forEach(h=>{
+    h.td.classList.add("selected");
+  });
 
   for(let i=0;i<hits.length-1;i++){
-    connect(hits[i].td,hits[i+1].td);
+    connect(hits[i].td, hits[i+1].td);
   }
 }
 
-/* CONNECT LINE */
+// ================= CONNECT CURVE =================
 function connect(a,b){
-  const r1=a.getBoundingClientRect();
-  const r2=b.getBoundingClientRect();
-  const p=tableWrap.getBoundingClientRect();
+  const r1 = a.getBoundingClientRect();
+  const r2 = b.getBoundingClientRect();
+  const p  = tableWrap.getBoundingClientRect();
 
-  const x1=r1.left+r1.width/2-p.left;
-  const y1=r1.top+r1.height/2-p.top;
-  const x2=r2.left+r2.width/2-p.left;
-  const y2=r2.top+r2.height/2-p.top;
+  const x1 = r1.left + r1.width/2  - p.left;
+  const y1 = r1.top  + r1.height/2 - p.top;
+  const x2 = r2.left + r2.width/2  - p.left;
+  const y2 = r2.top  + r2.height/2 - p.top;
 
-  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("d",`M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`);
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute(
+    "d",
+    `M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`
+  );
   path.setAttribute("stroke","#dc2626");
   path.setAttribute("stroke-width","3");
   path.setAttribute("fill","none");
   lines.appendChild(path);
 }
 
-/* INIT */
-function init(){
-  parse();
-  buildTable();
-  buildBubbles();
-}
-
-init();
+// ================= INIT =================
+parse();
+buildTable();
+buildBubbles();
 </script>
 
 </body>
