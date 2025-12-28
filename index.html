@@ -2,216 +2,176 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Kings of Matka – Ultimate Analysis Dashboard</title>
+<title>Jodi Pattern Catch – ULTRA PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- XLSX + html2canvas -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- html2canvas + jszip -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-:root{
-  --bg:#020617; --card:#111827; --text:#fff; --accent:#38bdf8;
-}
-.light{
-  --bg:#f1f5f9; --card:#ffffff; --text:#020617; --accent:#2563eb;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:var(--bg);color:var(--text);text-align:center}
-.hidden{display:none}
-button{padding:10px 22px;border:none;border-radius:6px;margin-top:10px}
-.card{background:var(--card);padding:16px;border-radius:10px;margin:14px}
-select,textarea,input{width:90%;padding:8px;margin-top:8px;border-radius:6px}
-small{opacity:.7}
-
-/* TABLE */
-table{border-collapse:collapse;margin:16px auto;background:#fff;color:#000}
-td{
-  border:1px solid #000;
-  width:46px;height:38px;
-  font-weight:bold;position:relative
-}
-.line::after{content:"╲";color:green;font-size:22px;position:absolute;left:14px;top:5px}
-.cross::after{content:"❌";color:red;font-size:16px}
-.doublecross{background:#7f1d1d;color:#fff}
-.doublecross::after{content:"❌❌";font-size:13px}
-
-/* TOP */
-.top{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px;border-bottom:1px solid #334155
+body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
+textarea{width:94%;height:160px;margin-top:10px;padding:10px}
+button,input,select{padding:8px 14px;margin:6px;border-radius:6px}
+.card{background:#111827;padding:14px;border-radius:10px;margin:12px}
+table{border-collapse:collapse;margin:10px auto;background:#fff;color:#000}
+td{border:1px solid #000;width:46px;height:38px;font-weight:bold;position:relative;cursor:pointer}
+.current{background:#2563eb;color:#fff}
+.circle::after{content:"⭕";position:absolute;right:2px;bottom:2px;font-size:14px}
+.section{margin:14px auto;width:95%;max-width:980px;background:#111827;padding:12px;border-radius:12px}
+h3{color:#38bdf8;margin:6px 0}
+.bar{height:14px;background:#22c55e;margin:4px 0;border-radius:6px}
+.fullscreen{
+  position:fixed;inset:0;background:#020617;z-index:9999;
+  overflow:auto;padding:10px
 }
 </style>
 </head>
 
 <body>
 
-<!-- HOME -->
-<div id="home">
-  <h1>👑 Kings of Matka 👑</h1>
-  <p>Ultimate Cross-Chart Analysis Tool</p>
-  <button id="enterBtn" style="background:var(--accent);color:#fff">Enter</button>
+<h2>👑 ULTRA PRO Jodi Pattern Catch</h2>
+
+<textarea id="record">
+2024-01-01 12 34 56 78
+2024-01-02 22 55 57 90
+2024-01-03 11 56 44 78
+2024-01-04 56 23 99 10
+2024-01-05 34 55 56 88
+</textarea>
+
+<div class="card">
+  <button onclick="build()">Load Record</button>
+  <label><input type="checkbox" id="posOnly"> Exact Position</label>
+  <select id="limit">
+    <option value="3">Top 3</option>
+    <option value="2">Top 2</option>
+    <option value="1">Top 1</option>
+    <option value="999">All</option>
+  </select>
+  <button onclick="toggleFull()">🔍 Full Screen</button>
+  <button onclick="zipExport()">📦 ZIP Export</button>
 </div>
 
-<!-- LOGIN -->
-<div id="login" class="hidden">
-  <h2>Login</h2>
-  <input type="password" id="pass" placeholder="Password (default 1234)">
-  <br>
-  <button id="loginBtn" style="background:var(--accent);color:#fff">Login</button>
-  <p id="err" style="color:#f87171"></p>
-</div>
-
-<!-- DASHBOARD -->
-<div id="dash" class="hidden">
-
-  <div class="top">
-    <b>Dashboard</b>
-    <div>
-      <button id="themeBtn">Theme</button>
-      <button id="logoutBtn" style="background:#dc2626;color:#fff">Logout</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Game</h3>
-    <select id="game">
-      <option>Milan Day</option>
-      <option>Kalyan</option>
-      <option>Milan Night</option>
-      <option>Rajdhani Night</option>
-    </select>
-    <small>Logic same, dataset context different</small>
-  </div>
-
-  <div class="card">
-    <h3>Upload Excel</h3>
-    <input type="file" id="excel" accept=".xlsx">
-    <small>Format: Date | N1 | N2 | N3 | N4</small>
-  </div>
-
-  <div class="card">
-    <h3>Old Records</h3>
-    <textarea id="oldData"></textarea>
-
-    <h3>New Record</h3>
-    <textarea id="newData" placeholder="31,16,61,10"></textarea>
-
-    <h3>Filter Rows</h3>
-    <input type="number" id="fromRow" placeholder="From row (1)">
-    <input type="number" id="toRow" placeholder="To row (leave blank = all)">
-
-    <button id="runBtn" style="background:#22c55e;color:#fff">Generate Chart</button>
-    <button id="imgBtn" style="background:#2563eb;color:#fff">Download Image</button>
-    <button id="clearBtn">Clear</button>
-  </div>
-
-  <div class="card">
-    <h3>Password Change</h3>
-    <input type="password" id="newPass" placeholder="New password">
-    <button id="savePassBtn">Save</button>
-  </div>
-
-  <div class="card">
-    <h3>Help</h3>
-    <small>
-      1) Upload Excel<br>
-      2) Enter new record<br>
-      3) Generate cross chart<br>
-      ❌❌ means danger / line closed
-    </small>
-  </div>
-
-  <div id="result"></div>
-</div>
+<div id="summary" class="card"></div>
+<div id="columnStrength" class="card"></div>
+<div id="result"></div>
 
 <script>
-// ===== BASE =====
-let PASSWORD=localStorage.getItem("pwd")||"1234";
+let rows=[], dates=[], current=null, images=[];
 
-enterBtn.onclick=()=>{home.classList.add("hidden");login.classList.remove("hidden")}
-loginBtn.onclick=()=>{
-  if(pass.value===PASSWORD){
-    login.classList.add("hidden");dash.classList.remove("hidden");err.innerText="";
-  }else err.innerText="Wrong password";
+/* LOAD */
+function build(){
+  const raw=record.value.trim().split("\n");
+  rows=[]; dates=[];
+  raw.forEach(r=>{
+    const p=r.trim().split(/[\s,]+/);
+    dates.push(p[0]); rows.push(p.slice(1).map(Number));
+  });
+  const last=rows[rows.length-1];
+  selectJodi(last[last.length-1]);
 }
-logoutBtn.onclick=()=>{
-  dash.classList.add("hidden");home.classList.remove("hidden");pass.value="";
+
+/* ANALYZE */
+function selectJodi(j){
+  current=j;
+  analyze();
 }
-themeBtn.onclick=()=>document.body.classList.toggle("light");
 
-// ===== PASSWORD SAVE =====
-savePassBtn.onclick=()=>{
-  if(newPass.value.length<4){alert("Min 4 chars");return;}
-  PASSWORD=newPass.value;localStorage.setItem("pwd",PASSWORD);
-  newPass.value="";alert("Password saved");
-};
+function analyze(){
+  if(current===null) return;
+  const range=[current-1,current,current+1];
+  const posOnly=document.getElementById("posOnly").checked;
+  const limit=parseInt(document.getElementById("limit").value,10);
 
-// ===== EXCEL LOAD =====
-excel.onchange=e=>{
-  const r=new FileReader();
-  r.onload=x=>{
-    const wb=XLSX.read(x.target.result,{type:"binary"});
-    const sh=wb.Sheets[wb.SheetNames[0]];
-    const d=XLSX.utils.sheet_to_json(sh,{header:1});
-    let out="";
-    for(let i=1;i<d.length;i++) out+=d[i].slice(1).join(",")+"\n";
-    oldData.value=out.trim();
-  };
-  r.readAsBinaryString(e.target.files[0]);
-};
+  result.innerHTML=""; images=[];
 
-// ===== LOGIC =====
-function sameFamily(a,b){return Math.abs(a-b)%5===0}
+  let hits=[], colCount=[0,0,0,0];
 
-runBtn.onclick=()=>{
-  result.innerHTML="";
-  if(!oldData.value||!newData.value) return;
+  rows.forEach((r,ri)=>{
+    let ok=false,pos=-1;
+    r.forEach((n,ci)=>{
+      if(range.includes(n)){
+        if(!posOnly){ok=true;pos=ci;}
+        else if(n===current){ok=true;pos=ci;}
+      }
+    });
+    if(ok){
+      hits.push({row:r,idx:ri,pos});
+      if(pos>=0) colCount[pos]++;
+    }
+  });
 
-  let rows=oldData.value.trim().split("\n");
-  const from=parseInt(fromRow.value)||1;
-  const to=parseInt(toRow.value)||rows.length;
-  rows=rows.slice(from-1,to);
+  /* SUMMARY */
+  summary.innerHTML=`
+    <h3>📌 Strongest Summary</h3>
+    <p>Selected Jodi: <b>${current}</b></p>
+    <p>Total Pattern Occurrences: <b>${hits.length}</b></p>
+  `;
 
-  const newNums=newData.value.split(",").map(Number);
+  /* COLUMN STRENGTH */
+  columnStrength.innerHTML="<h3>📊 Column Strength</h3>";
+  colCount.forEach((c,i)=>{
+    const div=document.createElement("div");
+    div.innerHTML=`Column ${i+1}: ${c}`;
+    const bar=document.createElement("div");
+    bar.className="bar"; bar.style.width=(c*20)+"px";
+    columnStrength.appendChild(div);
+    columnStrength.appendChild(bar);
+  });
 
-  rows.forEach(row=>{
-    const oldNums=row.split(",").map(Number);
-    let cross=0,alive=true;
-
-    const table=document.createElement("table");
+  /* OCCURRENCES */
+  hits.slice(0,limit).forEach((h,i)=>{
+    const sec=document.createElement("div");
+    sec.className="section";
+    sec.innerHTML=`<h3>Occurrence ${i+1} <small>${dates[h.idx]}</small></h3>`;
+    const t=document.createElement("table");
     const tr=document.createElement("tr");
 
-    for(let i=0;i<newNums.length;i++){
+    h.row.forEach((n,ci)=>{
       const td=document.createElement("td");
-      if(alive&&sameFamily(oldNums[i],newNums[i])){
-        td.classList.add("line");cross=0;
-      }else{
-        cross++;
-        if(cross===1) td.classList.add("cross");
-        else{td.classList.add("doublecross");alive=false;}
-      }
-      td.innerText=newNums[i];
+      td.innerText=n;
+      if(n===current) td.classList.add("current","circle");
+      else if(range.includes(n)&&(!posOnly||ci===h.pos)) td.classList.add("circle");
       tr.appendChild(td);
-    }
-    table.appendChild(tr);
-    result.appendChild(table);
-  });
-};
+    });
 
-// ===== EXPORT =====
-imgBtn.onclick=()=>{
-  html2canvas(result).then(c=>{
+    t.appendChild(tr); sec.appendChild(t);
+
+    const btn=document.createElement("button");
+    btn.innerText="📸 Save";
+    btn.onclick=()=>html2canvas(sec).then(c=>{
+      const img=c.toDataURL();
+      images.push(img);
+      const a=document.createElement("a");
+      a.download=`occurrence_${i+1}.png`;
+      a.href=img; a.click();
+    });
+
+    sec.appendChild(btn);
+    result.appendChild(sec);
+  });
+}
+
+/* FULL SCREEN */
+function toggleFull(){
+  result.classList.toggle("fullscreen");
+}
+
+/* ZIP EXPORT */
+function zipExport(){
+  if(images.length===0){alert("No images yet");return;}
+  const zip=new JSZip();
+  images.forEach((img,i)=>{
+    zip.file(`occurrence_${i+1}.png`, img.split(",")[1], {base64:true});
+  });
+  zip.generateAsync({type:"blob"}).then(b=>{
     const a=document.createElement("a");
-    a.download="cross-chart.png";
-    a.href=c.toDataURL();
+    a.href=URL.createObjectURL(b);
+    a.download="pattern_images.zip";
     a.click();
   });
-};
-
-clearBtn.onclick=()=>{
-  oldData.value="";newData.value="";result.innerHTML="";
-};
+}
 </script>
 
 </body>
