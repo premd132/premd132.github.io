@@ -1,169 +1,174 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Final AI Pattern Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<title>Kings of Matka</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f1f5f9;margin:0;padding:10px}
-h2{text-align:center;background:#111827;color:#fff;padding:10px}
-.section{background:#fff;border:2px solid #000;padding:10px;margin-bottom:12px}
-.section h3{margin:0 0 6px 0;border-bottom:1px solid #ccc}
-.upload{border:2px dashed #2563eb;padding:10px;text-align:center;margin-bottom:12px}
-table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #000;padding:6px;text-align:center;font-size:14px}
-th{background:#e5e7eb}
-.hot{background:#bbf7d0;font-weight:bold}
-.due{background:#fecaca;font-weight:bold}
-.box{padding:6px;border:1px solid #000;margin:4px 0}
-.small{font-size:12px}
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#020617;
+  color:#fff;
+}
+
+/* ---------- HOME ---------- */
+#home{
+  min-height:100vh;
+  background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.75)),
+  url("https://images.unsplash.com/photo-1519681393784-d120267933ba") center/cover;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:30px;
+}
+#home h1{
+  font-size:38px;
+  color:#38bdf8;
+  margin-bottom:20px;
+}
+#home p{
+  font-size:18px;
+  margin-bottom:30px;
+}
+#home button{
+  padding:12px 30px;
+  font-size:18px;
+  background:#38bdf8;
+  border:none;
+  cursor:pointer;
+}
+
+/* ---------- LOGIN ---------- */
+#loginBox{
+  display:none;
+  min-height:100vh;
+  background:#020617;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.login{
+  background:#111827;
+  padding:30px;
+  width:320px;
+  border-radius:8px;
+}
+.login h2{text-align:center}
+.login input{
+  width:100%;
+  padding:10px;
+  margin:15px 0;
+}
+.login button{
+  width:100%;
+  padding:10px;
+  background:#38bdf8;
+  border:none;
+}
+.error{color:red;text-align:center}
+
+/* ---------- DASHBOARD ---------- */
+#dashboard{
+  display:none;
+  min-height:100vh;
+  background:#020617;
+}
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:22px;
+  border-bottom:1px solid #1e293b;
+}
+.container{
+  max-width:800px;
+  margin:auto;
+  padding:30px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
+.card{
+  background:#111827;
+  padding:30px;
+  border-radius:10px;
+  text-align:center;
+  font-size:22px;
+  border:1px solid #1e293b;
+}
+.logout{
+  margin-top:30px;
+  width:100%;
+  padding:12px;
+  background:#dc2626;
+  border:none;
+  font-size:16px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>FINAL AI PATTERN DASHBOARD</h2>
-
-<div class="upload">
-<b>Upload Excel (Date | Jodi | Optional Panel)</b><br>
-<input type="file" id="file" accept=".xlsx">
+<!-- HOME PAGE -->
+<div id="home">
+  <div>
+    <h1>Welcome to the World of<br>👑 Kings of Matka 👑</h1>
+    <p>AI Based Professional Analysis System</p>
+    <button onclick="goLogin()">Enter</button>
+  </div>
 </div>
 
-<div class="section">
-<h3>1️⃣ Original Record (Last 20)</h3>
-<table id="record"></table>
+<!-- LOGIN PAGE -->
+<div id="loginBox">
+  <div class="login">
+    <h2>Login</h2>
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <div id="error" class="error"></div>
+  </div>
 </div>
 
-<div class="section">
-<h3>2️⃣ Jodi Touch Line</h3>
-<table id="jodiTL"></table>
-</div>
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="header">Kings of Matka – Result Panel</div>
 
-<div class="section">
-<h3>3️⃣ Single Ank Touch Line</h3>
-<table id="singleTL"></table>
-</div>
+  <div class="container">
+    <div class="grid">
+      <div class="card">Milan Day</div>
+      <div class="card">Kalyan</div>
+      <div class="card">Milan Night</div>
+      <div class="card">Rajdhani Night</div>
+    </div>
 
-<div class="section">
-<h3>4️⃣ 🔥 HOT Jodi</h3>
-<div id="hotJodi"></div>
-</div>
-
-<div class="section">
-<h3>5️⃣ ⏳ DUE Jodi</h3>
-<div id="dueJodi"></div>
-</div>
-
-<div class="section">
-<h3>6️⃣ ❌ Cross / X Pattern</h3>
-<div id="crossPattern"></div>
-</div>
-
-<div class="section">
-<h3>7️⃣ 🔢 Panel Pattern</h3>
-<div id="panelPattern"></div>
-</div>
-
-<div class="section">
-<h3>8️⃣ 📅 Date-wise Daily Touch Line</h3>
-<table id="dailyTL"></table>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <script>
-document.getElementById("file").addEventListener("change",e=>{
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
-    const sh=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(sh,{header:1});
-    process(rows);
-  };
-  reader.readAsArrayBuffer(e.target.files[0]);
-});
+const PASSWORD = "1234";
 
-function process(rows){
-  let data=[];
-  rows.forEach(r=>{
-    if(r[0] && r[1] && !isNaN(r[1])){
-      data.push({
-        date:r[0],
-        jodi:r[1].toString().padStart(2,'0'),
-        panel:r[2]?r[2].toString():""
-      });
-    }
-  });
+function goLogin(){
+  document.getElementById("home").style.display="none";
+  document.getElementById("loginBox").style.display="flex";
+}
 
-  // 1️⃣ Original Record
-  let r="<tr><th>Date</th><th>Jodi</th></tr>";
-  data.slice(-20).forEach(d=>{
-    r+=`<tr><td class="small">${d.date}</td><td>${d.jodi}</td></tr>`;
-  });
-  document.getElementById("record").innerHTML=r;
-
-  // Frequency & gap
-  const freq={}, gap={};
-  data.forEach((d,i)=>{
-    freq[d.jodi]=(freq[d.jodi]||0)+1;
-    gap[d.jodi]=data.length-i;
-  });
-
-  const sorted=Object.keys(freq)
-    .map(j=>({j,score:freq[j]*1.5+gap[j]*0.4}))
-    .sort((a,b)=>b.score-a.score);
-
-  // 2️⃣ Jodi TL
-  document.getElementById("jodiTL").innerHTML=
-    `<tr><th>TL1</th><th>TL2</th><th>TL3</th></tr>
-     <tr><td class="hot">${sorted[0].j}</td>
-         <td>${sorted[1].j}</td>
-         <td>${sorted[2].j}</td></tr>`;
-
-  // 3️⃣ Single TL
-  const sf={};
-  data.map(d=>d.jodi).join("").split("").forEach(n=>sf[n]=(sf[n]||0)+1);
-  const s=Object.keys(sf).sort((a,b)=>sf[b]-sf[a]);
-  document.getElementById("singleTL").innerHTML=
-    `<tr><th>TL1</th><th>TL2</th><th>TL3</th></tr>
-     <tr><td class="hot">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`;
-
-  // 4️⃣ HOT
-  document.getElementById("hotJodi").innerText=
-    sorted.slice(0,6).map(x=>x.j).join(" , ");
-
-  // 5️⃣ DUE
-  document.getElementById("dueJodi").innerText=
-    sorted.slice(-6).map(x=>x.j).join(" , ");
-
-  // 6️⃣ Cross Pattern
-  const cross=[];
-  data.slice(-10).forEach(d=>{
-    cross.push(`${d.jodi[0]}✕${d.jodi[1]}`);
-  });
-  document.getElementById("crossPattern").innerText=cross.join(" | ");
-
-  // 7️⃣ Panel Pattern
-  const panels=data.map(d=>d.panel).filter(p=>p);
-  document.getElementById("panelPattern").innerText=
-    panels.slice(-10).join(" , ");
-
-  // 8️⃣ Daily TL
-  let dt="<tr><th>Date</th><th>TL1</th><th>TL2</th><th>TL3</th></tr>";
-  for(let i=15;i<data.length;i++){
-    const sub=data.slice(0,i);
-    const f={},g={};
-    sub.forEach((d,idx)=>{
-      f[d.jodi]=(f[d.jodi]||0)+1;
-      g[d.jodi]=sub.length-idx;
-    });
-    const s2=Object.keys(f)
-      .map(j=>({j,sc:f[j]*1.5+g[j]*0.4}))
-      .sort((a,b)=>b.sc-a.sc);
-    dt+=`<tr><td class="small">${data[i].date}</td>
-         <td>${s2[0].j}</td><td>${s2[1].j}</td><td>${s2[2].j}</td></tr>`;
+function login(){
+  if(document.getElementById("password").value === PASSWORD){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("dashboard").style.display="block";
+  }else{
+    document.getElementById("error").innerText="Wrong Password";
   }
-  document.getElementById("dailyTL").innerHTML=dt;
+}
+
+function logout(){
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("home").style.display="flex";
+  document.getElementById("password").value="";
 }
 </script>
 
