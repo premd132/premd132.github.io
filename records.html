@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Record Manager</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;background:#f1f5f9;padding:15px}
-select,textarea,button{width:100%;padding:10px;margin:8px 0}
+select,textarea,button{width:100%;margin:8px 0;padding:10px}
 </style>
 </head>
 <body>
@@ -14,26 +12,24 @@ select,textarea,button{width:100%;padding:10px;margin:8px 0}
 <h2>Record Manager</h2>
 
 <select id="game">
-  <option value="milan_day">Milan Day</option>
-  <option value="kalyan">Kalyan</option>
-  <option value="rajdhani_night">Rajdhani Night</option>
+ <option value="milan_day">Milan Day</option>
+ <option value="kalyan">Kalyan</option>
+ <option value="rajdhani_night">Rajdhani Night</option>
 </select>
 
-<textarea id="record" placeholder="Example:
-27/10/25 59 44 59 42 90"></textarea>
+<textarea id="record" placeholder="27/10/25 59 44 59 42 90"></textarea>
 
 <button onclick="save()">Save</button>
 <button onclick="load()">Load</button>
 
 <script>
 function key(){return "record_"+game.value}
-
 function save(){
-  localStorage.setItem(key(),record.value.trim());
-  alert("Record saved");
+ localStorage.setItem(key(),record.value.trim());
+ alert("Saved");
 }
 function load(){
-  record.value=localStorage.getItem(key())||"";
+ record.value=localStorage.getItem(key())||"";
 }
 </script>
 
