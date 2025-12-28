@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Test</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{font-family:Arial;padding:15px}
+button{
+  padding:10px 20px;
+  font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<h3>LINE CLICK TEST</h3>
+
+<!-- BUTTON (checkbox nahi) -->
+<button id="btn">TOGGLE LINE</button>
+
+<br><br>
+
+<canvas id="c" height="250"></canvas>
+
+<script>
+const chart = new Chart(document.getElementById("c"),{
+  type:"line",
+  data:{
+    labels:["1","2","3","4","5"],
+    datasets:[{
+      data:[10,30,20,40,25],
+      borderWidth:2
+    }]
+  }
+});
+
+let show = true;
+
+document.getElementById("btn").onclick = () => {
+  show = !show;
+  chart.data.datasets[0].hidden = !show;
+  chart.update();
+};
+</script>
+
+</body>
+</html>
