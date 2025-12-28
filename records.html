@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Record Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f1f5f9;padding:10px}
+textarea{width:100%;height:120px}
+select,button{padding:8px;margin:6px 0;width:100%}
+</style>
+</head>
+<body>
+
+<h3>📂 Record Manager</h3>
+
+<select id="game">
+  <option value="milan_day">Milan Day</option>
+  <option value="kalyan">Kalyan</option>
+  <option value="milan_night">Milan Night</option>
+  <option value="rajdhani_night">Rajdhani Night</option>
+</select>
+
+<textarea id="data" placeholder="Paste / Add record here"></textarea>
+
+<button onclick="save()">Save Record</button>
+<button onclick="load()">Load Record</button>
+<button onclick="back()">⬅ Back</button>
+
+<script>
+function key(){
+  return "record_"+document.getElementById("game").value;
+}
+function save(){
+  localStorage.setItem(key(),data.value);
+  alert("Record Saved");
+}
+function load(){
+  data.value=localStorage.getItem(key())||"";
+}
+function back(){
+  location.href="index.html";
+}
+</script>
+
+</body>
+</html>
