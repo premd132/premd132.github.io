@@ -2,95 +2,194 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Advanced Line Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final Line Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f4f6fb;margin:0;padding:10px}
-h2{text-align:center;margin:6px}
-.note{text-align:center;color:#dc2626;font-size:12px}
+*{box-sizing:border-box}
 
-button{margin:4px;padding:6px 10px;border-radius:6px;border:none;background:#2563eb;color:#fff}
+body{
+  margin:0;
+  padding:10px;
+  font-family:Arial, sans-serif;
+  background:#f4f6fb;
+  min-height:100vh;
+  color:#000;
+}
 
-#bubbleBox{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px}
+h2,h3{
+  text-align:center;
+  margin:10px 0;
+}
+
+.note{
+  text-align:center;
+  color:#b91c1c;
+  font-size:13px;
+  margin-bottom:10px;
+}
+
+/* Buttons */
+.btns{
+  text-align:center;
+  margin-bottom:10px;
+}
+.btns button{
+  margin:4px;
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#2563eb;
+  color:#fff;
+  font-weight:bold;
+}
+
+/* Bubbles */
+#bubbleBox{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:10px 0;
+}
 .bubble{
- border-radius:50%;display:flex;align-items:center;justify-content:center;
- color:#fff;font-weight:bold;cursor:pointer
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-#checkLines{max-width:420px;margin:10px auto}
+/* Check Lines */
+#checkLines{
+  max-width:420px;
+  margin:10px auto;
+}
 .check{
- display:flex;justify-content:space-between;
- background:#e5e7eb;padding:6px;margin:4px 0;border-radius:6px
+  background:#e5e7eb;
+  padding:8px;
+  margin:6px 0;
+  border-radius:6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.check button{
+  padding:4px 8px;
+  border:none;
+  border-radius:4px;
+  background:#16a34a;
+  color:#fff;
 }
 
-table{border-collapse:collapse;margin:auto}
+/* Table */
+#wrap{
+  width:100%;
+  overflow-x:auto;
+  background:#fff;
+  padding:10px;
+  border-radius:8px;
+}
+table{
+  border-collapse:collapse;
+  min-width:600px;
+  margin:auto;
+}
 td{
- border:1px solid #ccc;width:42px;height:32px;
- text-align:center;font-weight:bold;cursor:pointer
+  border:1px solid #999;
+  width:42px;
+  height:32px;
+  text-align:center;
+  font-weight:bold;
+  cursor:pointer;
 }
-td.sel{background:#2563eb;color:#fff}
+td.sel{
+  background:#2563eb;
+  color:#fff;
+}
 
-#after{max-width:420px;margin:15px auto}
+/* After result */
+#after{
+  max-width:420px;
+  margin:15px auto;
+}
 .box{
- background:#e5e7eb;padding:8px;margin:6px 0;border-radius:6px;
- display:flex;justify-content:space-between
+  background:#e5e7eb;
+  padding:8px;
+  margin:6px 0;
+  border-radius:6px;
+  display:flex;
+  justify-content:space-between;
+}
+.empty{
+  text-align:center;
+  color:#555;
 }
 </style>
 </head>
 
 <body>
 
-<h2 id="title"></h2>
-<div class="note">Past record based visual analysis only</div>
+<h2 id="title">Analyzer</h2>
+<div class="note">Past record based analysis only (no prediction)</div>
 
-<div style="text-align:center">
-<button onclick="setMode(1)">1st Touch</button>
-<button onclick="setMode(2)">2nd Touch</button>
-<button onclick="setMode(3)">3rd Touch</button>
+<div class="btns">
+  <button onclick="setMode(1)">1st Touch</button>
+  <button onclick="setMode(2)">2nd Touch</button>
+  <button onclick="setMode(3)">3rd Touch</button>
 </div>
 
 <div id="bubbleBox"></div>
 
-<h3 style="text-align:center">Auto Check Lines</h3>
+<h3>Auto Check Lines</h3>
 <div id="checkLines"></div>
 
 <div id="wrap"></div>
 
-<h3 style="text-align:center">Line ke baad kya aaya</h3>
+<h3>Is line ke baad past me aaya</h3>
 <div id="after"></div>
 
 <script>
 // ===== LOAD GAME & RECORD =====
 const game = localStorage.getItem("currentGame") || "kalyan";
 document.getElementById("title").innerText =
- game.replace("_"," ").toUpperCase();
+  game.replace("_"," ").toUpperCase();
 
 const text = localStorage.getItem("record_"+game) || "";
 
 // ===== GLOBAL =====
-let rows=[],cells=[],currentLine=null,mode=1;
+let rows=[], cells=[], currentLine=null, mode=1;
 
-// ===== PARSE =====
+// ===== PARSE RECORD =====
 text.split("\n").forEach(l=>{
- const p=l.trim().split(/\s+/);
- if(p.length>1) rows.push(p.slice(1).map(Number));
+  const p = l.trim().split(/\s+/);
+  if(p.length>1){
+    rows.push(p.slice(1).map(Number));
+  }
 });
 
-// ===== TABLE =====
-const wrap=document.getElementById("wrap");
-const table=document.createElement("table");
+// ===== IF NO DATA =====
+if(rows.length===0){
+  document.getElementById("wrap").innerHTML =
+    "<div class='empty'>No record found. Please add record first.</div>";
+}
+
+// ===== BUILD TABLE =====
+const wrap = document.getElementById("wrap");
+const table = document.createElement("table");
 
 rows.forEach((r,ri)=>{
- const tr=document.createElement("tr");
- r.forEach((n,ci)=>{
-  const td=document.createElement("td");
-  td.innerText=n;
-  td.onclick=()=>selectLine(ri,ci);
-  cells.push({td,val:n,row:ri,col:ci});
-  tr.appendChild(td);
- });
- table.appendChild(tr);
+  const tr=document.createElement("tr");
+  r.forEach((n,ci)=>{
+    const td=document.createElement("td");
+    td.innerText=n;
+    td.onclick=()=>selectLine(ri,ci);
+    cells.push({td,val:n,row:ri,col:ci});
+    tr.appendChild(td);
+  });
+  table.appendChild(tr);
 });
 wrap.appendChild(table);
 
@@ -100,74 +199,79 @@ rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
 const bubbleBox=document.getElementById("bubbleBox");
 
 Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
- const size=34+freq[k]*6;
- const b=document.createElement("div");
- b.className="bubble";
- b.style.width=b.style.height=size+"px";
- b.style.background=`hsl(${k*4},70%,50%)`;
- b.innerText=k;
- b.onclick=()=>selectByValue(Number(k));
- bubbleBox.appendChild(b);
+  const size=36+freq[k]*6;
+  const b=document.createElement("div");
+  b.className="bubble";
+  b.style.width=b.style.height=size+"px";
+  b.style.background=`hsl(${k*4},70%,50%)`;
+  b.innerText=k;
+  b.onclick=()=>{
+    const c=cells.find(x=>x.val==k);
+    if(c) selectLine(c.row,c.col);
+  };
+  bubbleBox.appendChild(b);
 });
 
-function selectByValue(v){
- const c=cells.find(x=>x.val===v);
- if(c) selectLine(c.row,c.col);
-}
-
 // ===== TOUCH MODE =====
-function setMode(m){mode=m;draw();}
+function setMode(m){
+  mode=m;
+  draw();
+}
 
 // ===== SELECT LINE =====
 function selectLine(r,c){
- document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
- const td=cells.find(x=>x.row===r&&x.col===c).td;
- td.classList.add("sel");
- if(c+1>=rows[r].length) return;
- currentLine=[rows[r][c],rows[r][c+1]];
- draw();
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
+  const cell=cells.find(x=>x.row===r&&x.col===c);
+  if(!cell) return;
+  cell.td.classList.add("sel");
+
+  if(c+1>=rows[r].length) return;
+  currentLine=[rows[r][c], rows[r][c+1]];
+  draw();
 }
 
-// ===== DRAW AFTER RESULTS =====
+// ===== DRAW AFTER RESULT =====
 function draw(){
- if(!currentLine) return;
- const out={};
+  const after=document.getElementById("after");
+  after.innerHTML="";
+  if(!currentLine) return;
 
- for(let r=0;r<rows.length-mode;r++){
-  for(let c=0;c<rows[r].length-1;c++){
-   if(rows[r][c]===currentLine[0] && rows[r][c+1]===currentLine[1]){
-    const next=rows[r+mode][c];
-    out[next]=(out[next]||0)+1;
-   }
+  const out={};
+  for(let r=0;r<rows.length-mode;r++){
+    for(let c=0;c<rows[r].length-1;c++){
+      if(rows[r][c]===currentLine[0] &&
+         rows[r][c+1]===currentLine[1]){
+        const next=rows[r+mode][c];
+        out[next]=(out[next]||0)+1;
+      }
+    }
   }
- }
- showAfter(out);
-}
 
-// ===== SHOW AFTER =====
-function showAfter(obj){
- const after=document.getElementById("after");
- after.innerHTML="";
- Object.keys(obj).forEach(k=>{
-  const d=document.createElement("div");
-  d.className="box";
-  d.innerHTML=`<span>${k}</span><span>${obj[k]} times</span>`;
-  after.appendChild(d);
- });
+  if(Object.keys(out).length===0){
+    after.innerHTML="<div class='empty'>No past result found</div>";
+    return;
+  }
+
+  Object.keys(out).forEach(k=>{
+    const d=document.createElement("div");
+    d.className="box";
+    d.innerHTML=`<span>${k}</span><span>${out[k]} times</span>`;
+    after.appendChild(d);
+  });
 }
 
 // ===== AUTO CHECK LINES (LAST DAY) =====
 const checkLines=document.getElementById("checkLines");
 if(rows.length){
- const last=rows[rows.length-1];
- for(let i=0;i<last.length-1;i++){
-  const a=last[i],b=last[i+1];
-  const d=document.createElement("div");
-  d.className="check";
-  d.innerHTML=`<span>${a}-${b}</span>
-  <button onclick="currentLine=[${a},${b}];draw()">Check</button>`;
-  checkLines.appendChild(d);
- }
+  const last=rows[rows.length-1];
+  for(let i=0;i<last.length-1;i++){
+    const a=last[i], b=last[i+1];
+    const d=document.createElement("div");
+    d.className="check";
+    d.innerHTML=`<span>${a}-${b}</span>
+      <button onclick="currentLine=[${a},${b}];draw()">Check</button>`;
+    checkLines.appendChild(d);
+  }
 }
 </script>
 
