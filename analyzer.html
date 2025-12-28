@@ -1,68 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Game Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👑 Jodi Analyzer – PRO MAX</title>
 
 <style>
 body{
+  font-family: Arial, sans-serif;
+  background:#f4f6fb;
   margin:0;
-  font-family:Arial;
-  background:#f8fafc;
-  color:#000;
-}
-h2{
-  text-align:center;
-  margin:10px 0;
-}
-#top{
-  text-align:center;
-  padding:8px;
-  background:#020617;
-  color:#fff;
-}
-textarea{
-  width:96%;
-  height:120px;
-  margin:10px;
   padding:10px;
 }
+h2{text-align:center}
+
+textarea{
+  width:100%;
+  height:140px;
+  font-size:14px;
+}
+
+button{
+  padding:10px 14px;
+  border:none;
+  border-radius:6px;
+  background:#2563eb;
+  color:#fff;
+  font-size:14px;
+  cursor:pointer;
+}
+
 #bubbleWrap{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
+  margin-top:15px;
   justify-content:center;
-  margin:10px;
 }
+
 .bubble{
-  border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
+  border-radius:50%;
   color:#fff;
   font-weight:bold;
   cursor:pointer;
 }
+
+#tableWrap{
+  position:relative;
+  margin-top:25px;
+  overflow-x:auto;
+}
+
 table{
   border-collapse:collapse;
-  margin:20px auto;
-  position:relative;
-  z-index:2;
-  background:#fff;
+  margin:auto;
 }
+
 td{
-  border:1px solid #000;
-  width:58px;
-  height:42px;
+  border:1px solid #ccc;
+  width:45px;
+  height:35px;
   text-align:center;
   font-weight:bold;
-  position:relative;
 }
-.selected{
-  border:3px solid #2563eb;
-  background:#dbeafe;
+
+td.selected{
+  background:#60a5fa;
+  color:#fff;
 }
+
 svg{
   position:absolute;
   top:0;
@@ -70,23 +78,15 @@ svg{
   width:100%;
   height:100%;
   pointer-events:none;
-  z-index:1;
-}
-button{
-  padding:8px 14px;
-  margin:6px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="top">
-  <h2 id="gameTitle">Analyzer</h2>
-  <button onclick="location.href='games.html'">⬅ Back</button>
-</div>
+<h2>👑 Jodi Analyzer – PRO MAX</h2>
 
-<textarea id="record">
+<textarea id="input">
 27/10/25 59 44 59 42 90
 03/11/25 55 02 93 00 05
 10/11/25 91 10 84 20 84
@@ -98,38 +98,41 @@ button{
 22/12/25 33 38 53 32 84
 </textarea>
 
+<br><br>
+<button onclick="init()">Generate</button>
+
 <div id="bubbleWrap"></div>
 
-<div style="position:relative">
+<div id="tableWrap">
   <svg id="lines"></svg>
-  <div id="tableWrap"></div>
 </div>
 
 <script>
-/* ===== AUTO LOAD RECORD FROM GAME ===== */
-const game = localStorage.getItem("currentGame") || "Game";
-document.getElementById("gameTitle").innerText =
-  game.replace("_"," ").toUpperCase();
+const bubbleWrap=document.getElementById("bubbleWrap");
+const tableWrap=document.getElementById("tableWrap");
+const lines=document.getElementById("lines");
 
-document.getElementById("record").value =
-  localStorage.getItem("record_" + game) ||
-  document.getElementById("record").value;
+let rows=[],cells=[],current=null;
 
-/* ===== ANALYZER LOGIC ===== */
-let rows=[], cells=[], current=null;
-
+/* PARSE DATA */
 function parse(){
-  rows=[]; cells=[];
-  document.getElementById("record").value.trim().split("\n").forEach(r=>{
-    const p=r.trim().split(/\s+/);
-    rows.push(p.slice(1).map(Number));
+  rows=[];
+  const txt=document.getElementById("input").value.trim();
+  txt.split("\n").forEach(line=>{
+    const p=line.trim().split(/\s+/);
+    if(p.length>1){
+      rows.push(p.slice(1).map(Number));
+    }
   });
 }
 
+/* BUILD BUBBLES */
 function buildBubbles(){
-  const freq={};
-  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
   bubbleWrap.innerHTML="";
+  const freq={};
+
+  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
+
   Object.keys(freq).forEach(k=>{
     const size=40+freq[k]*8;
     const b=document.createElement("div");
@@ -142,31 +145,36 @@ function buildBubbles(){
   });
 }
 
+/* BUILD TABLE */
 function buildTable(){
   tableWrap.innerHTML="";
-  const t=document.createElement("table");
+  cells=[];
+  const table=document.createElement("table");
+
   rows.forEach((r,ri)=>{
     const tr=document.createElement("tr");
     r.forEach((n,ci)=>{
       const td=document.createElement("td");
       td.innerText=n;
-      cells.push({td,ri,ci,val:n});
+      cells.push({td,val:n,row:ri,col:ci});
       tr.appendChild(td);
     });
-    t.appendChild(tr);
+    table.appendChild(tr);
   });
-  tableWrap.appendChild(t);
+
+  tableWrap.appendChild(table);
+  tableWrap.appendChild(lines);
 }
 
+/* SELECT JODI */
 function selectJodi(j){
   current=j;
   draw();
 }
 
+/* DRAW HIGHLIGHT + LINES */
 function draw(){
-  document.querySelectorAll("td").forEach(td=>{
-    td.classList.remove("selected");
-  });
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("selected"));
   lines.innerHTML="";
   if(current===null) return;
 
@@ -178,6 +186,7 @@ function draw(){
   }
 }
 
+/* CONNECT LINE */
 function connect(a,b){
   const r1=a.getBoundingClientRect();
   const r2=b.getBoundingClientRect();
@@ -189,20 +198,21 @@ function connect(a,b){
   const y2=r2.top+r2.height/2-p.top;
 
   const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute(
-    "d",
-    `M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`
-  );
+  path.setAttribute("d",`M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`);
   path.setAttribute("stroke","#dc2626");
-  path.setAttribute("fill","none");
   path.setAttribute("stroke-width","3");
+  path.setAttribute("fill","none");
   lines.appendChild(path);
 }
 
 /* INIT */
-parse();
-buildBubbles();
-buildTable();
+function init(){
+  parse();
+  buildTable();
+  buildBubbles();
+}
+
+init();
 </script>
 
 </body>
