@@ -2,176 +2,204 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Jodi Pattern Catch – ULTRA PRO</title>
+<title>Jodi Analyzer – PRO MAX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- html2canvas + jszip -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
 <style>
-body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
-textarea{width:94%;height:160px;margin-top:10px;padding:10px}
-button,input,select{padding:8px 14px;margin:6px;border-radius:6px}
-.card{background:#111827;padding:14px;border-radius:10px;margin:12px}
-table{border-collapse:collapse;margin:10px auto;background:#fff;color:#000}
-td{border:1px solid #000;width:46px;height:38px;font-weight:bold;position:relative;cursor:pointer}
-.current{background:#2563eb;color:#fff}
-.circle::after{content:"⭕";position:absolute;right:2px;bottom:2px;font-size:14px}
-.section{margin:14px auto;width:95%;max-width:980px;background:#111827;padding:12px;border-radius:12px}
-h3{color:#38bdf8;margin:6px 0}
-.bar{height:14px;background:#22c55e;margin:4px 0;border-radius:6px}
-.fullscreen{
-  position:fixed;inset:0;background:#020617;z-index:9999;
-  overflow:auto;padding:10px
+body{margin:0;font-family:Arial;background:#f1f5f9;color:#000}
+h2{text-align:center;margin:10px}
+textarea{width:96%;height:130px;margin:10px;padding:10px}
+
+.topbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px}
+.topbar button{
+  padding:8px 14px;border:none;border-radius:6px;
+  background:#1e40af;color:#fff;cursor:pointer
+}
+.topbar button.active{background:#16a34a}
+
+.panel{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:10px}
+
+#bubbleWrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px}
+.bubble{
+  border-radius:50%;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-weight:bold;
+  cursor:pointer;position:relative
+}
+.bubble:hover::after{
+  content:attr(data-tip);
+  position:absolute;bottom:-28px;
+  background:#000;color:#fff;
+  padding:4px 6px;font-size:12px;border-radius:4px;
+}
+
+table{border-collapse:collapse;margin:20px auto;position:relative;z-index:2}
+td{
+  border:1px solid #000;width:58px;height:42px;
+  text-align:center;font-weight:bold;position:relative
+}
+.selected{border:3px solid #2563eb;background:#dbeafe}
+.match{border:3px solid #16a34a;background:#dcfce7}
+
+svg{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;z-index:1
+}
+
+.list{max-width:360px;margin:10px auto}
+.list div{
+  display:flex;justify-content:space-between;
+  background:#e5e7eb;margin:4px 0;padding:6px;border-radius:4px
 }
 </style>
 </head>
 
 <body>
 
-<h2>👑 ULTRA PRO Jodi Pattern Catch</h2>
+<h2>👑 Jodi Analyzer – PRO MAX</h2>
 
 <textarea id="record">
-2024-01-01 12 34 56 78
-2024-01-02 22 55 57 90
-2024-01-03 11 56 44 78
-2024-01-04 56 23 99 10
-2024-01-05 34 55 56 88
+27/10/25 59 44 59 42 90
+03/11/25 55 02 93 00 05
+10/11/25 91 10 84 20 84
+17/11/25 52 96 53 11 70
+24/11/25 91 07 67 79 09
+01/12/25 78 52 12 72 64
+08/12/25 16 43 78 91 27
+15/12/25 64 30 97 55 97
+22/12/25 33 38 53 32 84
 </textarea>
 
-<div class="card">
-  <button onclick="build()">Load Record</button>
-  <label><input type="checkbox" id="posOnly"> Exact Position</label>
-  <select id="limit">
-    <option value="3">Top 3</option>
-    <option value="2">Top 2</option>
-    <option value="1">Top 1</option>
-    <option value="999">All</option>
-  </select>
-  <button onclick="toggleFull()">🔍 Full Screen</button>
-  <button onclick="zipExport()">📦 ZIP Export</button>
+<div class="topbar">
+  <button onclick="setMode('normal')" class="active">Normal</button>
+  <button onclick="setMode('second')">2nd Touch</button>
+  <button onclick="setMode('third')">3rd Touch</button>
+  <button onclick="setMode('combo')">Combo</button>
 </div>
 
-<div id="summary" class="card"></div>
-<div id="columnStrength" class="card"></div>
-<div id="result"></div>
+<div class="panel">
+  <input id="patternInput" placeholder="Pattern: 4,5,6,7">
+  <input id="diffInput" type="number" placeholder="Total Difference">
+</div>
+
+<div id="bubbleWrap"></div>
+
+<h3 style="text-align:center">Check Line</h3>
+<div id="checkList" class="list"></div>
+
+<div style="position:relative">
+  <svg id="lines"></svg>
+  <div id="tableWrap"></div>
+</div>
 
 <script>
-let rows=[], dates=[], current=null, images=[];
+let rows=[],dates=[],cells=[],current=null,mode="normal";
 
-/* LOAD */
-function build(){
-  const raw=record.value.trim().split("\n");
-  rows=[]; dates=[];
-  raw.forEach(r=>{
-    const p=r.trim().split(/[\s,]+/);
-    dates.push(p[0]); rows.push(p.slice(1).map(Number));
+function parse(){
+  rows=[];dates=[];
+  record.value.trim().split("\n").forEach(r=>{
+    const p=r.split(/\s+/);
+    dates.push(p[0]);
+    rows.push(p.slice(1).map(Number));
   });
-  const last=rows[rows.length-1];
-  selectJodi(last[last.length-1]);
 }
 
-/* ANALYZE */
-function selectJodi(j){
-  current=j;
-  analyze();
+function buildBubbles(){
+  const freq={};
+  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
+
+  const sorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
+  bubbleWrap.innerHTML="";
+
+  sorted.forEach(k=>{
+    const size=36+freq[k]*10;
+    const b=document.createElement("div");
+    b.className="bubble";
+    b.style.width=b.style.height=size+"px";
+    b.style.background=`hsl(${k*4},70%,50%)`;
+    b.innerText=k;
+    b.dataset.tip=`Value: ${k}, Occurrences: ${freq[k]}`;
+    b.onclick=()=>selectJodi(Number(k));
+    bubbleWrap.appendChild(b);
+  });
 }
 
-function analyze(){
-  if(current===null) return;
-  const range=[current-1,current,current+1];
-  const posOnly=document.getElementById("posOnly").checked;
-  const limit=parseInt(document.getElementById("limit").value,10);
-
-  result.innerHTML=""; images=[];
-
-  let hits=[], colCount=[0,0,0,0];
-
+function buildTable(){
+  tableWrap.innerHTML="";cells=[];
+  const t=document.createElement("table");
   rows.forEach((r,ri)=>{
-    let ok=false,pos=-1;
-    r.forEach((n,ci)=>{
-      if(range.includes(n)){
-        if(!posOnly){ok=true;pos=ci;}
-        else if(n===current){ok=true;pos=ci;}
-      }
-    });
-    if(ok){
-      hits.push({row:r,idx:ri,pos});
-      if(pos>=0) colCount[pos]++;
-    }
-  });
-
-  /* SUMMARY */
-  summary.innerHTML=`
-    <h3>📌 Strongest Summary</h3>
-    <p>Selected Jodi: <b>${current}</b></p>
-    <p>Total Pattern Occurrences: <b>${hits.length}</b></p>
-  `;
-
-  /* COLUMN STRENGTH */
-  columnStrength.innerHTML="<h3>📊 Column Strength</h3>";
-  colCount.forEach((c,i)=>{
-    const div=document.createElement("div");
-    div.innerHTML=`Column ${i+1}: ${c}`;
-    const bar=document.createElement("div");
-    bar.className="bar"; bar.style.width=(c*20)+"px";
-    columnStrength.appendChild(div);
-    columnStrength.appendChild(bar);
-  });
-
-  /* OCCURRENCES */
-  hits.slice(0,limit).forEach((h,i)=>{
-    const sec=document.createElement("div");
-    sec.className="section";
-    sec.innerHTML=`<h3>Occurrence ${i+1} <small>${dates[h.idx]}</small></h3>`;
-    const t=document.createElement("table");
     const tr=document.createElement("tr");
-
-    h.row.forEach((n,ci)=>{
+    r.forEach((n,ci)=>{
       const td=document.createElement("td");
       td.innerText=n;
-      if(n===current) td.classList.add("current","circle");
-      else if(range.includes(n)&&(!posOnly||ci===h.pos)) td.classList.add("circle");
+      cells.push({td,ri,ci,val:n});
       tr.appendChild(td);
     });
-
-    t.appendChild(tr); sec.appendChild(t);
-
-    const btn=document.createElement("button");
-    btn.innerText="📸 Save";
-    btn.onclick=()=>html2canvas(sec).then(c=>{
-      const img=c.toDataURL();
-      images.push(img);
-      const a=document.createElement("a");
-      a.download=`occurrence_${i+1}.png`;
-      a.href=img; a.click();
-    });
-
-    sec.appendChild(btn);
-    result.appendChild(sec);
+    t.appendChild(tr);
   });
+  tableWrap.appendChild(t);
 }
 
-/* FULL SCREEN */
-function toggleFull(){
-  result.classList.toggle("fullscreen");
+function buildCheckLine(){
+  checkList.innerHTML="";
+  if(current===null) return;
+  for(let i=25;i<=39;i++){
+    const row=`${current}-${i}-${(i*2)%100}`;
+    const d=document.createElement("div");
+    d.innerHTML=`<span>${row}</span><button onclick="selectJodi(${current})">Check Line</button>`;
+    checkList.appendChild(d);
+  }
 }
 
-/* ZIP EXPORT */
-function zipExport(){
-  if(images.length===0){alert("No images yet");return;}
-  const zip=new JSZip();
-  images.forEach((img,i)=>{
-    zip.file(`occurrence_${i+1}.png`, img.split(",")[1], {base64:true});
-  });
-  zip.generateAsync({type:"blob"}).then(b=>{
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(b);
-    a.download="pattern_images.zip";
-    a.click();
-  });
+function setMode(m){
+  mode=m;
+  document.querySelectorAll(".topbar button").forEach(b=>b.classList.remove("active"));
+  event.target.classList.add("active");
+  draw();
 }
+
+function selectJodi(j){
+  current=j;
+  buildCheckLine();
+  draw();
+}
+
+function draw(){
+  document.querySelectorAll("td").forEach(td=>td.className="");
+  lines.innerHTML="";
+  if(current===null) return;
+
+  let hits=cells.filter(c=>c.val===current);
+
+  if(mode==="second") hits=hits.slice(1,2);
+  if(mode==="third") hits=hits.slice(2,3);
+
+  hits.forEach(h=>h.td.classList.add("selected"));
+
+  for(let i=0;i<hits.length-1;i++){
+    connect(hits[i].td,hits[i+1].td);
+  }
+}
+
+function connect(a,b){
+  const r1=a.getBoundingClientRect(), r2=b.getBoundingClientRect();
+  const p=tableWrap.getBoundingClientRect();
+  const x1=r1.left+r1.width/2-p.left;
+  const y1=r1.top+r1.height/2-p.top;
+  const x2=r2.left+r2.width/2-p.left;
+  const y2=r2.top+r2.height/2-p.top;
+
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d",`M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`);
+  path.setAttribute("stroke","#dc2626");
+  path.setAttribute("fill","none");
+  path.setAttribute("stroke-width","3");
+  lines.appendChild(path);
+}
+
+parse();
+buildBubbles();
+buildTable();
 </script>
 
 </body>
