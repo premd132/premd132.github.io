@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:#020617;
+      color:#fff;
+      text-align:center;
+    }
+    h2{margin-top:20px}
+    .game{
+      background:#0f172a;
+      margin:15px auto;
+      padding:20px;
+      width:85%;
+      max-width:400px;
+      border-radius:10px;
+      font-size:20px;
+      cursor:pointer;
+      border:2px solid #1e293b;
+    }
+    .game:hover{
+      background:#1e293b;
+      border-color:#38bdf8;
+    }
+    .btn{
+      padding:10px 18px;
+      margin:10px;
+      border:none;
+      border-radius:6px;
+      background:#2563eb;
+      color:#fff;
+      font-size:16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>🎮 Select Game</h2>
+
+<div class="game" onclick="openGame('milan_day')">Milan Day</div>
+<div class="game" onclick="openGame('kalyan')">Kalyan</div>
+<div class="game" onclick="openGame('milan_night')">Milan Night</div>
+<div class="game" onclick="openGame('rajdhani_night')">Rajdhani Night</div>
+
+<button class="btn" onclick="location.href='records.html'">
+📂 Manage Records
+</button>
+
+<script>
+function openGame(game){
+  localStorage.setItem("currentGame", game);
+  location.href = "analyzer.html"; // ⚠️ analyzer file ka exact naam yahi hona chahiye
+}
+</script>
+
+</body>
+  </html>
