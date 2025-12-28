@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Game Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#f8fafc;
+  color:#000;
+}
+h2{
+  text-align:center;
+  margin:10px 0;
+}
+#top{
+  text-align:center;
+  padding:8px;
+  background:#020617;
+  color:#fff;
+}
+textarea{
+  width:96%;
+  height:120px;
+  margin:10px;
+  padding:10px;
+}
+#bubbleWrap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin:10px;
+}
+.bubble{
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+table{
+  border-collapse:collapse;
+  margin:20px auto;
+  position:relative;
+  z-index:2;
+  background:#fff;
+}
+td{
+  border:1px solid #000;
+  width:58px;
+  height:42px;
+  text-align:center;
+  font-weight:bold;
+  position:relative;
+}
+.selected{
+  border:3px solid #2563eb;
+  background:#dbeafe;
+}
+svg{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:1;
+}
+button{
+  padding:8px 14px;
+  margin:6px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="top">
+  <h2 id="gameTitle">Analyzer</h2>
+  <button onclick="location.href='games.html'">⬅ Back</button>
+</div>
+
+<textarea id="record">
+27/10/25 59 44 59 42 90
+03/11/25 55 02 93 00 05
+10/11/25 91 10 84 20 84
+17/11/25 52 96 53 11 70
+24/11/25 91 07 67 79 09
+01/12/25 78 52 12 72 64
+08/12/25 16 43 78 91 27
+15/12/25 64 30 97 55 97
+22/12/25 33 38 53 32 84
+</textarea>
+
+<div id="bubbleWrap"></div>
+
+<div style="position:relative">
+  <svg id="lines"></svg>
+  <div id="tableWrap"></div>
+</div>
+
+<script>
+/* ===== AUTO LOAD RECORD FROM GAME ===== */
+const game = localStorage.getItem("currentGame") || "Game";
+document.getElementById("gameTitle").innerText =
+  game.replace("_"," ").toUpperCase();
+
+document.getElementById("record").value =
+  localStorage.getItem("record_" + game) ||
+  document.getElementById("record").value;
+
+/* ===== ANALYZER LOGIC ===== */
+let rows=[], cells=[], current=null;
+
+function parse(){
+  rows=[]; cells=[];
+  document.getElementById("record").value.trim().split("\n").forEach(r=>{
+    const p=r.trim().split(/\s+/);
+    rows.push(p.slice(1).map(Number));
+  });
+}
+
+function buildBubbles(){
+  const freq={};
+  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
+  bubbleWrap.innerHTML="";
+  Object.keys(freq).forEach(k=>{
+    const size=40+freq[k]*8;
+    const b=document.createElement("div");
+    b.className="bubble";
+    b.style.width=b.style.height=size+"px";
+    b.style.background=`hsl(${k*4},70%,50%)`;
+    b.innerText=k;
+    b.onclick=()=>selectJodi(Number(k));
+    bubbleWrap.appendChild(b);
+  });
+}
+
+function buildTable(){
+  tableWrap.innerHTML="";
+  const t=document.createElement("table");
+  rows.forEach((r,ri)=>{
+    const tr=document.createElement("tr");
+    r.forEach((n,ci)=>{
+      const td=document.createElement("td");
+      td.innerText=n;
+      cells.push({td,ri,ci,val:n});
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  tableWrap.appendChild(t);
+}
+
+function selectJodi(j){
+  current=j;
+  draw();
+}
+
+function draw(){
+  document.querySelectorAll("td").forEach(td=>{
+    td.classList.remove("selected");
+  });
+  lines.innerHTML="";
+  if(current===null) return;
+
+  const hits=cells.filter(c=>c.val===current);
+  hits.forEach(h=>h.td.classList.add("selected"));
+
+  for(let i=0;i<hits.length-1;i++){
+    connect(hits[i].td,hits[i+1].td);
+  }
+}
+
+function connect(a,b){
+  const r1=a.getBoundingClientRect();
+  const r2=b.getBoundingClientRect();
+  const p=tableWrap.getBoundingClientRect();
+
+  const x1=r1.left+r1.width/2-p.left;
+  const y1=r1.top+r1.height/2-p.top;
+  const x2=r2.left+r2.width/2-p.left;
+  const y2=r2.top+r2.height/2-p.top;
+
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute(
+    "d",
+    `M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`
+  );
+  path.setAttribute("stroke","#dc2626");
+  path.setAttribute("fill","none");
+  path.setAttribute("stroke-width","3");
+  lines.appendChild(path);
+}
+
+/* INIT */
+parse();
+buildBubbles();
+buildTable();
+</script>
+
+</body>
+</html>
