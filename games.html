@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Select Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;background:#020617;color:#fff;text-align:center}
-.game{background:#1e293b;margin:15px auto;padding:20px;width:80%;
-border-radius:10px;font-size:20px;cursor:pointer}
+.game{background:#1e293b;margin:15px;padding:20px;border-radius:10px;font-size:20px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -20,8 +17,8 @@ border-radius:10px;font-size:20px;cursor:pointer}
 
 <script>
 function go(g){
-  localStorage.setItem("currentGame",g);
-  location.href="analyzer.html";
+ localStorage.setItem("currentGame",g);
+ location.href="analyzer.html";
 }
 </script>
 
