@@ -2,184 +2,123 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Final Line Analyzer</title>
+<title>DPBOSS-Style Line Analyzer (Final)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 *{box-sizing:border-box}
-
 body{
-  margin:0;
-  padding:10px;
-  font-family:Arial, sans-serif;
-  background:#f4f6fb;
-  min-height:100vh;
-  color:#000;
+  margin:0;padding:10px;min-height:100vh;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#f4f6fb;color:#111;
 }
+h2,h3{text-align:center;margin:8px 0}
+.note{font-size:12px;color:#b91c1c;text-align:center;margin-bottom:8px}
 
-h2,h3{
-  text-align:center;
-  margin:10px 0;
-}
-
-.note{
-  text-align:center;
-  color:#b91c1c;
-  font-size:13px;
-  margin-bottom:10px;
-}
-
-/* Buttons */
-.btns{
-  text-align:center;
-  margin-bottom:10px;
-}
-.btns button{
-  margin:4px;
-  padding:8px 12px;
-  border:none;
-  border-radius:6px;
-  background:#2563eb;
-  color:#fff;
-  font-weight:bold;
+/* Top controls */
+.controls{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+.controls button{
+  border:none;border-radius:6px;padding:8px 12px;
+  background:#2563eb;color:#fff;font-weight:600;cursor:pointer
 }
 
 /* Bubbles */
-#bubbleBox{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:10px;
-  margin:10px 0;
-}
+#bubbleBox{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:10px 0}
 .bubble{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  color:#fff;
-  font-weight:bold;
-  cursor:pointer;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:bold;cursor:pointer;user-select:none
 }
 
-/* Check Lines */
-#checkLines{
-  max-width:420px;
-  margin:10px auto;
-}
+/* Check lines */
+#checkLines{max-width:460px;margin:10px auto}
 .check{
-  background:#e5e7eb;
-  padding:8px;
-  margin:6px 0;
-  border-radius:6px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  background:#e5e7eb;border-radius:6px;padding:8px;margin:6px 0;
+  display:flex;justify-content:space-between;align-items:center
 }
 .check button{
-  padding:4px 8px;
-  border:none;
-  border-radius:4px;
-  background:#16a34a;
-  color:#fff;
+  border:none;border-radius:4px;padding:4px 8px;
+  background:#16a34a;color:#fff;font-weight:600
 }
 
 /* Table */
 #wrap{
-  width:100%;
-  overflow-x:auto;
-  background:#fff;
-  padding:10px;
-  border-radius:8px;
+  width:100%;overflow-x:auto;background:#fff;padding:10px;border-radius:8px
 }
-table{
-  border-collapse:collapse;
-  min-width:600px;
-  margin:auto;
-}
+table{border-collapse:collapse;min-width:640px;margin:auto}
 td{
-  border:1px solid #999;
-  width:42px;
-  height:32px;
-  text-align:center;
-  font-weight:bold;
-  cursor:pointer;
+  border:1px solid #9ca3af;width:44px;height:34px;
+  text-align:center;font-weight:bold;cursor:pointer
 }
-td.sel{
-  background:#2563eb;
-  color:#fff;
+td.sel{background:#2563eb;color:#fff}
+td.mark{outline:3px solid #ef4444}
+
+/* Occurrence boxes */
+#occurrences{max-width:520px;margin:14px auto}
+.occ{
+  background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;
+  padding:8px;margin:8px 0
+}
+.occ .title{font-weight:700;margin-bottom:6px}
+.occ .grid{display:flex;gap:6px;flex-wrap:wrap}
+.pill{
+  background:#fff;border:1px solid #c7d2fe;border-radius:999px;
+  padding:4px 8px;font-weight:600
 }
 
-/* After result */
-#after{
-  max-width:420px;
-  margin:15px auto;
-}
+/* After results */
+#after{max-width:520px;margin:14px auto}
 .box{
-  background:#e5e7eb;
-  padding:8px;
-  margin:6px 0;
-  border-radius:6px;
-  display:flex;
-  justify-content:space-between;
+  background:#e5e7eb;border-radius:6px;padding:8px;margin:6px 0;
+  display:flex;justify-content:space-between
 }
-.empty{
-  text-align:center;
-  color:#555;
-}
+.empty{text-align:center;color:#555}
 </style>
 </head>
 
 <body>
 
-<h2 id="title">Analyzer</h2>
-<div class="note">Past record based analysis only (no prediction)</div>
+<h2 id="title">ANALYZER</h2>
+<div class="note">Past record based visual analysis only (no prediction)</div>
 
-<div class="btns">
-  <button onclick="setMode(1)">1st Touch</button>
-  <button onclick="setMode(2)">2nd Touch</button>
-  <button onclick="setMode(3)">3rd Touch</button>
+<div class="controls">
+  <button onclick="setDepth(1)">+1 Day</button>
+  <button onclick="setDepth(2)">+2 Day</button>
+  <button onclick="setDepth(3)">+3 Day</button>
 </div>
 
 <div id="bubbleBox"></div>
 
-<h3>Auto Check Lines</h3>
+<h3>Auto Check Lines (Last Day)</h3>
 <div id="checkLines"></div>
 
 <div id="wrap"></div>
 
-<h3>Is line ke baad past me aaya</h3>
+<h3>Same Pattern – Occurrences</h3>
+<div id="occurrences"></div>
+
+<h3>After Result (Selected Depth)</h3>
 <div id="after"></div>
 
 <script>
 // ===== LOAD GAME & RECORD =====
 const game = localStorage.getItem("currentGame") || "kalyan";
-document.getElementById("title").innerText =
-  game.replace("_"," ").toUpperCase();
-
+document.getElementById("title").innerText = game.replace("_"," ").toUpperCase();
 const text = localStorage.getItem("record_"+game) || "";
 
 // ===== GLOBAL =====
-let rows=[], cells=[], currentLine=null, mode=1;
+let rows=[], cells=[], currentLine=null, depth=1;
 
-// ===== PARSE RECORD =====
+// ===== PARSE =====
 text.split("\n").forEach(l=>{
-  const p = l.trim().split(/\s+/);
-  if(p.length>1){
-    rows.push(p.slice(1).map(Number));
-  }
+  const p=l.trim().split(/\s+/);
+  if(p.length>1) rows.push(p.slice(1).map(Number));
 });
 
-// ===== IF NO DATA =====
-if(rows.length===0){
-  document.getElementById("wrap").innerHTML =
-    "<div class='empty'>No record found. Please add record first.</div>";
+// ===== TABLE BUILD =====
+const wrap=document.getElementById("wrap");
+if(!rows.length){
+  wrap.innerHTML="<div class='empty'>No record found. Please add record first.</div>";
 }
-
-// ===== BUILD TABLE =====
-const wrap = document.getElementById("wrap");
-const table = document.createElement("table");
-
+const table=document.createElement("table");
 rows.forEach((r,ri)=>{
   const tr=document.createElement("tr");
   r.forEach((n,ci)=>{
@@ -193,11 +132,10 @@ rows.forEach((r,ri)=>{
 });
 wrap.appendChild(table);
 
-// ===== BUBBLES =====
+// ===== BUBBLES (strength) =====
 const freq={};
 rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
 const bubbleBox=document.getElementById("bubbleBox");
-
 Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
   const size=36+freq[k]*6;
   const b=document.createElement("div");
@@ -212,55 +150,7 @@ Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
   bubbleBox.appendChild(b);
 });
 
-// ===== TOUCH MODE =====
-function setMode(m){
-  mode=m;
-  draw();
-}
-
-// ===== SELECT LINE =====
-function selectLine(r,c){
-  document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
-  const cell=cells.find(x=>x.row===r&&x.col===c);
-  if(!cell) return;
-  cell.td.classList.add("sel");
-
-  if(c+1>=rows[r].length) return;
-  currentLine=[rows[r][c], rows[r][c+1]];
-  draw();
-}
-
-// ===== DRAW AFTER RESULT =====
-function draw(){
-  const after=document.getElementById("after");
-  after.innerHTML="";
-  if(!currentLine) return;
-
-  const out={};
-  for(let r=0;r<rows.length-mode;r++){
-    for(let c=0;c<rows[r].length-1;c++){
-      if(rows[r][c]===currentLine[0] &&
-         rows[r][c+1]===currentLine[1]){
-        const next=rows[r+mode][c];
-        out[next]=(out[next]||0)+1;
-      }
-    }
-  }
-
-  if(Object.keys(out).length===0){
-    after.innerHTML="<div class='empty'>No past result found</div>";
-    return;
-  }
-
-  Object.keys(out).forEach(k=>{
-    const d=document.createElement("div");
-    d.className="box";
-    d.innerHTML=`<span>${k}</span><span>${out[k]} times</span>`;
-    after.appendChild(d);
-  });
-}
-
-// ===== AUTO CHECK LINES (LAST DAY) =====
+// ===== AUTO CHECK LINES (last day) =====
 const checkLines=document.getElementById("checkLines");
 if(rows.length){
   const last=rows[rows.length-1];
@@ -269,8 +159,106 @@ if(rows.length){
     const d=document.createElement("div");
     d.className="check";
     d.innerHTML=`<span>${a}-${b}</span>
-      <button onclick="currentLine=[${a},${b}];draw()">Check</button>`;
+      <button onclick="currentLine=[${a},${b}];runAll()">Check</button>`;
     checkLines.appendChild(d);
+  }
+}
+
+// ===== CONTROLS =====
+function setDepth(d){ depth=d; runAll(); }
+
+// ===== SELECT LINE (A-B) =====
+function selectLine(r,c){
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("sel","mark"));
+  const cell=cells.find(x=>x.row===r&&x.col===c);
+  if(!cell) return;
+  cell.td.classList.add("sel");
+  if(c+1>=rows[r].length) return;
+  currentLine=[rows[r][c], rows[r][c+1]];
+  runAll();
+}
+
+// ===== CORE: find occurrences of same line =====
+function findOccurrences(line){
+  const occ=[];
+  for(let r=0;r<rows.length;r++){
+    for(let c=0;c<rows[r].length-1;c++){
+      if(rows[r][c]===line[0] && rows[r][c+1]===line[1]){
+        occ.push({r,c});
+      }
+    }
+  }
+  return occ;
+}
+
+// ===== DRAW OCCURRENCES (photo-style boxes) =====
+function drawOccurrences(occ){
+  const box=document.getElementById("occurrences");
+  box.innerHTML="";
+  if(!occ.length){
+    box.innerHTML="<div class='empty'>No occurrence found</div>";
+    return;
+  }
+  occ.forEach((o,idx)=>{
+    const d=document.createElement("div");
+    d.className="occ";
+    d.innerHTML=`<div class="title">Occurrence ${idx+1} (Row ${o.r+1})</div>`;
+    const grid=document.createElement("div");
+    grid.className="grid";
+    // mark the two numbers
+    const p1=document.createElement("span"); p1.className="pill"; p1.innerText=currentLine[0];
+    const p2=document.createElement("span"); p2.className="pill"; p2.innerText=currentLine[1];
+    grid.appendChild(p1); grid.appendChild(p2);
+    d.appendChild(grid);
+    // click to replay
+    d.onclick=()=>{
+      document.querySelectorAll("td").forEach(td=>td.classList.remove("mark"));
+      const a=cells.find(x=>x.row===o.r&&x.col===o.c);
+      const b=cells.find(x=>x.row===o.r&&x.col===o.c+1);
+      if(a&&b){ a.td.classList.add("mark"); b.td.classList.add("mark"); }
+    };
+    box.appendChild(d);
+  });
+}
+
+// ===== AFTER RESULT (+depth day) =====
+function drawAfter(occ){
+  const after=document.getElementById("after");
+  after.innerHTML="";
+  const out={};
+  occ.forEach(o=>{
+    const rr=o.r+depth;
+    if(rr<rows.length){
+      const next=rows[rr][o.c];
+      out[next]=(out[next]||0)+1;
+    }
+  });
+  if(!Object.keys(out).length){
+    after.innerHTML="<div class='empty'>No past result found</div>";
+    return;
+  }
+  Object.keys(out).forEach(k=>{
+    const d=document.createElement("div");
+    d.className="box";
+    d.innerHTML=`<span>${k}</span><span>${out[k]} times</span>`;
+    after.appendChild(d);
+  });
+}
+
+// ===== RUN ALL =====
+function runAll(){
+  if(!currentLine) return;
+  const occ=findOccurrences(currentLine);
+  drawOccurrences(occ);
+  drawAfter(occ);
+}
+
+// ===== AUTO START from LAST JODI =====
+if(rows.length){
+  const lastRow=rows[rows.length-1];
+  if(lastRow.length>=2){
+    currentLine=[ lastRow[lastRow.length-2], lastRow[lastRow.length-1] ];
+    runAll();
   }
 }
 </script>
