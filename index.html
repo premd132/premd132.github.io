@@ -2,47 +2,144 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Login Test</title>
+<title>Kings of Matka – Analysis System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
-body{margin:0;font-family:Arial;background:#111827;color:#fff;text-align:center}
+body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
 .hidden{display:none}
-button{padding:12px 30px;font-size:18px;margin-top:20px}
+button{padding:12px 30px;font-size:16px;margin-top:15px}
+.card{background:#111827;padding:20px;border-radius:10px;margin:15px}
+table{border-collapse:collapse;margin:15px auto;background:#fff;color:#000}
+td{border:1px solid #000;width:50px;height:40px;font-weight:bold;position:relative}
+.line::after{content:"╲";color:green;font-size:22px;position:absolute;left:16px;top:6px}
+.cross::after{content:"✖";color:red}
+.doublecross{background:#7f1d1d;color:#fff}
+.doublecross::after{content:"✖✖"}
+textarea{width:90%;height:70px}
 </style>
 </head>
 
 <body>
 
+<!-- HOME -->
 <div id="home">
-  <h1>HOME</h1>
+  <h1>👑 Kings of Matka 👑</h1>
+  <p>Analysis & Cross Chart System</p>
   <button id="enterBtn">Enter</button>
 </div>
 
+<!-- LOGIN -->
 <div id="login" class="hidden">
   <h2>Login</h2>
-  <input type="password" id="pass" placeholder="1234">
+  <input type="password" id="pass" placeholder="Password 1234">
   <br>
   <button id="loginBtn">Login</button>
   <p id="err" style="color:red"></p>
 </div>
 
+<!-- DASHBOARD -->
 <div id="dash" class="hidden">
-  <h1>✅ DASHBOARD OPEN</h1>
+
+  <h2>Dashboard</h2>
+
+  <div class="card">
+    <select>
+      <option>Milan Day</option>
+      <option>Kalyan</option>
+      <option>Milan Night</option>
+      <option>Rajdhani Night</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <input type="file" id="excel" accept=".xlsx">
+    <p>Excel format: Date | N1 | N2 | N3 | N4</p>
+  </div>
+
+  <div class="card">
+    <h3>Old Record</h3>
+    <textarea id="oldData"></textarea>
+
+    <h3>New Record</h3>
+    <textarea id="newData" placeholder="31,16,61,10"></textarea>
+
+    <button id="runBtn">Generate Cross Chart</button>
+  </div>
+
+  <div id="result"></div>
+
+  <button id="logoutBtn">Logout</button>
 </div>
 
 <script>
-document.getElementById("enterBtn").onclick=function(){
-  document.getElementById("home").classList.add("hidden");
-  document.getElementById("login").classList.remove("hidden");
+// NAVIGATION (same as test code)
+enterBtn.onclick=function(){
+  home.classList.add("hidden");
+  login.classList.remove("hidden");
 };
 
-document.getElementById("loginBtn").onclick=function(){
-  if(document.getElementById("pass").value==="1234"){
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("dash").classList.remove("hidden");
+loginBtn.onclick=function(){
+  if(pass.value==="1234"){
+    login.classList.add("hidden");
+    dash.classList.remove("hidden");
   }else{
-    document.getElementById("err").innerText="Wrong password";
+    err.innerText="Wrong password";
   }
+};
+
+logoutBtn.onclick=function(){
+  dash.classList.add("hidden");
+  home.classList.remove("hidden");
+  pass.value="";
+  err.innerText="";
+};
+
+// EXCEL LOAD
+excel.onchange=function(e){
+  const r=new FileReader();
+  r.onload=x=>{
+    const wb=XLSX.read(x.target.result,{type:"binary"});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const d=XLSX.utils.sheet_to_json(sh,{header:1});
+    let out="";
+    for(let i=1;i<d.length;i++) out+=d[i].slice(1).join(",")+"\n";
+    oldData.value=out.trim();
+  };
+  r.readAsBinaryString(e.target.files[0]);
+};
+
+// ANALYSIS LOGIC
+function sameFamily(a,b){return Math.abs(a-b)%5===0}
+
+runBtn.onclick=function(){
+  result.innerHTML="";
+  if(!oldData.value||!newData.value) return;
+
+  const o=oldData.value.split("\n")[0].split(",").map(Number);
+  const n=newData.value.split(",").map(Number);
+
+  let cross=0,alive=true;
+  const table=document.createElement("table");
+  const tr=document.createElement("tr");
+
+  for(let i=0;i<n.length;i++){
+    const td=document.createElement("td");
+    if(alive && sameFamily(o[i],n[i])){
+      td.classList.add("line"); cross=0;
+    }else{
+      cross++;
+      if(cross===1) td.classList.add("cross");
+      else{ td.classList.add("doublecross"); alive=false; }
+    }
+    td.innerText=n[i];
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+  result.appendChild(table);
 };
 </script>
 
