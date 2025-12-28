@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Kings of Matka – Analysis Dashboard</title>
+<title>Kings of Matka – Analysis Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- XLSX + html2canvas -->
+<!-- XLSX + HTML2CANVAS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -13,7 +13,7 @@
 *{box-sizing:border-box}
 body{
   margin:0;
-  font-family:system-ui,Arial;
+  font-family:Arial,Helvetica,sans-serif;
   background:#020617;
   color:#fff;
 }
@@ -55,7 +55,7 @@ body{
   max-width:320px;
   border-radius:10px;
 }
-.login-box input, .login-box button{
+.login-box input,.login-box button{
   width:100%;
   padding:12px;
   margin-top:12px;
@@ -199,93 +199,90 @@ td{
 </div>
 
 <script>
-/* PASSWORD */
-const PASSWORD = "1234";
+document.addEventListener("DOMContentLoaded",function(){
 
-/* NAVIGATION */
-document.getElementById("enterBtn").onclick = () => {
-  document.getElementById("home").classList.add("hidden");
-  document.getElementById("loginPage").classList.remove("hidden");
-};
+  const PASSWORD="1234";
 
-document.getElementById("loginBtn").onclick = () => {
-  if(document.getElementById("password").value === PASSWORD){
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-  }else{
-    document.getElementById("error").innerText = "Wrong password";
-  }
-};
+  const home=document.getElementById("home");
+  const loginPage=document.getElementById("loginPage");
+  const dashboard=document.getElementById("dashboard");
 
-document.getElementById("logoutBtn").onclick = () => {
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("home").classList.remove("hidden");
-};
-
-/* EXCEL READ */
-document.getElementById("excelFile").onchange = e => {
-  const reader = new FileReader();
-  reader.onload = x => {
-    const wb = XLSX.read(x.target.result, {type:"binary"});
-    const sh = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sh, {header:1});
-    let out="";
-    for(let i=1;i<data.length;i++){
-      out += data[i].slice(1).join(",") + "\n";
-    }
-    document.getElementById("oldData").value = out.trim();
+  document.getElementById("enterBtn").onclick=()=>{
+    home.classList.add("hidden");
+    loginPage.classList.remove("hidden");
   };
-  reader.readAsBinaryString(e.target.files[0]);
-};
 
-/* ANALYSIS LOGIC */
-function sameFamily(a,b){
-  return Math.abs(a-b) % 5 === 0;
-}
-
-document.getElementById("runBtn").onclick = () => {
-  const result = document.getElementById("result");
-  result.innerHTML = "";
-
-  if(!oldData.value || !newData.value) return;
-
-  const o = oldData.value.split("\n")[0].split(",").map(Number);
-  const n = newData.value.split(",").map(Number);
-
-  let cross = 0, alive = true;
-  const table = document.createElement("table");
-  const tr = document.createElement("tr");
-
-  for(let i=0;i<n.length;i++){
-    const td = document.createElement("td");
-    if(alive && sameFamily(o[i], n[i])){
-      td.classList.add("line");
-      cross = 0;
+  document.getElementById("loginBtn").onclick=()=>{
+    if(document.getElementById("password").value===PASSWORD){
+      loginPage.classList.add("hidden");
+      dashboard.classList.remove("hidden");
     }else{
-      cross++;
-      if(cross === 1){
-        td.classList.add("cross");
-      }else{
-        td.classList.add("doublecross");
-        alive = false;
-      }
+      document.getElementById("error").innerText="Wrong password";
     }
-    td.innerText = n[i];
-    tr.appendChild(td);
-  }
-  table.appendChild(tr);
-  result.appendChild(table);
-};
+  };
 
-/* EXPORT IMAGE */
-document.getElementById("exportBtn").onclick = () => {
-  html2canvas(document.getElementById("captureArea")).then(canvas=>{
-    const a = document.createElement("a");
-    a.download = "analysis-chart.png";
-    a.href = canvas.toDataURL();
-    a.click();
-  });
-};
+  document.getElementById("logoutBtn").onclick=()=>{
+    dashboard.classList.add("hidden");
+    home.classList.remove("hidden");
+    document.getElementById("password").value="";
+    document.getElementById("error").innerText="";
+  };
+
+  document.getElementById("excelFile").onchange=e=>{
+    const r=new FileReader();
+    r.onload=x=>{
+      const wb=XLSX.read(x.target.result,{type:"binary"});
+      const sh=wb.Sheets[wb.SheetNames[0]];
+      const d=XLSX.utils.sheet_to_json(sh,{header:1});
+      let out="";
+      for(let i=1;i<d.length;i++) out+=d[i].slice(1).join(",")+"\n";
+      document.getElementById("oldData").value=out.trim();
+    };
+    r.readAsBinaryString(e.target.files[0]);
+  };
+
+  function sameFamily(a,b){return Math.abs(a-b)%5===0}
+
+  document.getElementById("runBtn").onclick=()=>{
+    const oldData=document.getElementById("oldData").value;
+    const newData=document.getElementById("newData").value;
+    const result=document.getElementById("result");
+    result.innerHTML="";
+    if(!oldData||!newData) return;
+
+    const o=oldData.split("\n")[0].split(",").map(Number);
+    const n=newData.split(",").map(Number);
+
+    let cross=0,alive=true;
+    const table=document.createElement("table");
+    const tr=document.createElement("tr");
+
+    for(let i=0;i<n.length;i++){
+      const td=document.createElement("td");
+      if(alive&&sameFamily(o[i],n[i])){
+        td.classList.add("line");cross=0;
+      }else{
+        cross++;
+        if(cross===1) td.classList.add("cross");
+        else{td.classList.add("doublecross");alive=false;}
+      }
+      td.innerText=n[i];
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+    result.appendChild(table);
+  };
+
+  document.getElementById("exportBtn").onclick=()=>{
+    html2canvas(document.getElementById("captureArea")).then(c=>{
+      const a=document.createElement("a");
+      a.download="analysis-chart.png";
+      a.href=c.toDataURL();
+      a.click();
+    });
+  };
+
+});
 </script>
 
 </body>
