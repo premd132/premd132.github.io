@@ -1,78 +1,276 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Kings of Matka</title>
+<title>Kings of Matka – Analysis Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
-body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
-.hero{
-  min-height:100vh;
-  background:linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)),
-  url("https://images.unsplash.com/photo-1519681393784-d120267933ba") center/cover;
-  display:flex;align-items:center;justify-content:center;flex-direction:column
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#020617;
+  color:#fff;
 }
-button{padding:12px 30px;font-size:18px;background:#38bdf8;border:none;cursor:pointer}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:20px;
-  max-width:800px;
-  margin:40px auto;
+.hidden{display:none}
+
+/* HOME */
+#home{
+  min-height:100vh;
+  background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.75)),
+  url("https://images.unsplash.com/photo-1519681393784-d120267933ba") center/cover;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:30px;
+}
+#home h1{color:#38bdf8;font-size:36px}
+#home p{opacity:.9}
+#home button{
+  margin-top:25px;
+  padding:14px 35px;
+  font-size:18px;
+  background:#38bdf8;
+  border:none;
+  cursor:pointer;
+}
+
+/* LOGIN */
+#login{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.login-box{
+  background:#111827;
+  padding:30px;
+  width:320px;
+  border-radius:8px;
+}
+.login-box input{
+  width:100%;
+  padding:10px;
+  margin:15px 0;
+}
+.login-box button{
+  width:100%;
+  padding:10px;
+  background:#38bdf8;
+  border:none;
+}
+.error{color:red;text-align:center}
+
+/* DASHBOARD */
+#dashboard{
+  min-height:100vh;
+}
+.header{
+  text-align:center;
+  padding:15px;
+  border-bottom:1px solid #1e293b;
+  font-size:20px;
+}
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
 }
 .card{
   background:#111827;
-  padding:25px;
-  border-radius:10px;
-  font-size:20px;
-  cursor:pointer;
+  padding:20px;
+  border-radius:8px;
+  margin-bottom:20px;
 }
-.login{max-width:300px;margin:30px auto}
-input{width:100%;padding:10px;margin:10px 0}
+select,textarea,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+button.run{background:#22c55e;border:none}
+button.logout{background:#dc2626;border:none}
+
+/* TABLE */
+table{
+  border-collapse:collapse;
+  margin:15px auto;
+  background:#fff;
+  color:#000;
+}
+td{
+  border:1px solid #000;
+  width:55px;
+  height:45px;
+  text-align:center;
+  font-weight:bold;
+  position:relative;
+}
+.line::after{
+  content:"╲";
+  color:green;
+  font-size:26px;
+  position:absolute;
+  top:6px;left:18px;
+}
+.cross::after{
+  content:"✖";
+  color:red;
+  font-size:22px;
+}
+.doublecross{
+  background:#7f1d1d;
+  color:#fff;
+}
+.doublecross::after{
+  content:"✖✖";
+}
+.note{
+  font-size:13px;
+  opacity:.8;
+}
 </style>
 </head>
 
 <body>
 
-<div class="hero" id="home">
-  <h1>👑 Kings of Matka 👑</h1>
-  <p>Professional Analysis Panel</p>
-  <button onclick="showLogin()">Enter</button>
-</div>
-
-<div id="login" style="display:none">
-  <div class="login">
-    <h2>Login</h2>
-    <input type="password" id="pass" placeholder="Password">
-    <button onclick="login()">Login</button>
-    <p id="err" style="color:red"></p>
+<!-- HOME -->
+<div id="home">
+  <div>
+    <h1>👑 Kings of Matka 👑</h1>
+    <p>Data Analysis & Pattern Visualization Tool</p>
+    <button id="enterBtn">Enter</button>
   </div>
 </div>
 
-<div id="panel" style="display:none">
-  <h2>Result Panel</h2>
-  <div class="grid">
-    <div class="card" onclick="go()">Milan Day</div>
-    <div class="card" onclick="go()">Kalyan</div>
-    <div class="card" onclick="go()">Milan Night</div>
-    <div class="card" onclick="go()">Rajdhani Night</div>
+<!-- LOGIN -->
+<div id="login" class="hidden">
+  <div class="login-box">
+    <h2>Login</h2>
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <div id="error" class="error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+  <div class="header">Analysis Dashboard</div>
+
+  <div class="container">
+
+    <!-- GAME SELECT -->
+    <div class="card">
+      <h3>Select Game (UI only)</h3>
+      <select id="game">
+        <option>Milan Day</option>
+        <option>Kalyan</option>
+        <option>Milan Night</option>
+        <option>Rajdhani Night</option>
+      </select>
+      <p class="note">* Same analysis logic, different dataset context.</p>
+    </div>
+
+    <!-- EXCEL -->
+    <div class="card">
+      <h3>Upload Excel (.xlsx)</h3>
+      <input type="file" id="excelFile" accept=".xlsx">
+      <p class="note">Excel format: Date | N1 | N2 | N3 | N4</p>
+    </div>
+
+    <!-- DATA -->
+    <div class="card">
+      <h3>Old Record (from Excel)</h3>
+      <textarea id="oldData"></textarea>
+
+      <h3>New Record (comma separated)</h3>
+      <textarea id="newData" placeholder="31,16,61,10"></textarea>
+
+      <button class="run" onclick="analyze()">Run Analysis</button>
+    </div>
+
+    <div id="result"></div>
+
+    <button class="logout" onclick="logout()">Logout</button>
   </div>
 </div>
 
 <script>
+/* BASIC NAV */
 const PASSWORD="1234";
-function showLogin(){
-  home.style.display="none";
-  login.style.display="block";
-}
+
+document.getElementById("enterBtn").addEventListener("click",()=>{
+  home.classList.add("hidden");
+  login.classList.remove("hidden");
+});
+
 function login(){
-  if(pass.value===PASSWORD){
-    login.style.display="none";
-    panel.style.display="block";
-  }else err.innerText="Wrong password";
+  if(password.value===PASSWORD){
+    login.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+  }else{
+    error.innerText="Wrong password";
+  }
 }
-function go(){
-  window.location.href="excel-upload.html";
+function logout(){
+  dashboard.classList.add("hidden");
+  home.classList.remove("hidden");
+}
+
+/* EXCEL READ */
+excelFile.onchange=e=>{
+  const r=new FileReader();
+  r.onload=x=>{
+    const wb=XLSX.read(x.target.result,{type:"binary"});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sh,{header:1});
+    let out="";
+    for(let i=1;i<data.length;i++){
+      out+=data[i].slice(1).join(",")+"\n";
+    }
+    oldData.value=out.trim();
+  };
+  r.readAsBinaryString(e.target.files[0]);
+};
+
+/* ANALYSIS LOGIC (DEMO / ANALYTICAL) */
+function sameFamily(a,b){
+  return Math.abs(a-b)%5===0;
+}
+
+function analyze(){
+  result.innerHTML="";
+  if(!oldData.value || !newData.value) return;
+
+  const o=oldData.value.trim().split("\n")[0].split(",").map(Number);
+  const n=newData.value.trim().split(",").map(Number);
+
+  let cross=0,alive=true;
+  const table=document.createElement("table");
+  const tr=document.createElement("tr");
+
+  for(let i=0;i<n.length;i++){
+    const td=document.createElement("td");
+    if(alive && sameFamily(o[i],n[i])){
+      td.classList.add("line");
+      cross=0;
+    }else{
+      cross++;
+      if(cross===1){
+        td.classList.add("cross");
+      }else{
+        td.classList.add("doublecross");
+        alive=false;
+      }
+    }
+    td.innerText=n[i];
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+  result.appendChild(table);
 }
 </script>
 
