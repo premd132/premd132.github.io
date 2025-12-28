@@ -1,54 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Line After Result Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced Line Analyzer</title>
 <style>
-body{font-family:Arial;background:#f4f6fb;margin:0;padding:10px}
+body{font-family:Arial;background:#f4f6fb;padding:10px}
 h2{text-align:center}
 .note{text-align:center;color:#dc2626;font-size:13px}
+#bubbleBox{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.bubble{border-radius:50%;width:44px;height:44px;display:flex;
+align-items:center;justify-content:center;color:#fff;font-weight:bold;cursor:pointer}
 table{border-collapse:collapse;margin:auto}
-td{border:1px solid #ccc;width:42px;height:32px;
-text-align:center;font-weight:bold;cursor:pointer}
+td{border:1px solid #ccc;width:42px;height:32px;text-align:center;cursor:pointer}
 td.sel{background:#2563eb;color:#fff}
 #after{max-width:420px;margin:15px auto}
 .box{background:#e5e7eb;padding:8px;margin:6px 0;border-radius:6px;
 display:flex;justify-content:space-between}
-.bubble{display:inline-flex;align-items:center;justify-content:center;
-border-radius:50%;width:42px;height:42px;color:#fff;font-weight:bold;margin:4px}
-#bubbles{display:flex;flex-wrap:wrap;justify-content:center}
+button{margin:4px;padding:6px 10px}
 </style>
 </head>
 <body>
 
 <h2 id="title"></h2>
-<div class="note">Reference based on past record only</div>
+<div class="note">Past record based visual analysis only</div>
 
-<div id="bubbles"></div>
+<div style="text-align:center">
+<button onclick="mode=1;draw()">1st Touch</button>
+<button onclick="mode=2;draw()">2nd Touch</button>
+<button onclick="mode=3;draw()">3rd Touch</button>
+</div>
+
+<div id="bubbleBox"></div>
 <div id="wrap"></div>
 
 <h3 style="text-align:center">Is line ke baad past me aaya</h3>
 <div id="after"></div>
 
 <script>
-// ===== LOAD GAME & RECORD =====
 const game=localStorage.getItem("currentGame")||"kalyan";
 title.innerText=game.replace("_"," ").toUpperCase();
 const text=localStorage.getItem("record_"+game)||"";
 
-// ===== PARSE =====
-let rows=[];
+let rows=[],cells=[],currentLine=null,mode=1;
+
 text.split("\n").forEach(l=>{
  const p=l.trim().split(/\s+/);
  if(p.length>1) rows.push(p.slice(1).map(Number));
 });
 
-// ===== BUILD TABLE =====
+// table
 const wrap=document.getElementById("wrap");
 const table=document.createElement("table");
-let cells=[];
-
 rows.forEach((r,ri)=>{
  const tr=document.createElement("tr");
  r.forEach((n,ci)=>{
@@ -62,37 +63,40 @@ rows.forEach((r,ri)=>{
 });
 wrap.appendChild(table);
 
-// ===== BUBBLES (FREQUENCY) =====
+// bubbles
 const freq={};
 rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
-const bubbleBox=document.getElementById("bubbles");
-
-Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
+const bubbleBox=document.getElementById("bubbleBox");
+Object.keys(freq).forEach(k=>{
  const b=document.createElement("div");
  b.className="bubble";
  b.style.background=`hsl(${k*4},70%,50%)`;
- b.innerText=k+" ("+freq[k]+")";
+ b.innerText=k;
+ b.onclick=()=>selectByValue(Number(k));
  bubbleBox.appendChild(b);
 });
 
-// ===== SELECT LINE (2-length) =====
+function selectByValue(v){
+ const c=cells.find(x=>x.val===v);
+ if(c) selectLine(c.row,c.col);
+}
+
 function selectLine(r,c){
  document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
  const td=cells.find(x=>x.row===r&&x.col===c).td;
  td.classList.add("sel");
-
  if(c+1>=rows[r].length) return;
- const line=[rows[r][c],rows[r][c+1]];
- findAfter(line);
+ currentLine=[rows[r][c],rows[r][c+1]];
+ draw();
 }
 
-// ===== FIND AFTER RESULTS =====
-function findAfter(line){
+function draw(){
+ if(!currentLine) return;
  const out={};
- for(let r=0;r<rows.length-1;r++){
+ for(let r=0;r<rows.length-mode;r++){
   for(let c=0;c<rows[r].length-1;c++){
-   if(rows[r][c]===line[0] && rows[r][c+1]===line[1]){
-    const next=rows[r+1][c];
+   if(rows[r][c]===currentLine[0] && rows[r][c+1]===currentLine[1]){
+    const next=rows[r+mode][c];
     out[next]=(out[next]||0)+1;
    }
   }
@@ -100,7 +104,6 @@ function findAfter(line){
  showAfter(out);
 }
 
-// ===== DISPLAY AFTER =====
 function showAfter(obj){
  const after=document.getElementById("after");
  after.innerHTML="";
