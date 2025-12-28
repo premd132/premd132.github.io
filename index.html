@@ -36,7 +36,7 @@ input{width:100%;padding:10px;margin:10px 0}
 
 <div class="hero" id="home">
   <h1>👑 Kings of Matka 👑</h1>
-  <p>AI Based Professional Analysis System</p>
+  <p>Professional Analysis Panel</p>
   <button onclick="showLogin()">Enter</button>
 </div>
 
@@ -52,10 +52,10 @@ input{width:100%;padding:10px;margin:10px 0}
 <div id="panel" style="display:none">
   <h2>Result Panel</h2>
   <div class="grid">
-    <div class="card" onclick="go('milan-day.html')">Milan Day</div>
-    <div class="card" onclick="go('kalyan.html')">Kalyan</div>
-    <div class="card" onclick="go('milan-night.html')">Milan Night</div>
-    <div class="card" onclick="go('rajdhani-night.html')">Rajdhani Night</div>
+    <div class="card" onclick="go()">Milan Day</div>
+    <div class="card" onclick="go()">Kalyan</div>
+    <div class="card" onclick="go()">Milan Night</div>
+    <div class="card" onclick="go()">Rajdhani Night</div>
   </div>
 </div>
 
@@ -71,8 +71,8 @@ function login(){
     panel.style.display="block";
   }else err.innerText="Wrong password";
 }
-function go(page){
-  window.location.href=page;
+function go(){
+  window.location.href="excel-upload.html";
 }
 </script>
 
