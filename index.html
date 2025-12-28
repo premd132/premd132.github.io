@@ -1,174 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Kings of Matka</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body{
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#020617;
-  color:#fff;
-}
-
-/* ---------- HOME ---------- */
-#home{
+body{margin:0;font-family:Arial;background:#020617;color:#fff;text-align:center}
+.hero{
   min-height:100vh;
-  background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.75)),
+  background:linear-gradient(rgba(0,0,0,.8),rgba(0,0,0,.8)),
   url("https://images.unsplash.com/photo-1519681393784-d120267933ba") center/cover;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:30px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column
 }
-#home h1{
-  font-size:38px;
-  color:#38bdf8;
-  margin-bottom:20px;
-}
-#home p{
-  font-size:18px;
-  margin-bottom:30px;
-}
-#home button{
-  padding:12px 30px;
-  font-size:18px;
-  background:#38bdf8;
-  border:none;
-  cursor:pointer;
-}
-
-/* ---------- LOGIN ---------- */
-#loginBox{
-  display:none;
-  min-height:100vh;
-  background:#020617;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.login{
-  background:#111827;
-  padding:30px;
-  width:320px;
-  border-radius:8px;
-}
-.login h2{text-align:center}
-.login input{
-  width:100%;
-  padding:10px;
-  margin:15px 0;
-}
-.login button{
-  width:100%;
-  padding:10px;
-  background:#38bdf8;
-  border:none;
-}
-.error{color:red;text-align:center}
-
-/* ---------- DASHBOARD ---------- */
-#dashboard{
-  display:none;
-  min-height:100vh;
-  background:#020617;
-}
-.header{
-  text-align:center;
-  padding:15px;
-  font-size:22px;
-  border-bottom:1px solid #1e293b;
-}
-.container{
-  max-width:800px;
-  margin:auto;
-  padding:30px;
-}
+button{padding:12px 30px;font-size:18px;background:#38bdf8;border:none;cursor:pointer}
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:20px;
+  max-width:800px;
+  margin:40px auto;
 }
 .card{
   background:#111827;
-  padding:30px;
+  padding:25px;
   border-radius:10px;
-  text-align:center;
-  font-size:22px;
-  border:1px solid #1e293b;
+  font-size:20px;
+  cursor:pointer;
 }
-.logout{
-  margin-top:30px;
-  width:100%;
-  padding:12px;
-  background:#dc2626;
-  border:none;
-  font-size:16px;
-}
+.login{max-width:300px;margin:30px auto}
+input{width:100%;padding:10px;margin:10px 0}
 </style>
 </head>
 
 <body>
 
-<!-- HOME PAGE -->
-<div id="home">
-  <div>
-    <h1>Welcome to the World of<br>👑 Kings of Matka 👑</h1>
-    <p>AI Based Professional Analysis System</p>
-    <button onclick="goLogin()">Enter</button>
-  </div>
+<div class="hero" id="home">
+  <h1>👑 Kings of Matka 👑</h1>
+  <p>AI Based Professional Analysis System</p>
+  <button onclick="showLogin()">Enter</button>
 </div>
 
-<!-- LOGIN PAGE -->
-<div id="loginBox">
+<div id="login" style="display:none">
   <div class="login">
     <h2>Login</h2>
-    <input type="password" id="password" placeholder="Password">
+    <input type="password" id="pass" placeholder="Password">
     <button onclick="login()">Login</button>
-    <div id="error" class="error"></div>
+    <p id="err" style="color:red"></p>
   </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboard">
-  <div class="header">Kings of Matka – Result Panel</div>
-
-  <div class="container">
-    <div class="grid">
-      <div class="card">Milan Day</div>
-      <div class="card">Kalyan</div>
-      <div class="card">Milan Night</div>
-      <div class="card">Rajdhani Night</div>
-    </div>
-
-    <button class="logout" onclick="logout()">Logout</button>
+<div id="panel" style="display:none">
+  <h2>Result Panel</h2>
+  <div class="grid">
+    <div class="card" onclick="go('milan-day.html')">Milan Day</div>
+    <div class="card" onclick="go('kalyan.html')">Kalyan</div>
+    <div class="card" onclick="go('milan-night.html')">Milan Night</div>
+    <div class="card" onclick="go('rajdhani-night.html')">Rajdhani Night</div>
   </div>
 </div>
 
 <script>
-const PASSWORD = "1234";
-
-function goLogin(){
-  document.getElementById("home").style.display="none";
-  document.getElementById("loginBox").style.display="flex";
+const PASSWORD="1234";
+function showLogin(){
+  home.style.display="none";
+  login.style.display="block";
 }
-
 function login(){
-  if(document.getElementById("password").value === PASSWORD){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("dashboard").style.display="block";
-  }else{
-    document.getElementById("error").innerText="Wrong Password";
-  }
+  if(pass.value===PASSWORD){
+    login.style.display="none";
+    panel.style.display="block";
+  }else err.innerText="Wrong password";
 }
-
-function logout(){
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("home").style.display="flex";
-  document.getElementById("password").value="";
+function go(page){
+  window.location.href=page;
 }
 </script>
 
