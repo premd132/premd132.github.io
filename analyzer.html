@@ -2,218 +2,175 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer PRO – LEVEL 4</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
+<title>🔥 Jodi Line Analyzer – FINAL</title>
 <style>
-body{font-family:Arial;padding:10px;background:#f5f5f5}
+body{font-family:Arial;background:#f7f7f7;padding:10px}
 textarea{width:100%;height:120px}
-button{padding:8px 12px;margin:6px 0}
-table{border-collapse:collapse;margin-top:12px;background:#fff}
+table{border-collapse:collapse;margin-top:10px;background:#fff}
 th,td{
-  border:1px solid #444;
-  padding:6px;
-  min-width:45px;
-  text-align:center;
-  cursor:pointer;
+ border:1px solid #999;
+ padding:6px;
+ text-align:center;
+ font-size:14px;
+ cursor:pointer;
+ position:relative;
 }
-th{background:#eee}
-td:hover{background:#fff3cd}
+th{background:#eaeaea}
+td:hover{background:#f1f1f1}
 
-.same{background:#ffd6d6}
-.family{background:#d6ffe0}
-.side{background:#d6e9ff}
-.day{background:#eed6ff}
+.hit{background:#ffeb3b}
+.family{background:#b3e5fc}
+.line{outline:3px solid red}
 
-.box{margin-top:12px;padding:8px;border:1px solid #aaa;background:#fff}
-.bubble{
-  display:inline-block;
-  margin:4px;
-  padding:10px;
-  border-radius:50%;
-  color:#fff;
-  font-weight:bold
+.box{margin-top:10px;padding:8px;border:1px solid #ccc;background:#fff}
+
+.item{color:#0066cc;cursor:pointer;margin:3px 0}
+
+#popup{
+ position:fixed;top:0;left:0;width:100%;height:100%;
+ background:rgba(0,0,0,.6);
+ display:none;align-items:center;justify-content:center;
+ z-index:9999;
 }
-.red{background:#e74c3c}
-.green{background:#27ae60}
-.blue{background:#3498db}
-.purple{background:#8e44ad}
-
-#wrapper{position:relative}
-#svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#popupBox{
+ background:#fff;padding:12px;width:95%;max-width:420px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer – PRO (LEVEL-4)</h2>
+<h3>🔥 Jodi Line Analyzer – FINAL</h3>
 
 <textarea id="input">
 Mon Tue Wed Thu Fri Sat
-52 91 78 16 64 33
-96 97 52 43 30 38
-53 67 12 78 97 53
-11 79 72 91 55 32
-70 09 64 27 97 84
+52 96 53 11 70 82
+91 97 67 79 09 87
+78 52 12 72 64 17
+16 43 78 91 27 30
+64 30 97 55 97 39
+33 38 53 32 84 82
 </textarea>
 
-<button onclick="generate()">Generate Chart</button>
-<button onclick="downloadImage()">📸 Download Image</button>
+<br><br>
+<button onclick="build()">Generate Chart</button>
 
-<div id="wrapper">
-  <svg id="svg"></svg>
-  <div id="chart"></div>
+<div id="tableBox"></div>
+
+<div class="box">
+<b>📊 Line Count List</b>
+<div id="list">Click any jodi</div>
 </div>
 
-<div class="box" id="result"><b>Analysis:</b></div>
-<div class="box" id="prediction"><b>Prediction:</b></div>
+<!-- POPUP -->
+<div id="popup" onclick="closePop()">
+  <div id="popupBox" onclick="event.stopPropagation()">
+    <h4>📸 Line View (Photo-Style)</h4>
+    <div id="popupData"></div>
+    <br>
+    <button onclick="closePop()">Close</button>
+  </div>
+</div>
 
 <script>
-let matrix=[];
-const familyMap={
- "1":"6","6":"1",
- "2":"7","7":"2",
- "3":"8","8":"3",
- "4":"9","9":"4",
- "5":"0","0":"5"
-};
+const familyMap={1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4,5:0,0:5};
+let GRID=[],DAYS=[],history=[];
 
-function generate(){
-  matrix=document.getElementById("input").value
-    .trim().split("\n")
-    .map(r=>r.trim().split(/\s+/));
+function build(){
+ history=[];
+ document.getElementById("list").innerHTML="Click any jodi";
 
-  let html="<table>";
+ let raw=document.getElementById("input").value.trim().split("\n");
+ DAYS=raw[0].trim().split(/\s+/);
+ GRID=raw.slice(1).map(r=>r.trim().split(/\s+/));
+
+ let html="<table id='grid'><tr>";
+ DAYS.forEach(d=>html+="<th>"+d+"</th>");
+ html+="</tr>";
+
+ GRID.forEach((r,i)=>{
   html+="<tr>";
-  matrix[0].forEach(d=>html+="<th>"+d+"</th>");
+  r.forEach((v,j)=>{
+   html+=`<td onclick="analyze(${i},${j})">${v}</td>`;
+  });
   html+="</tr>";
+ });
+ html+="</table>";
+ document.getElementById("tableBox").innerHTML=html;
+}
 
-  for(let r=1;r<matrix.length;r++){
-    html+="<tr>";
-    for(let c=0;c<matrix[r].length;c++){
-      html+=`<td onclick="analyze(${r},${c},this)">${matrix[r][c]}</td>`;
-    }
-    html+="</tr>";
+function clearMarks(){
+ document.querySelectorAll("td").forEach(td=>{
+  td.classList.remove("hit","family","line");
+ });
+}
+
+function analyze(r,c){
+ clearMarks();
+ history=[];
+
+ let base=GRID[r][c];
+ let fam=familyMap[base];
+
+ let table=document.getElementById("grid");
+ table.rows[r+1].cells[c].classList.add("hit");
+
+ // vertical + zigzag scan
+ for(let i=0;i<GRID.length;i++){
+  let v=GRID[i][c];
+  let cell=table.rows[i+1].cells[c];
+
+  if(v==base){
+    cell.classList.add("line");
+    history.push({type:"SAME",from:i,to:i+1,col:c});
   }
-  html+="</table>";
-
-  document.getElementById("chart").innerHTML=html;
-  document.getElementById("svg").innerHTML="";
-  document.getElementById("result").innerHTML="<b>Analysis:</b>";
-  document.getElementById("prediction").innerHTML="<b>Prediction:</b>";
-}
-
-function getFamily(val){
-  return val.split("").map(d=>familyMap[d]||d).join("");
-}
-
-function analyze(row,col,cell){
-  document.querySelectorAll("td").forEach(td=>{
-    td.className="";
-  });
-  document.getElementById("svg").innerHTML="";
-
-  let val=matrix[row][col];
-  let fam=getFamily(val);
-
-  let same=[],family=[],side=[],day=[],predictCount={};
-
-  for(let r=1;r<matrix.length-1;r++){
-    if(matrix[r][col]===val){
-      same.push(matrix[r+1][col]);
-      mark(r,col,"same");
-      drawArrow(r,col,r+1,col);
-      predictCount[matrix[r+1][col]]=(predictCount[matrix[r+1][col]]||0)+1;
-    }
-    if(matrix[r][col]===fam){
-      family.push(matrix[r+1][col]);
-      mark(r,col,"family");
-      drawArrow(r,col,r+1,col);
-      predictCount[matrix[r+1][col]]=(predictCount[matrix[r+1][col]]||0)+1;
-    }
-    if(col>0 && matrix[r][col-1]===val){
-      side.push(matrix[r+1][col-1]);
-      mark(r,col-1,"side");
-      drawArrow(r,col-1,r+1,col-1);
-      predictCount[matrix[r+1][col-1]]=(predictCount[matrix[r+1][col-1]]||0)+1;
-    }
-    if(col<matrix[0].length-1 && matrix[r][col+1]===val){
-      side.push(matrix[r+1][col+1]);
-      mark(r,col+1,"side");
-      drawArrow(r,col+1,r+1,col+1);
-      predictCount[matrix[r+1][col+1]]=(predictCount[matrix[r+1][col+1]]||0)+1;
-    }
+  if(v==fam){
+    cell.classList.add("family");
+    history.push({type:"FAMILY",from:i,to:i+1,col:c});
   }
 
-  for(let c=0;c<matrix[row].length;c++){
-    if(c!==col){
-      let v=matrix[row][c];
-      let f=getFamily(v);
-      if(v===val || v===fam || f===val){
-        day.push(v);
-        mark(row,c,"day");
-      }
+  // zigzag right
+  if(i+1<GRID.length && c+1<GRID[0].length){
+    if(GRID[i][c]==base && GRID[i+1][c+1]==base){
+      table.rows[i+2].cells[c+1].classList.add("line");
+      history.push({type:"ZIGZAG ↘",from:i,to:i+1,col:c});
     }
   }
+  // zigzag left
+  if(i+1<GRID.length && c-1>=0){
+    if(GRID[i][c]==base && GRID[i+1][c-1]==base){
+      table.rows[i+2].cells[c-1].classList.add("line");
+      history.push({type:"ZIGZAG ↙",from:i,to:i+1,col:c});
+    }
+  }
+ }
 
-  document.getElementById("result").innerHTML=`
-  <b>Clicked:</b> ${val} | <b>Family:</b> ${fam}<br><br>
-  <b>🔴 SAME</b><br>${bubbles(same,"red")}
-  <b>🟢 FAMILY</b><br>${bubbles(family,"green")}
-  <b>🔵 SIDE</b><br>${bubbles(side,"blue")}
-  <b>🟣 SAME DAY</b><br>${bubbles(day,"purple")}
-  `;
-
-  // prediction
-  let preds=Object.entries(predictCount)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,3);
-
-  document.getElementById("prediction").innerHTML=
-    "<b>Prediction (structure based):</b><br>"+
-    (preds.length
-      ? preds.map(p=>`• ${p[0]} (${p[1]}x)`).join("<br>")
-      : "No strong structure");
+ renderList(base,fam);
 }
 
-function mark(r,c,cls){
-  document.querySelectorAll("table tr")[r].children[c].classList.add(cls);
+function renderList(base,fam){
+ let out="";
+ history.forEach((h,i)=>{
+  out+=`<div class="item" onclick="openPop(${i},'${base}','${fam}')">
+  ${h.type} | Row ${h.from+1}
+  </div>`;
+ });
+ document.getElementById("list").innerHTML=out||"No pattern";
 }
 
-function bubbles(arr,color){
-  if(arr.length===0) return "—<br>";
-  return arr.slice(0,3).map(v=>`<span class="bubble ${color}">${v}</span>`).join("");
+function openPop(i,base,fam){
+ let h=history[i];
+ document.getElementById("popupData").innerHTML=
+ `<b>Jodi:</b> ${base}<br>
+  <b>Family:</b> ${fam}<br>
+  <b>Type:</b> ${h.type}<br>
+  <b>Row:</b> ${h.from+1} → ${h.to+1}<br>
+  <p style="color:red">Photo-style line highlighted on chart</p>`;
+ document.getElementById("popup").style.display="flex";
 }
 
-function drawArrow(r1,c1,r2,c2){
-  const cell1=document.querySelectorAll("table tr")[r1].children[c1];
-  const cell2=document.querySelectorAll("table tr")[r2].children[c2];
-  const svg=document.getElementById("svg");
-  const wrap=document.getElementById("wrapper").getBoundingClientRect();
-  const a=cell1.getBoundingClientRect();
-  const b=cell2.getBoundingClientRect();
-
-  let line=document.createElementNS("http://www.w3.org/2000/svg","line");
-  line.setAttribute("x1",a.left+a.width/2-wrap.left);
-  line.setAttribute("y1",a.top+a.height/2-wrap.top);
-  line.setAttribute("x2",b.left+b.width/2-wrap.left);
-  line.setAttribute("y2",b.top+b.height/2-wrap.top);
-  line.setAttribute("stroke","red");
-  line.setAttribute("stroke-width","2");
-  line.setAttribute("marker-end","url(#arrow)");
-  svg.appendChild(line);
-}
-
-function downloadImage(){
-  html2canvas(document.getElementById("wrapper")).then(canvas=>{
-    let a=document.createElement("a");
-    a.download="jodi-chart.png";
-    a.href=canvas.toDataURL();
-    a.click();
-  });
+function closePop(){
+ document.getElementById("popup").style.display="none";
 }
 </script>
 
