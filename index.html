@@ -1,205 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jodi Analyzer – PRO MAX</title>
+<title>My Projects – CSV Analysis</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{margin:0;font-family:Arial;background:#f1f5f9;color:#000}
-h2{text-align:center;margin:10px}
-textarea{width:96%;height:130px;margin:10px;padding:10px}
-
-.topbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px}
-.topbar button{
-  padding:8px 14px;border:none;border-radius:6px;
-  background:#1e40af;color:#fff;cursor:pointer
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f2f2f2;
 }
-.topbar button.active{background:#16a34a}
-
-.panel{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:10px}
-
-#bubbleWrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px}
-.bubble{
-  border-radius:50%;display:flex;align-items:center;
-  justify-content:center;color:#fff;font-weight:bold;
-  cursor:pointer;position:relative
+header{
+    background:#000;
+    color:#fff;
+    text-align:center;
+    padding:15px;
+    font-size:22px;
 }
-.bubble:hover::after{
-  content:attr(data-tip);
-  position:absolute;bottom:-28px;
-  background:#000;color:#fff;
-  padding:4px 6px;font-size:12px;border-radius:4px;
+.container{
+    padding:12px;
 }
-
-table{border-collapse:collapse;margin:20px auto;position:relative;z-index:2}
-td{
-  border:1px solid #000;width:58px;height:42px;
-  text-align:center;font-weight:bold;position:relative
+.card{
+    background:#fff;
+    padding:12px;
+    margin-bottom:12px;
+    border-radius:6px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
 }
-.selected{border:3px solid #2563eb;background:#dbeafe}
-.match{border:3px solid #16a34a;background:#dcfce7}
-
-svg{
-  position:absolute;top:0;left:0;
-  width:100%;height:100%;
-  pointer-events:none;z-index:1
+input[type=file]{
+    width:100%;
+    padding:8px;
 }
-
-.list{max-width:360px;margin:10px auto}
-.list div{
-  display:flex;justify-content:space-between;
-  background:#e5e7eb;margin:4px 0;padding:6px;border-radius:4px
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    font-size:14px;
+}
+th,td{
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
+th{
+    background:#222;
+    color:#fff;
+}
+.highlight{
+    background:#ffeb3b;
+    font-weight:bold;
+}
+footer{
+    background:#000;
+    color:#ccc;
+    text-align:center;
+    padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>👑 Jodi Analyzer – PRO MAX</h2>
+<header>My Projects – CSV Analysis</header>
 
-<textarea id="record">
-27/10/25 59 44 59 42 90
-03/11/25 55 02 93 00 05
-10/11/25 91 10 84 20 84
-17/11/25 52 96 53 11 70
-24/11/25 91 07 67 79 09
-01/12/25 78 52 12 72 64
-08/12/25 16 43 78 91 27
-15/12/25 64 30 97 55 97
-22/12/25 33 38 53 32 84
-</textarea>
+<div class="container">
 
-<div class="topbar">
-  <button onclick="setMode('normal')" class="active">Normal</button>
-  <button onclick="setMode('second')">2nd Touch</button>
-  <button onclick="setMode('third')">3rd Touch</button>
-  <button onclick="setMode('combo')">Combo</button>
+<div class="card">
+<h3>📂 CSV Upload</h3>
+<input type="file" id="csvFile" accept=".csv">
 </div>
 
-<div class="panel">
-  <input id="patternInput" placeholder="Pattern: 4,5,6,7">
-  <input id="diffInput" type="number" placeholder="Total Difference">
+<div class="card">
+<h3>📊 Data Table</h3>
+<div style="overflow:auto">
+<table id="dataTable"></table>
+</div>
 </div>
 
-<div id="bubbleWrap"></div>
-
-<h3 style="text-align:center">Check Line</h3>
-<div id="checkList" class="list"></div>
-
-<div style="position:relative">
-  <svg id="lines"></svg>
-  <div id="tableWrap"></div>
+<div class="card">
+<h3>🧠 DP Boss Type Analysis</h3>
+<p><b>Most Repeated Number:</b> <span id="mostNum">–</span></p>
+<p><b>Last Trend:</b> <span id="trend">–</span></p>
+<p><b>Possible Next:</b> <span id="next">–</span></p>
 </div>
+
+</div>
+
+<footer>
+© 2025 My Projects
+</footer>
 
 <script>
-let rows=[],dates=[],cells=[],current=null,mode="normal";
+document.getElementById("csvFile").addEventListener("change", function(e){
+    const file = e.target.files[0];
+    if(!file) return;
 
-function parse(){
-  rows=[];dates=[];
-  record.value.trim().split("\n").forEach(r=>{
-    const p=r.split(/\s+/);
-    dates.push(p[0]);
-    rows.push(p.slice(1).map(Number));
-  });
-}
+    const reader = new FileReader();
+    reader.onload = function(evt){
+        const rows = evt.target.result.trim().split("\n");
+        buildTable(rows);
+        analyze(rows);
+    };
+    reader.readAsText(file);
+});
 
-function buildBubbles(){
-  const freq={};
-  rows.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
+function buildTable(rows){
+    const table = document.getElementById("dataTable");
+    table.innerHTML = "";
 
-  const sorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
-  bubbleWrap.innerHTML="";
-
-  sorted.forEach(k=>{
-    const size=36+freq[k]*10;
-    const b=document.createElement("div");
-    b.className="bubble";
-    b.style.width=b.style.height=size+"px";
-    b.style.background=`hsl(${k*4},70%,50%)`;
-    b.innerText=k;
-    b.dataset.tip=`Value: ${k}, Occurrences: ${freq[k]}`;
-    b.onclick=()=>selectJodi(Number(k));
-    bubbleWrap.appendChild(b);
-  });
-}
-
-function buildTable(){
-  tableWrap.innerHTML="";cells=[];
-  const t=document.createElement("table");
-  rows.forEach((r,ri)=>{
-    const tr=document.createElement("tr");
-    r.forEach((n,ci)=>{
-      const td=document.createElement("td");
-      td.innerText=n;
-      cells.push({td,ri,ci,val:n});
-      tr.appendChild(td);
+    rows.forEach((row,i)=>{
+        const tr = document.createElement("tr");
+        row.split(",").forEach(cell=>{
+            const td = document.createElement(i==0?"th":"td");
+            td.innerText = cell;
+            tr.appendChild(td);
+        });
+        table.appendChild(tr);
     });
-    t.appendChild(tr);
-  });
-  tableWrap.appendChild(t);
 }
 
-function buildCheckLine(){
-  checkList.innerHTML="";
-  if(current===null) return;
-  for(let i=25;i<=39;i++){
-    const row=`${current}-${i}-${(i*2)%100}`;
-    const d=document.createElement("div");
-    d.innerHTML=`<span>${row}</span><button onclick="selectJodi(${current})">Check Line</button>`;
-    checkList.appendChild(d);
-  }
+function analyze(rows){
+    let nums = [];
+    rows.slice(1).forEach(r=>{
+        r.split(",").forEach(c=>{
+            if(!isNaN(c) && c.trim()!==""){
+                nums.push(c.trim());
+            }
+        });
+    });
+
+    let freq = {};
+    nums.forEach(n=>freq[n]=(freq[n]||0)+1);
+
+    let most = Object.keys(freq).reduce((a,b)=>freq[a]>freq[b]?a:b);
+    document.getElementById("mostNum").innerText = most;
+
+    let lastRow = rows[rows.length-1].split(",");
+    document.getElementById("trend").innerText = lastRow.join(" → ");
+
+    let next = (parseInt(most)+1)%10;
+    document.getElementById("next").innerText = next;
 }
-
-function setMode(m){
-  mode=m;
-  document.querySelectorAll(".topbar button").forEach(b=>b.classList.remove("active"));
-  event.target.classList.add("active");
-  draw();
-}
-
-function selectJodi(j){
-  current=j;
-  buildCheckLine();
-  draw();
-}
-
-function draw(){
-  document.querySelectorAll("td").forEach(td=>td.className="");
-  lines.innerHTML="";
-  if(current===null) return;
-
-  let hits=cells.filter(c=>c.val===current);
-
-  if(mode==="second") hits=hits.slice(1,2);
-  if(mode==="third") hits=hits.slice(2,3);
-
-  hits.forEach(h=>h.td.classList.add("selected"));
-
-  for(let i=0;i<hits.length-1;i++){
-    connect(hits[i].td,hits[i+1].td);
-  }
-}
-
-function connect(a,b){
-  const r1=a.getBoundingClientRect(), r2=b.getBoundingClientRect();
-  const p=tableWrap.getBoundingClientRect();
-  const x1=r1.left+r1.width/2-p.left;
-  const y1=r1.top+r1.height/2-p.top;
-  const x2=r2.left+r2.width/2-p.left;
-  const y2=r2.top+r2.height/2-p.top;
-
-  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("d",`M ${x1} ${y1} C ${x1+80} ${y1}, ${x2-80} ${y2}, ${x2} ${y2}`);
-  path.setAttribute("stroke","#dc2626");
-  path.setAttribute("fill","none");
-  path.setAttribute("stroke-width","3");
-  lines.appendChild(path);
-}
-
-parse();
-buildBubbles();
-buildTable();
 </script>
 
 </body>
