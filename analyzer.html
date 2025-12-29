@@ -2,28 +2,26 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Jodi Line Analyzer</title>
+<title>Jodi Line Analyzer PRO</title>
 <style>
 body{font-family:Arial;background:#f5f5f5;padding:10px}
 table{border-collapse:collapse;margin:auto}
 td{
-  width:60px;height:40px;
+  width:55px;height:40px;
   border:1px solid #ccc;
   text-align:center;
   font-weight:bold;
-  position:relative;
   cursor:pointer;
 }
-td.box{border:3px solid #000}
-.red{color:red}
+.box{border:3px solid black;color:red}
 svg{position:absolute;top:0;left:0;pointer-events:none}
 </style>
 </head>
 <body>
 
-<h2 align="center">🔥 Jodi Line Analyzer (PRO)</h2>
+<h3 align="center">🔥 Jodi Line Analyzer (PRO)</h3>
 
-<textarea id="data" rows="10" style="width:100%">
+<textarea id="data" rows="9" style="width:100%">
 27/10/25 59 44 59 42 90
 03/11/25 55 02 93 00 05
 10/11/25 91 10 84 20 84
@@ -34,9 +32,6 @@ svg{position:absolute;top:0;left:0;pointer-events:none}
 15/12/25 64 30 97 55 97
 22/12/25 33 38 53 32 84
 </textarea>
-
-<br><br>
-<button onclick="build()">Generate Chart</button>
 
 <div style="position:relative;margin-top:20px">
 <svg id="lines"></svg>
@@ -53,11 +48,11 @@ function build(){
   cells=[];
   const rows=document.getElementById("data").value.trim().split("\n");
 
-  rows.forEach((r,ri)=>{
+  rows.forEach(r=>{
     const tr=document.createElement("tr");
-    r.split(" ").slice(1).forEach((v,ci)=>{
+    r.split(" ").slice(1).forEach(v=>{
       const td=document.createElement("td");
-      td.textContent=v;
+      td.innerText=v;
       td.onclick=()=>select(v);
       tr.appendChild(td);
       cells.push({td,val:v});
@@ -69,31 +64,32 @@ function build(){
 function select(val){
   document.querySelectorAll("td").forEach(td=>td.className="");
   const hits=cells.filter(c=>c.val==val).slice(0,4);
-  hits.forEach(h=>h.td.classList.add("box","red"));
-  drawLines(hits);
+  hits.forEach(h=>h.td.classList.add("box"));
+  draw(hits);
 }
 
-function drawLines(hits){
+function draw(hits){
   const svg=document.getElementById("lines");
   svg.innerHTML="";
   const rect=document.getElementById("tbl").getBoundingClientRect();
   svg.setAttribute("width",rect.width);
   svg.setAttribute("height",rect.height);
-
   const colors=["red","blue","green"];
   for(let i=0;i<hits.length-1;i++){
     const a=hits[i].td.getBoundingClientRect();
     const b=hits[i+1].td.getBoundingClientRect();
     const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-    line.setAttribute("x1",a.left-rect.left+30);
+    line.setAttribute("x1",a.left-rect.left+27);
     line.setAttribute("y1",a.top-rect.top+20);
-    line.setAttribute("x2",b.left-rect.left+30);
+    line.setAttribute("x2",b.left-rect.left+27);
     line.setAttribute("y2",b.top-rect.top+20);
     line.setAttribute("stroke",colors[i]);
     line.setAttribute("stroke-width","3");
     svg.appendChild(line);
   }
 }
+
+build(); // AUTO LOAD
 </script>
 
 </body>
