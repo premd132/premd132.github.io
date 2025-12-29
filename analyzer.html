@@ -2,185 +2,173 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer – PRO X2</title>
+<title>🔥 Jodi Line Analyzer – PRO MAX X5</title>
 
 <style>
-body{font-family:Arial;background:#f2f2f2;padding:10px}
+body{font-family:Arial;background:#f4f4f4;padding:8px}
 h2{text-align:center}
 textarea{width:100%;height:140px;font-family:monospace}
-button{padding:8px 14px;font-size:15px;margin:5px}
+button{padding:7px 14px;margin:4px}
+select{padding:7px 10px;margin:4px}
 table{border-collapse:collapse;background:#fff}
-th,td{border:1px solid #888;padding:6px;min-width:42px;text-align:center;cursor:pointer}
+th,td{border:1px solid #777;padding:6px;min-width:42px;text-align:center;cursor:pointer}
 th{background:#ddd}
-td.sel{background:#ffe066;font-weight:bold}
+td.hit{background:#ffe066;font-weight:bold}
 
-#wrap{position:relative;display:inline-block}
-#lines{position:absolute;top:0;left:0;pointer-events:none}
+#wrapper{position:relative;display:inline-block}
+#svg{position:absolute;top:0;left:0;pointer-events:none}
 
-.bubble{
- display:inline-flex;align-items:center;justify-content:center;
- border-radius:50%;color:#fff;font-weight:bold;
- margin:4px;cursor:pointer;
-}
-
-#panel{
- margin-top:10px;background:#fff;padding:10px;border:2px solid #333
-}
+.box{background:#fff;border:2px solid #333;padding:10px;margin-top:10px}
+.badge{display:inline-block;padding:4px 8px;background:#222;color:#fff;margin:2px;border-radius:4px}
+.star{color:#c00;font-weight:bold}
+.safe{background:#0a7;color:#fff}
+.muted{color:#666}
+.topbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.note{text-align:center;color:#555;font-size:12px}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer – PRO X2</h2>
+<h2>🔥 Jodi Line Analyzer – PRO MAX X5</h2>
 
-<textarea id="input">
-29 50 18 84 17
-96 33 96 67 26
-17 88 99 28 96
-16 63 94 53 **
-66 70 46 68 45
-23 35 31 09 83
-22 79 39 53 77
-99 35 14 03 52
-20 41 58 50 11
-</textarea><br>
+<div class="topbar">
+  <select id="game">
+    <option value="milan">Milan Day</option>
+    <option value="kalyan">Kalyan</option>
+    <option value="rajdhani">Rajdhani Night</option>
+  </select>
+  <button onclick="loadGame()">Load Game</button>
+  <button onclick="saveGame()">Save Record</button>
+</div>
+<div class="note">Har game ka record alag store hota hai</div>
 
-<button onclick="generate()">Generate</button>
-<button onclick="download()">Download PNG</button>
+<textarea id="input" placeholder="Paste selected game record here (Mon–Sat rows)"></textarea><br>
 
-<div id="wrap">
-<svg id="lines"></svg>
-<table id="table"></table>
+<button onclick="build()">Generate</button>
+
+<div id="wrapper">
+  <svg id="svg"></svg>
+  <table id="tbl"></table>
 </div>
 
-<div id="bubbles"></div>
-
-<div id="panel" style="display:none">
-<h3>📊 After Result + Prediction</h3>
-<div id="result"></div>
-</div>
+<div id="after" class="box" style="display:none"></div>
+<div id="finalBox" class="box" style="display:none"></div>
 
 <script>
-let data=[],cells=[],current=null;
+let grid=[],cells=[],selected=null;
 
-function generate(){
- data=[];cells=[];current=null;
- table.innerHTML="";lines.innerHTML="";
- bubbles.innerHTML="";panel.style.display="none";
+function key(){ return "record_"+document.getElementById("game").value; }
 
- input.value.trim().split("\n").forEach(r=>{
-  data.push(r.trim().split(/\s+/));
- });
-
- buildTable();
- buildBubbles();
+function loadGame(){
+  input.value = localStorage.getItem(key()) || "";
+  resetUI();
 }
 
-function buildTable(){
- const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
- let tr=document.createElement("tr");
- days.forEach(d=>{let th=document.createElement("th");th.innerText=d;tr.appendChild(th);});
- table.appendChild(tr);
+function saveGame(){
+  localStorage.setItem(key(), input.value.trim());
+  alert("Record saved for selected game");
+}
 
- data.forEach((r,ri)=>{
-  let tr=document.createElement("tr");
-  r.forEach((v,ci)=>{
-   let td=document.createElement("td");
-   td.innerText=v;
-   td.onclick=()=>select(v);
-   cells.push({td,ri,ci,val:v});
-   tr.appendChild(td);
+function resetUI(){
+  grid=[];cells=[];tbl.innerHTML="";svg.innerHTML="";
+  after.style.display="none"; finalBox.style.display="none";
+}
+
+function build(){
+  resetUI();
+  if(!input.value.trim()){ alert("Paste record first"); return; }
+
+  input.value.trim().split("\n").forEach(r=>{
+    grid.push(r.trim().split(/\s+/));
   });
-  table.appendChild(tr);
- });
+
+  const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+  let tr=document.createElement("tr");
+  days.forEach(d=>{let th=document.createElement("th");th.innerText=d;tr.appendChild(th)});
+  tbl.appendChild(tr);
+
+  grid.forEach((row,ri)=>{
+    let tr=document.createElement("tr");
+    row.forEach((v,ci)=>{
+      let td=document.createElement("td");
+      td.innerText=v;
+      td.onclick=()=>selectJodi(v);
+      cells.push({td,ri,ci,val:v});
+      tr.appendChild(td);
+    });
+    tbl.appendChild(tr);
+  });
 }
 
-function buildBubbles(){
- let freq={};
- data.flat().forEach(v=>{
-  if(v!=="**") freq[v]=(freq[v]||0)+1;
- });
- Object.keys(freq).forEach(k=>{
-  let b=document.createElement("div");
-  let s=30+freq[k]*4;
-  b.className="bubble";
-  b.style.width=b.style.height=s+"px";
-  b.style.background=`hsl(${k*9},70%,50%)`;
-  b.innerText=k;
-  b.onclick=()=>select(k);
-  bubbles.appendChild(b);
- });
-}
+function selectJodi(v){
+  selected=v;
+  cells.forEach(c=>c.td.classList.remove("hit"));
+  svg.innerHTML="";
+  let hits=cells.filter(c=>c.val===v);
+  hits.forEach(h=>h.td.classList.add("hit"));
 
-function select(v){
- current=v;
- draw();
- analysis();
-}
-
-function draw(){
- document.querySelectorAll("td").forEach(t=>t.classList.remove("sel"));
- lines.innerHTML="";
- let hits=cells.filter(c=>c.val===current);
- hits.forEach(h=>h.td.classList.add("sel"));
-
- // 1st,2nd,3rd touch lines
- let colors=["red","blue","green"];
- for(let i=0;i<Math.min(3,hits.length-1);i++){
-  connect(hits[i].td,hits[i+1].td,colors[i]);
- }
-}
-
-function connect(a,b,color){
- let r1=a.getBoundingClientRect(),r2=b.getBoundingClientRect();
- let p=wrap.getBoundingClientRect();
- let x1=r1.left+r1.width/2-p.left;
- let y1=r1.top+r1.height/2-p.top;
- let x2=r2.left+r2.width/2-p.left;
- let y2=r2.top+r2.height/2-p.top;
- lines.setAttribute("width",p.width);
- lines.setAttribute("height",p.height);
- let path=document.createElementNS("http://www.w3.org/2000/svg","path");
- path.setAttribute("d",`M ${x1} ${y1} L ${x2} ${y2}`);
- path.setAttribute("stroke",color);
- path.setAttribute("stroke-width","3");
- path.setAttribute("fill","none");
- lines.appendChild(path);
-}
-
-function analysis(){
- let map={};
- cells.forEach(c=>{
-  if(c.val===current){
-   let n=data[c.ri+1]?.[c.ci];
-   if(n && n!=="**") map[n]=(map[n]||0)+1;
+  // draw max 3 touch lines
+  const colors=["red","blue","green"];
+  for(let i=0;i<Math.min(3,hits.length-1);i++){
+    draw(hits[i],hits[i+1],colors[i]);
   }
- });
-
- let total=Object.values(map).reduce((a,b)=>a+b,0);
- let html=`<b>Selected:</b> ${current}<br><br>`;
-
- Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3)
- .forEach(([k,v],i)=>{
-  let pct=((v/total)*100).toFixed(1);
-  html+=`${i+1}. ${k} → ${v} times (${pct}%)<br>`;
- });
-
- result.innerHTML=html;
- panel.style.display="block";
+  analyzeAfter(hits);
 }
 
-function download(){
- html2canvas(wrap).then(c=>{
-  let a=document.createElement("a");
-  a.href=c.toDataURL();
-  a.download="jodi-chart.png";
-  a.click();
- });
+function draw(a,b,color){
+  let r1=a.td.getBoundingClientRect();
+  let r2=b.td.getBoundingClientRect();
+  let p=wrapper.getBoundingClientRect();
+  let x1=r1.left+r1.width/2-p.left;
+  let y1=r1.top+r1.height/2-p.top;
+  let x2=r2.left+r2.width/2-p.left;
+  let y2=r2.top+r2.height/2-p.top;
+  svg.setAttribute("width",p.width);
+  svg.setAttribute("height",p.height);
+  let l=document.createElementNS("http://www.w3.org/2000/svg","line");
+  l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+  l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+  l.setAttribute("stroke",color);
+  l.setAttribute("stroke-width","3");
+  svg.appendChild(l);
+}
+
+function analyzeAfter(hits){
+  let map={};
+  hits.forEach(h=>{
+    let n=grid[h.ri+1]?.[h.ci];
+    if(n && n!=="**"){ map[n]=(map[n]||0)+1; }
+  });
+
+  let out="<b>After Result (Same Line History)</b><br>";
+  let arr=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  if(arr.length===0){
+    out+="<span class='muted'>No history found</span>";
+  }else{
+    arr.forEach(([k,v],i)=>{ out+=`${i+1}. <span class="badge">${k}</span> → ${v} times<br>`; });
+  }
+  after.innerHTML=out; after.style.display="block";
+  buildFinal(arr);
+}
+
+function buildFinal(arr){
+  finalBox.innerHTML="";
+  if(arr.length===0){ finalBox.style.display="none"; return; }
+
+  const total = arr.reduce((s,[,v])=>s+v,0);
+  const top = arr[0];
+  const safe1 = arr[1] || null;
+  const safe2 = arr[2] || null;
+
+  let html = "<b>🔥 AUTO NEXT-DAY FINAL JODI</b><br><br>";
+  html += `⭐ <span class="badge">${top[0]}</span> — STRONG (${((top[1]/total)*100).toFixed(1)}%)<br>`;
+  if(safe1){ html += `🟢 <span class="badge safe">${safe1[0]}</span> — SAFE (${((safe1[1]/total)*100).toFixed(1)}%)<br>`; }
+  if(safe2){ html += `🟢 <span class="badge safe">${safe2[0]}</span> — SAFE (${((safe2[1]/total)*100).toFixed(1)}%)<br>`; }
+  html += `<br><span class="muted">Logic: same-line history, line-limit=3, next-day only</span>`;
+  finalBox.innerHTML=html; finalBox.style.display="block";
 }
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
 </html>
