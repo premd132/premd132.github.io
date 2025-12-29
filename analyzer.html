@@ -1,217 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Trend Analyzer – FINAL</title>
-
+<title>🔥 Jodi Line Analyzer (FINAL)</title>
 <style>
-body{font-family:Arial;background:#f5f5f5;padding:10px}
-textarea{width:100%;height:120px}
-table{border-collapse:collapse;margin-top:10px;background:#fff}
-th,td{
- border:1px solid #999;
- padding:6px;
- text-align:center;
- cursor:pointer;
- position:relative;
-}
-th{background:#eaeaea}
-td:hover{background:#f1f1f1}
-
-.selected{background:#ffeb3b}
-.trend{outline:3px solid red}
-.family{background:#bbdefb}
-
-.box{margin-top:10px;padding:8px;border:1px solid #ccc;background:#fff}
-.item{color:#1565c0;cursor:pointer;margin:4px 0}
-
-#popup{
+body{font-family:Arial;margin:10px;background:#fafafa}
+textarea{width:100%;height:140px}
+button{padding:8px 14px;margin:5px 5px 5px 0}
+table{border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:4px 6px;text-align:center;font-size:13px}
+th{background:#f0f0f0}
+.match{background:#ffeaa7;cursor:pointer}
+#results{margin-top:15px}
+.popup{
  position:fixed;top:0;left:0;width:100%;height:100%;
- background:rgba(0,0,0,.6);
- display:none;align-items:center;justify-content:center;
- z-index:9999;
+ background:rgba(0,0,0,.6);display:none;
+ align-items:center;justify-content:center
 }
-#popupBox{
- background:#fff;padding:12px;width:95%;max-width:420px;
+.popup-content{
+ background:#fff;padding:15px;max-width:90%;
+ border-radius:6px
 }
 </style>
 </head>
 
 <body>
 
-<h3>🔥 Jodi Trend Analyzer (FINAL)</h3>
+<h3>🔥 Jodi Line Analyzer (FINAL)</h3>
 
-<textarea id="input">
-Mon Tue Wed Thu Fri Sat
-52 96 53 11 70 82
-91 97 67 79 09 87
-78 52 12 72 64 17
-16 43 78 91 27 30
-64 30 97 55 97 39
-33 38 53 32 84 82
-</textarea>
+<p>Format example:</p>
+<pre>
+Mon 52 96 53 11 70
+Tue 91 97 67 79 09
+Wed 78 52 12 72 64
+Thu 16 43 78 91 27
+Fri 64 30 97 55 97
+Sat 33 38 53 32 84
+</pre>
 
-<br><br>
-<button onclick="build()">Generate Chart</button>
+<textarea id="input"></textarea><br>
+<button onclick="analyze()">Generate Chart</button>
 
-<div id="tableBox"></div>
-
-<div class="box">
-<b>📊 Trend List (Family + Same Angle)</b>
-<div id="trendList">Generate chart first</div>
-</div>
+<div id="chart"></div>
+<div id="results"></div>
 
 <!-- POPUP -->
-<div id="popup" onclick="closePop()">
-  <div id="popupBox" onclick="event.stopPropagation()">
-    <h4>📸 Trend Detail</h4>
+<div class="popup" id="popup" onclick="this.style.display='none'">
+  <div class="popup-content" onclick="event.stopPropagation()">
     <div id="popupData"></div>
-    <br>
-    <button onclick="closePop()">Close</button>
   </div>
 </div>
 
 <script>
-/* ================= BASE DATA ================= */
-const CUT={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
-let GRID=[],DAYS=[],TREND_HISTORY=[];
+const FAMILY = {
+  1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4,5:0,0:5
+};
 
-/* ================= HELPERS ================= */
-function familyGroup(j){
- let a=parseInt(j[0]), b=parseInt(j[1]);
- return new Set([
-  j,
-  ""+a+CUT[b],
-  ""+CUT[a]+b,
-  ""+CUT[a]+CUT[b]
- ]);
+function isFamily(a,b){
+  return FAMILY[a]==b;
 }
 
-const DIRS=[
- {dr:0,dc:1,name:"→"},
- {dr:0,dc:-1,name:"←"},
- {dr:1,dc:0,name:"↓"},
- {dr:-1,dc:0,name:"↑"},
- {dr:1,dc:1,name:"↘"},
- {dr:1,dc:-1,name:"↙"},
- {dr:-1,dc:1,name:"↗"},
- {dr:-1,dc:-1,name:"↖"}
-];
-
-/* ================= BUILD TABLE ================= */
-function build(){
- TREND_HISTORY=[];
- document.getElementById("trendList").innerHTML="";
-
- let raw=document.getElementById("input").value.trim().split("\n");
- DAYS=raw[0].trim().split(/\s+/);
- GRID=raw.slice(1).map(r=>r.trim().split(/\s+/));
-
- let html="<table id='grid'><tr>";
- DAYS.forEach(d=>html+="<th>"+d+"</th>");
- html+="</tr>";
-
- GRID.forEach((r,i)=>{
-  html+="<tr>";
-  r.forEach((v,j)=>{
-   html+=`<td onclick="analyze(${i},${j})">${v}</td>`;
+function parseData(){
+  let lines = document.getElementById("input").value.trim().split("\n");
+  let days=[], grid=[];
+  lines.forEach(l=>{
+    let p=l.trim().split(/\s+/);
+    if(p.length<2) return;
+    days.push(p[0]);
+    grid.push(p.slice(1).map(v=>v==="**"?null:v));
   });
-  html+="</tr>";
- });
- html+="</table>";
-
- document.getElementById("tableBox").innerHTML=html;
-
- findTrendsFromLast(); // 🔥 AUTO TREND
+  return {days,grid};
 }
 
-/* ================= CORE LOGIC ================= */
-function clearMarks(){
- document.querySelectorAll("td").forEach(td=>{
-  td.classList.remove("selected","trend","family");
- });
-}
+function analyze(){
+  const {days,grid}=parseData();
+  if(grid.length===0) return;
 
-function analyze(r,c){
- clearMarks();
- document.getElementById("grid").rows[r+1].cells[c].classList.add("selected");
-}
-
-function findTrendsFromLast(){
- TREND_HISTORY=[];
- clearMarks();
-
- let lr=GRID.length-1;
- let lc=GRID[0].length-1;
- let base=GRID[lr][lc];
- let fam=familyGroup(base);
-
- document.getElementById("grid").rows[lr+1].cells[lc].classList.add("selected");
-
- DIRS.forEach(d=>{
-  let nr=lr+d.dr, nc=lc+d.dc;
-  if(GRID[nr] && GRID[nr][nc] && fam.has(GRID[nr][nc])){
-    scanFullRecord(d,fam);
-  }
- });
-
- renderTrendList();
-}
-
-function scanFullRecord(dir,fam){
- for(let r=0;r<GRID.length;r++){
-  for(let c=0;c<GRID[0].length;c++){
-   if(fam.has(GRID[r][c])){
-    let nr=r+dir.dr, nc=c+dir.dc;
-    if(GRID[nr] && GRID[nr][nc] && fam.has(GRID[nr][nc])){
-     TREND_HISTORY.push({
-      from:[r,c],
-      to:[nr,nc],
-      dir:dir.name,
-      a:GRID[r][c],
-      b:GRID[nr][nc]
-     });
-     markCells(r,c,nr,nc);
+  // transpose to day-wise columns
+  let rows = Math.max(...grid.map(r=>r.length));
+  let table=[];
+  for(let r=0;r<rows;r++){
+    table[r]=[];
+    for(let c=0;c<grid.length;c++){
+      table[r][c]=grid[c][r]||null;
     }
-   }
   }
- }
+
+  drawTable(days,table);
+  findTrends(days,table);
 }
 
-function markCells(r,c,nr,nc){
- let table=document.getElementById("grid");
- table.rows[r+1].cells[c].classList.add("trend");
- table.rows[nr+1].cells[nc].classList.add("family");
+function drawTable(days,table){
+  let html="<table><tr>";
+  days.forEach(d=>html+="<th>"+d+"</th>");
+  html+="</tr>";
+  table.forEach(r=>{
+    html+="<tr>";
+    r.forEach(v=>html+="<td>"+(v??"")+"</td>");
+    html+="</tr>";
+  });
+  html+="</table>";
+  document.getElementById("chart").innerHTML=html;
 }
 
-/* ================= UI ================= */
-function renderTrendList(){
- let html="";
- TREND_HISTORY.forEach((t,i)=>{
-  html+=`
-   <div class="item" onclick="openPop(${i})">
-    ${t.dir} : ${t.a} → ${t.b} (row ${t.from[0]+1})
-   </div>`;
- });
- document.getElementById("trendList").innerHTML=
-  html || "No family trend found";
+function findTrends(days,table){
+  let lastRow=table.length-1;
+  let trends=[];
+
+  for(let c=0;c<days.length;c++){
+    let base=table[lastRow][c];
+    if(!base) continue;
+
+    let a=parseInt(base[0]), b=parseInt(base[1]);
+
+    // check angles
+    let angles=[[ -1,-1 ],[ -1,1 ],[ -2,-2 ],[ -2,2 ]];
+
+    angles.forEach(([dr,dc])=>{
+      let hits=[];
+      for(let r=0;r<table.length;r++){
+        let nr=r+dr, nc=c+dc;
+        if(nr<0||nc<0||nc>=days.length) continue;
+        let v=table[r][c];
+        let t=table[nr]?.[nc];
+        if(!v||!t) continue;
+
+        let x=parseInt(v[0]), y=parseInt(v[1]);
+        let p=parseInt(t[0]), q=parseInt(t[1]);
+
+        if(
+          (x===a && y===b) ||
+          (isFamily(x,a)&&isFamily(y,b))
+        ){
+          hits.push({r,c,nr,nc,val:v});
+        }
+      }
+      if(hits.length>1){
+        trends.push({base,day:days[c],angle:`${dr},${dc}`,count:hits.length,hits});
+      }
+    });
+  }
+
+  showResults(trends);
 }
 
-function openPop(i){
- let t=TREND_HISTORY[i];
- document.getElementById("popupData").innerHTML=
- `<b>Trend:</b> ${t.dir}<br>
-  <b>From:</b> ${t.a}<br>
-  <b>To:</b> ${t.b}<br>
-  <b>Row:</b> ${t.from[0]+1}<br><br>
-  <span style="color:red">
-   Same family + same angle trend detected
-  </span>`;
- document.getElementById("popup").style.display="flex";
+function showResults(trends){
+  let box=document.getElementById("results");
+  if(trends.length===0){
+    box.innerHTML="<b>No family trend found</b>";
+    return;
+  }
+  let html="<h4>Trend List</h4><ul>";
+  trends.forEach((t,i)=>{
+    html+=`<li class="match" onclick="showPopup(${i})">
+      Base ${t.base} | Day ${t.day} | Angle ${t.angle} | Count ${t.count}
+    </li>`;
+  });
+  html+="</ul>";
+  box.innerHTML=html;
+  window._TRENDS=trends;
 }
 
-function closePop(){
- document.getElementById("popup").style.display="none";
+function showPopup(i){
+  let t=_TRENDS[i];
+  let html=`<b>Base Jodi:</b> ${t.base}<br>
+            <b>Day:</b> ${t.day}<br>
+            <b>Angle:</b> ${t.angle}<br>
+            <b>Total:</b> ${t.count}<hr>`;
+  t.hits.forEach(h=>{
+    html+=`Row ${h.r+1} → ${h.val}<br>`;
+  });
+  document.getElementById("popupData").innerHTML=html;
+  document.getElementById("popup").style.display="flex";
 }
 </script>
 
