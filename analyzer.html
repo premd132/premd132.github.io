@@ -2,226 +2,192 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer (PRO)</title>
+<title>🔥 Jodi Line Analyzer – NEXT PRO</title>
 
 <style>
-body{
-  font-family:Arial, sans-serif;
-  background:#f5f5f5;
-  margin:0;
-  padding:10px;
-}
+body{font-family:Arial;background:#f4f4f4;padding:10px}
 h2{text-align:center}
+textarea{width:100%;height:140px;font-family:monospace}
+button{padding:8px 14px;font-size:16px;margin:6px 0}
+table{border-collapse:collapse;background:#fff}
+th,td{border:1px solid #999;padding:6px;text-align:center;min-width:42px;cursor:pointer}
+th{background:#ddd}
+td.sel{background:#ffe066;font-weight:bold}
 
-textarea{
-  width:100%;
-  height:120px;
-  font-size:14px;
-}
+#wrap{position:relative;display:inline-block}
+#lines{position:absolute;top:0;left:0;pointer-events:none}
 
-button{
-  padding:10px 15px;
-  margin:5px 0;
-  font-size:16px;
-  cursor:pointer;
-}
-
-#tableWrap{
-  position:relative;
-  margin-top:15px;
-  overflow:auto;
-}
-
-table{
-  border-collapse:collapse;
-  background:#fff;
-}
-td{
-  border:1px solid #ccc;
-  padding:6px 8px;
-  cursor:pointer;
-  text-align:center;
-  min-width:45px;
-  position:relative;
-}
-td:hover{background:#ffe0b2}
-
-td.selected{
-  background:#ff5722;
-  color:#fff;
-  font-weight:bold;
-}
-
-#lineSVG{
-  position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  pointer-events:none;
-}
-
+#bubbles{margin-top:10px}
 .bubble{
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
+  display:inline-flex;
   justify-content:center;
+  align-items:center;
+  border-radius:50%;
   color:#fff;
   font-weight:bold;
+  margin:4px;
+  cursor:pointer;
 }
 
-#afterBubbles{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:10px;
+#afterBox{
+  margin-top:12px;
+  background:#fff;
+  padding:10px;
+  border:2px solid #333;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer (PRO)</h2>
+<h2>🔥 Jodi Line Analyzer – NEXT PRO</h2>
 
-<textarea id="recordInput" placeholder="Paste records like:
-27/10/25 59 44 59 42 90
-03/11/25 55 02 93 00 05"></textarea>
+<p><b>Format:</b> Mon Tue Wed Thu Fri Sat</p>
 
+<textarea id="input">
+29 50 18 84 17
+96 33 96 67 26
+17 88 99 28 96
+16 63 94 53 **
+66 70 46 68 45
+23 35 31 09 83
+22 79 39 53 77
+99 35 14 03 52
+20 41 58 50 11
+</textarea>
+
+<br>
 <button onclick="generate()">Generate Chart</button>
 
-<div id="tableWrap">
-  <svg id="lineSVG"></svg>
-  <table id="dataTable"></table>
+<div id="wrap">
+<svg id="lines"></svg>
+<table id="table"></table>
 </div>
 
-<h3>After Result (Same Line)</h3>
-<div id="afterBubbles"></div>
+<div id="bubbles"></div>
+
+<div id="afterBox" style="display:none">
+<h3>📊 After Result Analysis</h3>
+<div id="afterData"></div>
+</div>
 
 <script>
-let parsed = [];
-let selectedJodi = null;
+let data=[],cells=[],current=null;
 
 function generate(){
-  parsed=[];
-  document.getElementById("dataTable").innerHTML="";
-  document.getElementById("lineSVG").innerHTML="";
-  document.getElementById("afterBubbles").innerHTML="";
+ data=[];cells=[];current=null;
+ table.innerHTML="";lines.innerHTML="";
+ bubbles.innerHTML="";afterBox.style.display="none";
 
-  const lines = recordInput.value.trim().split(/\n+/);
+ input.value.trim().split("\n").forEach(r=>{
+  data.push(r.trim().split(/\s+/));
+ });
 
-  lines.forEach(line=>{
-    const p=line.trim().split(/\s+/);
-    if(p.length>=2){
-      parsed.push({
-        date:p[0],
-        values:p.slice(1)
-      });
-    }
-  });
-
-  buildTable();
+ buildTable();
+ buildBubbles();
 }
 
 function buildTable(){
-  const table=document.getElementById("dataTable");
+ const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+ let tr=document.createElement("tr");
+ days.forEach(d=>{let th=document.createElement("th");th.innerText=d;tr.appendChild(th);});
+ table.appendChild(tr);
 
-  parsed.forEach(r=>{
-    const tr=document.createElement("tr");
-
-    r.values.forEach(v=>{
-      const td=document.createElement("td");
-      td.innerText=v;
-      td.className="cell";
-      td.dataset.date=r.date;
-      td.dataset.val=v;
-
-      td.onclick=()=>selectJodi(v,td);
-      tr.appendChild(td);
-    });
-
-    table.appendChild(tr);
+ data.forEach((r,ri)=>{
+  let tr=document.createElement("tr");
+  r.forEach((v,ci)=>{
+   let td=document.createElement("td");
+   td.innerText=v;
+   td.onclick=()=>selectJodi(v);
+   cells.push({td,ri,ci,val:v});
+   tr.appendChild(td);
   });
+  table.appendChild(tr);
+ });
 }
 
-function selectJodi(val,td){
-  selectedJodi=val;
-  document.querySelectorAll("td").forEach(x=>x.classList.remove("selected"));
-  td.classList.add("selected");
+function buildBubbles(){
+ let freq={};
+ data.flat().forEach(v=>{
+  if(v!=="**") freq[v]=(freq[v]||0)+1;
+ });
 
-  drawAnalysis();
-}
-
-function drawAnalysis(){
-  const svg=document.getElementById("lineSVG");
-  svg.innerHTML="";
-  const bubbles=document.getElementById("afterBubbles");
-  bubbles.innerHTML="";
-
-  const hits=[];
-  parsed.forEach((r,ri)=>{
-    r.values.forEach((v,ci)=>{
-      if(v===selectedJodi){
-        hits.push({ri,ci});
-      }
-    });
-  });
-
-  const colors=["red","blue","green"];
-  const maxLines=3;
-  let used=0;
-
-  for(let i=0;i<hits.length-1 && used<maxLines;i++){
-    const a=hits[i];
-    const b=hits[i+1];
-
-    const from=getCell(a.ri,a.ci);
-    const to=getCell(b.ri,b.ci);
-    if(from && to){
-      drawLine(from,to,colors[used]);
-
-      const after = parsed[b.ri]?.values[b.ci+1];
-      createBubble(after,colors[used]);
-      used++;
-    }
-  }
-}
-
-function getCell(r,c){
-  return document.querySelector(
-    `tr:nth-child(${r+1}) td:nth-child(${c+1})`
-  );
-}
-
-function drawLine(from,to,color){
-  const svg=document.getElementById("lineSVG");
-  const r1=from.getBoundingClientRect();
-  const r2=to.getBoundingClientRect();
-  const s=svg.getBoundingClientRect();
-
-  const x1=r1.left+r1.width/2-s.left;
-  const y1=r1.top+r1.height/2-s.top;
-  const x2=r2.left+r2.width/2-s.left;
-  const y2=r2.top+r2.height/2-s.top;
-
-  const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-  line.setAttribute("x1",x1);
-  line.setAttribute("y1",y1);
-  line.setAttribute("x2",x2);
-  line.setAttribute("y2",y2);
-  line.setAttribute("stroke",color);
-  line.setAttribute("stroke-width","3");
-
-  svg.appendChild(line);
-}
-
-function createBubble(val,color){
-  const b=document.createElement("div");
+ Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
+  let s=30+freq[k]*5;
+  let b=document.createElement("div");
   b.className="bubble";
-  b.style.background=color;
-  b.innerText=val || "--";
-  afterBubbles.appendChild(b);
+  b.style.width=b.style.height=s+"px";
+  b.style.background=`hsl(${k*9},70%,50%)`;
+  b.innerText=k;
+  b.onclick=()=>selectJodi(k);
+  bubbles.appendChild(b);
+ });
+}
+
+function selectJodi(v){
+ current=v;
+ drawLines();
+ afterAnalysis();
+}
+
+function drawLines(){
+ document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
+ lines.innerHTML="";
+ if(!current) return;
+
+ let hits=cells.filter(c=>c.val===current);
+ hits.forEach(h=>h.td.classList.add("sel"));
+
+ // LINE LIMIT = 3
+ for(let i=0;i<Math.min(3,hits.length-1);i++){
+  connect(hits[i].td,hits[i+1].td);
+ }
+}
+
+function connect(a,b){
+ let r1=a.getBoundingClientRect(),r2=b.getBoundingClientRect();
+ let p=wrap.getBoundingClientRect();
+
+ let x1=r1.left+r1.width/2-p.left;
+ let y1=r1.top+r1.height/2-p.top;
+ let x2=r2.left+r2.width/2-p.left;
+ let y2=r2.top+r2.height/2-p.top;
+
+ lines.setAttribute("width",p.width);
+ lines.setAttribute("height",p.height);
+
+ let path=document.createElementNS("http://www.w3.org/2000/svg","path");
+ path.setAttribute("d",`M ${x1} ${y1} L ${x2} ${y2}`);
+ path.setAttribute("stroke","red");
+ path.setAttribute("stroke-width","3");
+ path.setAttribute("fill","none");
+ lines.appendChild(path);
+}
+
+function afterAnalysis(){
+ let result={};
+ cells.forEach(c=>{
+  if(c.val===current){
+   let next=data[c.ri+1]?.[c.ci];
+   if(next && next!=="**"){
+    result[next]=(result[next]||0)+1;
+   }
+  }
+ });
+
+ let html="<b>Selected Jodi:</b> "+current+"<br><br>";
+ if(Object.keys(result).length===0){
+  html+="No after result found.";
+ }else{
+  Object.entries(result)
+   .sort((a,b)=>b[1]-a[1])
+   .forEach(([k,v])=>{
+    html+=`➡ ${k} → ${v} times<br>`;
+   });
+ }
+
+ afterData.innerHTML=html;
+ afterBox.style.display="block";
 }
 </script>
 
