@@ -1,196 +1,88 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>🔥 Jodi Analyzer – MEGA PRO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{margin:0;font-family:Arial;background:#f2f2f2}
-header{background:#111;color:#fff;padding:10px;text-align:center;font-weight:bold}
-.container{padding:10px}
-textarea,button{width:100%;padding:10px;margin:6px 0;font-size:15px}
-button{background:#222;color:#fff;border:none;border-radius:4px}
-table{border-collapse:collapse;width:100%;background:#fff}
-th,td{border:1px solid #777;padding:6px;text-align:center;font-weight:bold}
-th{background:#ddd}
-td.hit{background:#ffe066}
-#wrapper{position:relative}
-#svg{position:absolute;top:0;left:0;pointer-events:none}
-.box{background:#fff;border:2px solid #333;padding:10px;margin-top:10px}
-.badge{background:#000;color:#fff;padding:4px 8px;border-radius:4px}
-.safe{background:#0a7}
-.star{color:red;font-weight:bold}
-.muted{color:#666}
-</style>
-</head>
-
-<body>
-
-<header>🔥 Jodi Analyzer – MEGA PRO (All-in-One)</header>
-
-<div class="container">
-
-<textarea id="input" placeholder="Paste record (Mon–Sat rows)"></textarea>
-<button onclick="generate()">Generate Chart</button>
-
-<div id="wrapper">
-  <svg id="svg"></svg>
-  <table id="tbl"></table>
-</div>
-
-<div id="after" class="box" style="display:none"></div>
-<div id="finalBox" class="box" style="display:none"></div>
-
-</div>
-
 <script>
-// ===== CUT ANK MAP =====
-const CUT_MAP={
-  "0":"5","5":"0",
-  "1":"6","6":"1",
-  "2":"7","7":"2",
-  "3":"8","8":"3",
-  "4":"9","9":"4"
-};
+const CUT={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
+let grid=[];
 
-let grid=[],cells=[],selected=null;
+function family(j){
+ let a=Math.floor(j/10),b=j%10;
+ return [...new Set([
+  j,
+  a*10+CUT[b],
+  CUT[a]*10+b,
+  CUT[a]*10+CUT[b]
+ ])];
+}
 
-// ===== BUILD TABLE =====
 function generate(){
-  grid=[];cells=[];tbl.innerHTML="";svg.innerHTML="";
-  after.style.display="none";finalBox.style.display="none";
-  if(!input.value.trim()) return;
-
-  input.value.trim().split("\n").forEach(r=>{
-    grid.push(r.trim().split(/\s+/));
-  });
-
-  const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+ grid=[];
+ document.getElementById("table").innerHTML="";
+ document.getElementById("bubbles").innerHTML="";
+ let rows=document.getElementById("data").value.trim().split("\n");
+ rows.forEach(r=>{
+  let d=r.split(/\s+/).slice(1).map(Number);
+  grid.push(d);
+ });
+ let t=document.createElement("table");
+ grid.forEach((row,r)=>{
   let tr=document.createElement("tr");
-  days.forEach(d=>{let th=document.createElement("th");th.innerText=d;tr.appendChild(th)});
-  tbl.appendChild(tr);
-
-  grid.forEach((row,ri)=>{
-    let tr=document.createElement("tr");
-    row.forEach((v,ci)=>{
-      let td=document.createElement("td");
-      td.innerText=v;
-      td.onclick=()=>selectJodi(v);
-      cells.push({td,ri,ci,val:v});
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
+  row.forEach((v,c)=>{
+   let td=document.createElement("td");
+   td.innerText=v;
+   td.onclick=()=>analyze(r,c);
+   tr.appendChild(td);
   });
+  t.appendChild(tr);
+ });
+ document.getElementById("table").appendChild(t);
 }
 
-// ===== HELPERS =====
-function getCutJodi(j){
-  if(!j||j.length!==2) return null;
-  return CUT_MAP[j[0]]+CUT_MAP[j[1]];
-}
-function getFamilyJodis(j){
-  const c=getCutJodi(j);
-  return Array.from(new Set([j, j[0]+c[1], c[0]+j[1], c]));
-}
+function analyze(r,c){
+ document.querySelectorAll("td").forEach(x=>x.className="");
+ document.getElementById("bubbles").innerHTML="";
 
-// ===== SELECT & DRAW =====
-function selectJodi(v){
-  selected=v;
-  cells.forEach(c=>c.td.classList.remove("hit"));
-  svg.innerHTML="";
-  const hits=cells.filter(c=>c.val===v);
-  hits.forEach(h=>h.td.classList.add("hit"));
+ let base=grid[r][c];
+ let fam=family(base);
 
-  const colors=["red","blue","green"];
-  for(let i=0;i<Math.min(3,hits.length-1);i++){
-    drawLine(hits[i],hits[i+1],colors[i]);
-  }
+ const DIR=[
+  {dr:1,dc:0},   // vertical
+  {dr:1,dc:1},   // diag right
+  {dr:1,dc:-1}   // diag left
+ ];
 
-  analyzeMega(v,hits);
-}
+ let results=new Set();
 
-function drawLine(a,b,color){
-  const r1=a.td.getBoundingClientRect();
-  const r2=b.td.getBoundingClientRect();
-  const p=wrapper.getBoundingClientRect();
-  svg.setAttribute("width",p.width);
-  svg.setAttribute("height",p.height);
-  const l=document.createElementNS("http://www.w3.org/2000/svg","line");
-  l.setAttribute("x1",r1.left+r1.width/2-p.left);
-  l.setAttribute("y1",r1.top+r1.height/2-p.top);
-  l.setAttribute("x2",r2.left+r2.width/2-p.left);
-  l.setAttribute("y2",r2.top+r2.height/2-p.top);
-  l.setAttribute("stroke",color);
-  l.setAttribute("stroke-width","3");
-  svg.appendChild(l);
-}
-
-// ===== MEGA ANALYSIS =====
-function analyzeMega(jodi,hits){
-  const cut=getCutJodi(jodi);
-  const family=getFamilyJodis(jodi);
-
-  const origMap=collectAfter(jodi);
-  const cutMap=cut?collectAfter(cut):{};
-  const familyHits=checkFamilySamePos(family,jodi);
-
-  // merge maps
-  let merged={};
-  [origMap,cutMap].forEach(m=>{
-    Object.keys(m).forEach(k=>{
-      merged[k]=(merged[k]||0)+m[k];
-    });
-  });
-
-  let arr=Object.entries(merged).sort((a,b)=>b[1]-a[1]);
-
-  // AFTER BOX
-  let html=`<b>After Result (Original + Cut)</b><br>`;
-  arr.forEach(([k,v])=>html+=`• <span class="badge">${k}</span> → ${v}<br>`);
-  after.innerHTML=html||"No data";
-  after.style.display="block";
-
-  // FINAL DECISION
-  let tag="DANGER";
-  if(arr.length){
-    const top=arr[0];
-    if(origMap[top[0]] && cutMap[top[0]]) tag="STRONG";
-    else tag="SAFE";
-
-    finalBox.innerHTML=`
-      <b>🔥 FINAL DECISION</b><br>
-      Jodi: <span class="badge">${top[0]}</span><br>
-      Status: <b>${tag}</b><br>
-      Family Match (same position): ${familyHits.length}
-    `;
-    finalBox.style.display="block";
-  }
-}
-
-// ===== DATA COLLECTORS =====
-function collectAfter(j){
-  let map={};
-  cells.filter(c=>c.val===j).forEach(h=>{
-    let n=grid[h.ri+1]?.[h.ci];
-    if(n && n!=="**") map[n]=(map[n]||0)+1;
-  });
-  return map;
-}
-function checkFamilySamePos(family,orig){
-  let res=[];
-  cells.forEach(c=>{
-    if(family.includes(c.val)){
-      cells.forEach(o=>{
-        if(o.val===orig && o.ci===c.ci && Math.abs(o.ri-c.ri)<=2){
-          res.push({f:c.val,row:c.ri,col:c.ci});
-        }
-      });
+ DIR.forEach(d=>{
+  let nr=r+d.dr,nc=c+d.dc;
+  if(grid[nr] && grid[nr][nc]!=null){
+   if(fam.includes(grid[nr][nc])){
+    // scan all past rows
+    for(let pr=0;pr<r;pr++){
+     if(fam.includes(grid[pr][c])){
+      let tr=pr+d.dr,tc=c+d.dc;
+      if(grid[tr] && grid[tr][tc]!=null){
+       if(fam.includes(grid[tr][tc])){
+        results.add(grid[tr][tc]);
+       }
+      }
+     }
     }
-  });
-  return res;
+   }
+  }
+ });
+
+ // highlight
+ document.querySelectorAll("td").forEach(td=>{
+  let v=parseInt(td.innerText);
+  if(v===base) td.classList.add("main");
+  if(fam.includes(v)) td.classList.add("family");
+  if(results.has(v)) td.classList.add("hit");
+ });
+
+ // bubbles (ALL)
+ results.forEach(v=>{
+  let b=document.createElement("div");
+  b.className="bubble";
+  b.innerText=v;
+  document.getElementById("bubbles").appendChild(b);
+ });
 }
 </script>
-
-</body>
-</html>
