@@ -172,6 +172,73 @@ function openPop(i,base,fam){
 function closePop(){
  document.getElementById("popup").style.display="none";
 }
+ // ===== TREND LINE PATCH (PASTE AT END) =====
+
+// family group
+function familyGroup(j){
+  const map={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
+  let a=parseInt(j[0]), b=parseInt(j[1]);
+  return new Set([
+    j,
+    ""+a+map[b],
+    ""+map[a]+b,
+    ""+map[a]+map[b]
+  ]);
+}
+
+// trend directions
+const TREND_DIRS = [
+ {dr:0,dc:1,name:"→"},
+ {dr:0,dc:-1,name:"←"},
+ {dr:1,dc:0,name:"↓"},
+ {dr:-1,dc:0,name:"↑"},
+ {dr:1,dc:1,name:"↘"},
+ {dr:1,dc:-1,name:"↙"},
+ {dr:-1,dc:1,name:"↗"},
+ {dr:-1,dc:-1,name:"↖"}
+];
+
+// detect trend from LAST jodi
+function detectLastTrends(){
+  let r=GRID.length-1;
+  let c=GRID[0].length-1;
+  let base=GRID[r][c];
+  let fam=familyGroup(base);
+
+  let trends=[];
+  TREND_DIRS.forEach(d=>{
+    let nr=r+d.dr, nc=c+d.dc;
+    if(GRID[nr] && GRID[nr][nc]){
+      if(fam.has(GRID[nr][nc])){
+        trends.push({dir:d,family:fam});
+      }
+    }
+  });
+  return trends;
+}
+
+// search same trend in full record
+function findSameTrends(){
+  let trends=detectLastTrends();
+  let found=[];
+  trends.forEach(t=>{
+    for(let r=0;r<GRID.length;r++){
+      for(let c=0;c<GRID[0].length;c++){
+        if(t.family.has(GRID[r][c])){
+          let nr=r+t.dir.dr, nc=c+t.dir.dc;
+          if(GRID[nr] && GRID[nr][nc]){
+            if(t.family.has(GRID[nr][nc])){
+              found.push({from:[r,c],to:[nr,nc],dir:t.dir.name});
+            }
+          }
+        }
+      }
+    }
+  });
+  return found;
+}
+
+// ===== END PATCH =====
 </script>
 
 </body>
