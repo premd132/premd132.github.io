@@ -1,48 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer – NEXT PRO</title>
+<title>🔥 Jodi Line Analyzer – PRO X2</title>
 
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
+body{font-family:Arial;background:#f2f2f2;padding:10px}
 h2{text-align:center}
 textarea{width:100%;height:140px;font-family:monospace}
-button{padding:8px 14px;font-size:16px;margin:6px 0}
+button{padding:8px 14px;font-size:15px;margin:5px}
 table{border-collapse:collapse;background:#fff}
-th,td{border:1px solid #999;padding:6px;text-align:center;min-width:42px;cursor:pointer}
+th,td{border:1px solid #888;padding:6px;min-width:42px;text-align:center;cursor:pointer}
 th{background:#ddd}
 td.sel{background:#ffe066;font-weight:bold}
 
 #wrap{position:relative;display:inline-block}
 #lines{position:absolute;top:0;left:0;pointer-events:none}
 
-#bubbles{margin-top:10px}
 .bubble{
-  display:inline-flex;
-  justify-content:center;
-  align-items:center;
-  border-radius:50%;
-  color:#fff;
-  font-weight:bold;
-  margin:4px;
-  cursor:pointer;
+ display:inline-flex;align-items:center;justify-content:center;
+ border-radius:50%;color:#fff;font-weight:bold;
+ margin:4px;cursor:pointer;
 }
 
-#afterBox{
-  margin-top:12px;
-  background:#fff;
-  padding:10px;
-  border:2px solid #333;
+#panel{
+ margin-top:10px;background:#fff;padding:10px;border:2px solid #333
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer – NEXT PRO</h2>
-
-<p><b>Format:</b> Mon Tue Wed Thu Fri Sat</p>
+<h2>🔥 Jodi Line Analyzer – PRO X2</h2>
 
 <textarea id="input">
 29 50 18 84 17
@@ -54,10 +43,10 @@ td.sel{background:#ffe066;font-weight:bold}
 22 79 39 53 77
 99 35 14 03 52
 20 41 58 50 11
-</textarea>
+</textarea><br>
 
-<br>
-<button onclick="generate()">Generate Chart</button>
+<button onclick="generate()">Generate</button>
+<button onclick="download()">Download PNG</button>
 
 <div id="wrap">
 <svg id="lines"></svg>
@@ -66,9 +55,9 @@ td.sel{background:#ffe066;font-weight:bold}
 
 <div id="bubbles"></div>
 
-<div id="afterBox" style="display:none">
-<h3>📊 After Result Analysis</h3>
-<div id="afterData"></div>
+<div id="panel" style="display:none">
+<h3>📊 After Result + Prediction</h3>
+<div id="result"></div>
 </div>
 
 <script>
@@ -77,7 +66,7 @@ let data=[],cells=[],current=null;
 function generate(){
  data=[];cells=[];current=null;
  table.innerHTML="";lines.innerHTML="";
- bubbles.innerHTML="";afterBox.style.display="none";
+ bubbles.innerHTML="";panel.style.display="none";
 
  input.value.trim().split("\n").forEach(r=>{
   data.push(r.trim().split(/\s+/));
@@ -98,7 +87,7 @@ function buildTable(){
   r.forEach((v,ci)=>{
    let td=document.createElement("td");
    td.innerText=v;
-   td.onclick=()=>selectJodi(v);
+   td.onclick=()=>select(v);
    cells.push({td,ri,ci,val:v});
    tr.appendChild(td);
   });
@@ -111,85 +100,87 @@ function buildBubbles(){
  data.flat().forEach(v=>{
   if(v!=="**") freq[v]=(freq[v]||0)+1;
  });
-
- Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).forEach(k=>{
-  let s=30+freq[k]*5;
+ Object.keys(freq).forEach(k=>{
   let b=document.createElement("div");
+  let s=30+freq[k]*4;
   b.className="bubble";
   b.style.width=b.style.height=s+"px";
   b.style.background=`hsl(${k*9},70%,50%)`;
   b.innerText=k;
-  b.onclick=()=>selectJodi(k);
+  b.onclick=()=>select(k);
   bubbles.appendChild(b);
  });
 }
 
-function selectJodi(v){
+function select(v){
  current=v;
- drawLines();
- afterAnalysis();
+ draw();
+ analysis();
 }
 
-function drawLines(){
- document.querySelectorAll("td").forEach(td=>td.classList.remove("sel"));
+function draw(){
+ document.querySelectorAll("td").forEach(t=>t.classList.remove("sel"));
  lines.innerHTML="";
- if(!current) return;
-
  let hits=cells.filter(c=>c.val===current);
  hits.forEach(h=>h.td.classList.add("sel"));
 
- // LINE LIMIT = 3
+ // 1st,2nd,3rd touch lines
+ let colors=["red","blue","green"];
  for(let i=0;i<Math.min(3,hits.length-1);i++){
-  connect(hits[i].td,hits[i+1].td);
+  connect(hits[i].td,hits[i+1].td,colors[i]);
  }
 }
 
-function connect(a,b){
+function connect(a,b,color){
  let r1=a.getBoundingClientRect(),r2=b.getBoundingClientRect();
  let p=wrap.getBoundingClientRect();
-
  let x1=r1.left+r1.width/2-p.left;
  let y1=r1.top+r1.height/2-p.top;
  let x2=r2.left+r2.width/2-p.left;
  let y2=r2.top+r2.height/2-p.top;
-
  lines.setAttribute("width",p.width);
  lines.setAttribute("height",p.height);
-
  let path=document.createElementNS("http://www.w3.org/2000/svg","path");
  path.setAttribute("d",`M ${x1} ${y1} L ${x2} ${y2}`);
- path.setAttribute("stroke","red");
+ path.setAttribute("stroke",color);
  path.setAttribute("stroke-width","3");
  path.setAttribute("fill","none");
  lines.appendChild(path);
 }
 
-function afterAnalysis(){
- let result={};
+function analysis(){
+ let map={};
  cells.forEach(c=>{
   if(c.val===current){
-   let next=data[c.ri+1]?.[c.ci];
-   if(next && next!=="**"){
-    result[next]=(result[next]||0)+1;
-   }
+   let n=data[c.ri+1]?.[c.ci];
+   if(n && n!=="**") map[n]=(map[n]||0)+1;
   }
  });
 
- let html="<b>Selected Jodi:</b> "+current+"<br><br>";
- if(Object.keys(result).length===0){
-  html+="No after result found.";
- }else{
-  Object.entries(result)
-   .sort((a,b)=>b[1]-a[1])
-   .forEach(([k,v])=>{
-    html+=`➡ ${k} → ${v} times<br>`;
-   });
- }
+ let total=Object.values(map).reduce((a,b)=>a+b,0);
+ let html=`<b>Selected:</b> ${current}<br><br>`;
 
- afterData.innerHTML=html;
- afterBox.style.display="block";
+ Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3)
+ .forEach(([k,v],i)=>{
+  let pct=((v/total)*100).toFixed(1);
+  html+=`${i+1}. ${k} → ${v} times (${pct}%)<br>`;
+ });
+
+ result.innerHTML=html;
+ panel.style.display="block";
+}
+
+function download(){
+ html2canvas(wrap).then(c=>{
+  let a=document.createElement("a");
+  a.href=c.toDataURL();
+  a.download="jodi-chart.png";
+  a.click();
+ });
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
 </html>
