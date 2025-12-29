@@ -1,98 +1,228 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jodi Line Analyzer PRO</title>
+<title>🔥 Jodi Line Analyzer (PRO)</title>
+
 <style>
-body{font-family:Arial;background:#f5f5f5;padding:10px}
-table{border-collapse:collapse;margin:auto}
-td{
-  width:55px;height:40px;
-  border:1px solid #ccc;
-  text-align:center;
-  font-weight:bold;
+body{
+  font-family:Arial, sans-serif;
+  background:#f5f5f5;
+  margin:0;
+  padding:10px;
+}
+h2{text-align:center}
+
+textarea{
+  width:100%;
+  height:120px;
+  font-size:14px;
+}
+
+button{
+  padding:10px 15px;
+  margin:5px 0;
+  font-size:16px;
   cursor:pointer;
 }
-.box{border:3px solid black;color:red}
-svg{position:absolute;top:0;left:0;pointer-events:none}
+
+#tableWrap{
+  position:relative;
+  margin-top:15px;
+  overflow:auto;
+}
+
+table{
+  border-collapse:collapse;
+  background:#fff;
+}
+td{
+  border:1px solid #ccc;
+  padding:6px 8px;
+  cursor:pointer;
+  text-align:center;
+  min-width:45px;
+  position:relative;
+}
+td:hover{background:#ffe0b2}
+
+td.selected{
+  background:#ff5722;
+  color:#fff;
+  font-weight:bold;
+}
+
+#lineSVG{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+.bubble{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:bold;
+}
+
+#afterBubbles{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
 </style>
 </head>
-  <script src="js/patternEngine.js"></script>
+
 <body>
 
-<h3 align="center">🔥 Jodi Line Analyzer (PRO)</h3>
+<h2>🔥 Jodi Line Analyzer (PRO)</h2>
 
-<textarea id="data" rows="9" style="width:100%">
+<textarea id="recordInput" placeholder="Paste records like:
 27/10/25 59 44 59 42 90
-03/11/25 55 02 93 00 05
-10/11/25 91 10 84 20 84
-17/11/25 52 96 53 11 70
-24/11/25 91 07 67 79 09
-01/12/25 78 52 12 72 64
-08/12/25 16 43 78 91 27
-15/12/25 64 30 97 55 97
-22/12/25 33 38 53 32 84
-</textarea>
-<svg id="lineSVG"
-     style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
-</svg>
-<div style="position:relative;margin-top:20px">
-<svg id="lines"></svg>
-<table id="tbl"></table>
+03/11/25 55 02 93 00 05"></textarea>
+
+<button onclick="generate()">Generate Chart</button>
+
+<div id="tableWrap">
+  <svg id="lineSVG"></svg>
+  <table id="dataTable"></table>
 </div>
 
+<h3>After Result (Same Line)</h3>
+<div id="afterBubbles"></div>
+
 <script>
-let cells=[];
+let parsed = [];
+let selectedJodi = null;
 
-function build(){
-  const tbl=document.getElementById("tbl");
-  const svg=document.getElementById("lines");
-  tbl.innerHTML=""; svg.innerHTML="";
-  cells=[];
-  const rows=document.getElementById("data").value.trim().split("\n");
+function generate(){
+  parsed=[];
+  document.getElementById("dataTable").innerHTML="";
+  document.getElementById("lineSVG").innerHTML="";
+  document.getElementById("afterBubbles").innerHTML="";
 
-  rows.forEach(r=>{
+  const lines = recordInput.value.trim().split(/\n+/);
+
+  lines.forEach(line=>{
+    const p=line.trim().split(/\s+/);
+    if(p.length>=2){
+      parsed.push({
+        date:p[0],
+        values:p.slice(1)
+      });
+    }
+  });
+
+  buildTable();
+}
+
+function buildTable(){
+  const table=document.getElementById("dataTable");
+
+  parsed.forEach(r=>{
     const tr=document.createElement("tr");
-    r.split(" ").slice(1).forEach(v=>{
+
+    r.values.forEach(v=>{
       const td=document.createElement("td");
       td.innerText=v;
-      td.onclick=()=>select(v);
+      td.className="cell";
+      td.dataset.date=r.date;
+      td.dataset.val=v;
+
+      td.onclick=()=>selectJodi(v,td);
       tr.appendChild(td);
-      cells.push({td,val:v});
     });
-    tbl.appendChild(tr);
+
+    table.appendChild(tr);
   });
 }
 
-function select(val){
-  document.querySelectorAll("td").forEach(td=>td.className="");
-  const hits=cells.filter(c=>c.val==val).slice(0,4);
-  hits.forEach(h=>h.td.classList.add("box"));
-  draw(hits);
+function selectJodi(val,td){
+  selectedJodi=val;
+  document.querySelectorAll("td").forEach(x=>x.classList.remove("selected"));
+  td.classList.add("selected");
+
+  drawAnalysis();
 }
 
-function draw(hits){
-  const svg=document.getElementById("lines");
+function drawAnalysis(){
+  const svg=document.getElementById("lineSVG");
   svg.innerHTML="";
-  const rect=document.getElementById("tbl").getBoundingClientRect();
-  svg.setAttribute("width",rect.width);
-  svg.setAttribute("height",rect.height);
+  const bubbles=document.getElementById("afterBubbles");
+  bubbles.innerHTML="";
+
+  const hits=[];
+  parsed.forEach((r,ri)=>{
+    r.values.forEach((v,ci)=>{
+      if(v===selectedJodi){
+        hits.push({ri,ci});
+      }
+    });
+  });
+
   const colors=["red","blue","green"];
-  for(let i=0;i<hits.length-1;i++){
-    const a=hits[i].td.getBoundingClientRect();
-    const b=hits[i+1].td.getBoundingClientRect();
-    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-    line.setAttribute("x1",a.left-rect.left+27);
-    line.setAttribute("y1",a.top-rect.top+20);
-    line.setAttribute("x2",b.left-rect.left+27);
-    line.setAttribute("y2",b.top-rect.top+20);
-    line.setAttribute("stroke",colors[i]);
-    line.setAttribute("stroke-width","3");
-    svg.appendChild(line);
+  const maxLines=3;
+  let used=0;
+
+  for(let i=0;i<hits.length-1 && used<maxLines;i++){
+    const a=hits[i];
+    const b=hits[i+1];
+
+    const from=getCell(a.ri,a.ci);
+    const to=getCell(b.ri,b.ci);
+    if(from && to){
+      drawLine(from,to,colors[used]);
+
+      const after = parsed[b.ri]?.values[b.ci+1];
+      createBubble(after,colors[used]);
+      used++;
+    }
   }
 }
 
-build(); // AUTO LOAD
+function getCell(r,c){
+  return document.querySelector(
+    `tr:nth-child(${r+1}) td:nth-child(${c+1})`
+  );
+}
+
+function drawLine(from,to,color){
+  const svg=document.getElementById("lineSVG");
+  const r1=from.getBoundingClientRect();
+  const r2=to.getBoundingClientRect();
+  const s=svg.getBoundingClientRect();
+
+  const x1=r1.left+r1.width/2-s.left;
+  const y1=r1.top+r1.height/2-s.top;
+  const x2=r2.left+r2.width/2-s.left;
+  const y2=r2.top+r2.height/2-s.top;
+
+  const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+  line.setAttribute("x1",x1);
+  line.setAttribute("y1",y1);
+  line.setAttribute("x2",x2);
+  line.setAttribute("y2",y2);
+  line.setAttribute("stroke",color);
+  line.setAttribute("stroke-width","3");
+
+  svg.appendChild(line);
+}
+
+function createBubble(val,color){
+  const b=document.createElement("div");
+  b.className="bubble";
+  b.style.background=color;
+  b.innerText=val || "--";
+  afterBubbles.appendChild(b);
+}
 </script>
 
 </body>
