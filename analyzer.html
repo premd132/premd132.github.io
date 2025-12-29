@@ -2,12 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer PRO – LEVEL 3</title>
+<title>🔥 Jodi Line Analyzer PRO – LEVEL 4</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
-body{font-family:Arial;padding:10px}
+body{font-family:Arial;padding:10px;background:#f5f5f5}
 textarea{width:100%;height:120px}
-table{border-collapse:collapse;margin-top:12px}
+button{padding:8px 12px;margin:6px 0}
+table{border-collapse:collapse;margin-top:12px;background:#fff}
 th,td{
   border:1px solid #444;
   padding:6px;
@@ -18,30 +23,33 @@ th,td{
 th{background:#eee}
 td:hover{background:#fff3cd}
 
-.same{border:3px solid red!important}
-.family{border:3px solid green!important}
-.side{border:3px solid blue!important}
-.day{border:3px dashed purple!important}
+.same{background:#ffd6d6}
+.family{background:#d6ffe0}
+.side{background:#d6e9ff}
+.day{background:#eed6ff}
 
-.box{margin-top:12px;padding:8px;border:1px solid #aaa}
+.box{margin-top:12px;padding:8px;border:1px solid #aaa;background:#fff}
 .bubble{
   display:inline-block;
   margin:4px;
   padding:10px;
   border-radius:50%;
   color:#fff;
-  font-weight:bold;
+  font-weight:bold
 }
 .red{background:#e74c3c}
 .green{background:#27ae60}
 .blue{background:#3498db}
 .purple{background:#8e44ad}
+
+#wrapper{position:relative}
+#svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer – PRO (LEVEL-3)</h2>
+<h2>🔥 Jodi Line Analyzer – PRO (LEVEL-4)</h2>
 
 <textarea id="input">
 Mon Tue Wed Thu Fri Sat
@@ -52,12 +60,16 @@ Mon Tue Wed Thu Fri Sat
 70 09 64 27 97 84
 </textarea>
 
-<br><br>
 <button onclick="generate()">Generate Chart</button>
+<button onclick="downloadImage()">📸 Download Image</button>
 
-<div id="chart"></div>
+<div id="wrapper">
+  <svg id="svg"></svg>
+  <div id="chart"></div>
+</div>
 
 <div class="box" id="result"><b>Analysis:</b></div>
+<div class="box" id="prediction"><b>Prediction:</b></div>
 
 <script>
 let matrix=[];
@@ -82,79 +94,89 @@ function generate(){
   for(let r=1;r<matrix.length;r++){
     html+="<tr>";
     for(let c=0;c<matrix[r].length;c++){
-      html+=`<td onclick="analyze(${r},${c})">${matrix[r][c]}</td>`;
+      html+=`<td onclick="analyze(${r},${c},this)">${matrix[r][c]}</td>`;
     }
     html+="</tr>";
   }
   html+="</table>";
+
   document.getElementById("chart").innerHTML=html;
+  document.getElementById("svg").innerHTML="";
+  document.getElementById("result").innerHTML="<b>Analysis:</b>";
+  document.getElementById("prediction").innerHTML="<b>Prediction:</b>";
 }
 
 function getFamily(val){
   return val.split("").map(d=>familyMap[d]||d).join("");
 }
 
-function analyze(row,col){
+function analyze(row,col,cell){
   document.querySelectorAll("td").forEach(td=>{
-    td.classList.remove("same","family","side","day");
+    td.className="";
   });
+  document.getElementById("svg").innerHTML="";
 
   let val=matrix[row][col];
   let fam=getFamily(val);
 
-  let same=[],family=[],side=[],dayMatch=[];
+  let same=[],family=[],side=[],day=[],predictCount={};
 
   for(let r=1;r<matrix.length-1;r++){
-    let nextRow=r+1;
-
-    // SAME
-    if(matrix[r][col]===val && same.length<3){
-      same.push(matrix[nextRow][col]);
+    if(matrix[r][col]===val){
+      same.push(matrix[r+1][col]);
       mark(r,col,"same");
+      drawArrow(r,col,r+1,col);
+      predictCount[matrix[r+1][col]]=(predictCount[matrix[r+1][col]]||0)+1;
     }
-
-    // FAMILY
-    if(matrix[r][col]===fam && family.length<3){
-      family.push(matrix[nextRow][col]);
+    if(matrix[r][col]===fam){
+      family.push(matrix[r+1][col]);
       mark(r,col,"family");
+      drawArrow(r,col,r+1,col);
+      predictCount[matrix[r+1][col]]=(predictCount[matrix[r+1][col]]||0)+1;
     }
-
-    // SIDE
-    if(col>0 && matrix[r][col-1]===val && side.length<3){
-      side.push(matrix[nextRow][col-1]);
+    if(col>0 && matrix[r][col-1]===val){
+      side.push(matrix[r+1][col-1]);
       mark(r,col-1,"side");
+      drawArrow(r,col-1,r+1,col-1);
+      predictCount[matrix[r+1][col-1]]=(predictCount[matrix[r+1][col-1]]||0)+1;
     }
-    if(col<matrix[0].length-1 && matrix[r][col+1]===val && side.length<3){
-      side.push(matrix[nextRow][col+1]);
+    if(col<matrix[0].length-1 && matrix[r][col+1]===val){
+      side.push(matrix[r+1][col+1]);
       mark(r,col+1,"side");
+      drawArrow(r,col+1,r+1,col+1);
+      predictCount[matrix[r+1][col+1]]=(predictCount[matrix[r+1][col+1]]||0)+1;
     }
   }
 
-  // 🆕 SAME DAY / SAME ROW CHECK
   for(let c=0;c<matrix[row].length;c++){
-    if(c===col) continue;
-    let cellVal=matrix[row][c];
-    let cellFam=getFamily(cellVal);
-
-    if(cellVal===val || cellVal===fam || cellFam===val){
-      if(dayMatch.length<3){
-        dayMatch.push(cellVal);
+    if(c!==col){
+      let v=matrix[row][c];
+      let f=getFamily(v);
+      if(v===val || v===fam || f===val){
+        day.push(v);
         mark(row,c,"day");
       }
     }
   }
 
   document.getElementById("result").innerHTML=`
-  <b>Clicked Jodi:</b> ${val} | <b>Family:</b> ${fam}<br><br>
-
-  <b>🔴 SAME LINE</b><br>${bubbles(same,"red")}
-
-  <b>🟢 FAMILY LINE</b><br>${bubbles(family,"green")}
-
-  <b>🔵 SIDE LINE</b><br>${bubbles(side,"blue")}
-
-  <b>🟣 SAME DAY / SAME ROW MATCH</b><br>${bubbles(dayMatch,"purple")}
+  <b>Clicked:</b> ${val} | <b>Family:</b> ${fam}<br><br>
+  <b>🔴 SAME</b><br>${bubbles(same,"red")}
+  <b>🟢 FAMILY</b><br>${bubbles(family,"green")}
+  <b>🔵 SIDE</b><br>${bubbles(side,"blue")}
+  <b>🟣 SAME DAY</b><br>${bubbles(day,"purple")}
   `;
+
+  // prediction
+  let preds=Object.entries(predictCount)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3);
+
+  document.getElementById("prediction").innerHTML=
+    "<b>Prediction (structure based):</b><br>"+
+    (preds.length
+      ? preds.map(p=>`• ${p[0]} (${p[1]}x)`).join("<br>")
+      : "No strong structure");
 }
 
 function mark(r,c,cls){
@@ -162,8 +184,36 @@ function mark(r,c,cls){
 }
 
 function bubbles(arr,color){
-  if(arr.length===0) return "—";
-  return arr.map(v=>`<span class="bubble ${color}">${v}</span>`).join("");
+  if(arr.length===0) return "—<br>";
+  return arr.slice(0,3).map(v=>`<span class="bubble ${color}">${v}</span>`).join("");
+}
+
+function drawArrow(r1,c1,r2,c2){
+  const cell1=document.querySelectorAll("table tr")[r1].children[c1];
+  const cell2=document.querySelectorAll("table tr")[r2].children[c2];
+  const svg=document.getElementById("svg");
+  const wrap=document.getElementById("wrapper").getBoundingClientRect();
+  const a=cell1.getBoundingClientRect();
+  const b=cell2.getBoundingClientRect();
+
+  let line=document.createElementNS("http://www.w3.org/2000/svg","line");
+  line.setAttribute("x1",a.left+a.width/2-wrap.left);
+  line.setAttribute("y1",a.top+a.height/2-wrap.top);
+  line.setAttribute("x2",b.left+b.width/2-wrap.left);
+  line.setAttribute("y2",b.top+b.height/2-wrap.top);
+  line.setAttribute("stroke","red");
+  line.setAttribute("stroke-width","2");
+  line.setAttribute("marker-end","url(#arrow)");
+  svg.appendChild(line);
+}
+
+function downloadImage(){
+  html2canvas(document.getElementById("wrapper")).then(canvas=>{
+    let a=document.createElement("a");
+    a.download="jodi-chart.png";
+    a.href=canvas.toDataURL();
+    a.click();
+  });
 }
 </script>
 
