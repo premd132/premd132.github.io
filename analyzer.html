@@ -1,240 +1,168 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DPBOSS Perfect Line Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👑 Jodi Analyzer – PRO MAX</title>
 <style>
-*{box-sizing:border-box}
-body{
-  margin:0;padding:12px;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f4f6fb;color:#000;
-}
-h2,h3{text-align:center;margin:8px 0}
-.note{text-align:center;font-size:12px;color:#b91c1c}
-
-/* ===== TABLE ===== */
-#wrap{
-  background:#fff;
-  padding:10px;
-  border-radius:8px;
-  overflow-x:auto;
-}
-table{
-  border-collapse:collapse;
-  min-width:680px;
-  margin:auto;
-}
-td{
-  border:1.5px solid #111;
-  width:44px;height:34px;
-  text-align:center;
-  font-weight:bold;
-  cursor:pointer;
-}
-td.sel{
-  background:#2563eb;
-  color:#fff;
-}
-
-/* ===== OCCURRENCE BOXES ===== */
-#occ{
-  max-width:520px;
-  margin:14px auto;
-}
-.occBox{
-  background:#eef2ff;
-  border:2px solid #4338ca;
-  border-radius:8px;
-  padding:8px;
-  margin:8px 0;
-}
-.occTitle{
-  font-weight:bold;
-  margin-bottom:6px;
-}
-.circle{
-  display:inline-block;
-  width:26px;height:26px;
-  border-radius:50%;
-  background:#16a34a;
-  color:#fff;
-  text-align:center;
-  line-height:26px;
-  font-weight:bold;
-  margin-right:6px;
-}
-
-/* ===== BUBBLES ===== */
-#bubbleBox{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:center;
-  margin:14px 0;
-}
-.bubble{
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#fff;
-  font-weight:bold;
-  background:linear-gradient(135deg,#2563eb,#1e40af);
-}
-
-/* ===== AFTER LIST ===== */
-#after{
-  max-width:420px;
-  margin:10px auto;
-}
-.afterBox{
-  background:#e5e7eb;
-  padding:8px;
-  margin:6px 0;
-  border-radius:6px;
-  display:flex;
-  justify-content:space-between;
-}
-.empty{text-align:center;color:#555}
+body{font-family:Arial;background:#f4f6fb;margin:0;padding:10px}
+h2{text-align:center}
+textarea{width:100%;height:140px;font-size:14px}
+button{padding:10px 14px;margin:5px;border:0;border-radius:6px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:15px}
+.cell{background:#fff;padding:8px;text-align:center;border-radius:6px;border:1px solid #ccc;cursor:pointer}
+.cell.active{background:#ffe0e0;border:2px solid red}
+svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.bubbles{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:15px 0}
+.bubble{border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+th{background:#222;color:#fff}
+.prediction{background:#dff0d8;padding:10px;margin-top:10px;border-radius:6px}
 </style>
 </head>
 
 <body>
 
-<h2 id="title">ANALYZER</h2>
-<div class="note">Past record based visual reference only</div>
+<h2>👑 Jodi Analyzer – PRO MAX</h2>
 
-<h3>Record Table</h3>
-<div id="wrap"></div>
+<textarea id="record">
+27/10/25 59 44 59 42 90
+03/11/25 55 02 93 00 05
+10/11/25 91 10 84 20 84
+17/11/25 52 96 53 11 70
+24/11/25 91 07 67 79 09
+01/12/25 78 52 12 72 64
+08/12/25 16 43 78 91 27
+15/12/25 64 30 97 55 97
+22/12/25 33 38 53 32 84
+</textarea>
 
-<h3>Same Line – Old Occurrences</h3>
-<div id="occ"></div>
+<button onclick="load()">Load Record</button>
 
-<h3>Line ke baad jo aaya (Bubbles)</h3>
-<div id="bubbleBox"></div>
+<div style="position:relative">
+<svg id="lines"></svg>
+<div id="grid" class="grid"></div>
+</div>
 
-<h3>Detail List</h3>
-<div id="after"></div>
+<h3 style="text-align:center">AI Generated Bubbles</h3>
+<div id="bubbles" class="bubbles"></div>
+
+<h3 style="text-align:center">Check Line</h3>
+<table id="table">
+<tr>
+<th>Base Jodi</th>
+<th>Touch</th>
+<th>After Result</th>
+<th>Times</th>
+</tr>
+</table>
+
+<div id="prediction" class="prediction"></div>
 
 <script>
-// ===== LOAD GAME & RECORD =====
-const game = localStorage.getItem("currentGame") || "kalyan";
-document.getElementById("title").innerText =
-  game.replace("_"," ").toUpperCase();
+let rows=[],cells=[],current=null;
 
-const text = localStorage.getItem("record_"+game) || "";
-
-// ===== PARSE RECORD =====
-let rows=[];
-text.split("\n").forEach(l=>{
-  const p=l.trim().split(/\s+/);
-  if(p.length>1) rows.push(p.slice(1).map(Number));
-});
-
-// ===== BUILD TABLE =====
-const wrap=document.getElementById("wrap");
-if(!rows.length){
-  wrap.innerHTML="<div class='empty'>No record found</div>";
-}
-
-const table=document.createElement("table");
-rows.forEach((r,ri)=>{
-  const tr=document.createElement("tr");
-  r.forEach((n,ci)=>{
-    const td=document.createElement("td");
-    td.innerText=n;
-    td.onclick=()=>onLineClick(ri,ci,td);
-    tr.appendChild(td);
+function load(){
+  const raw=document.getElementById('record').value.trim().split('\n');
+  rows=raw.map(r=>r.trim().split(/\s+/).slice(1));
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  cells=[];
+  rows.forEach((r,ri)=>{
+    r.forEach((v,ci)=>{
+      const d=document.createElement('div');
+      d.className='cell';
+      d.textContent=v;
+      d.onclick=()=>select(v,ri,ci,d);
+      grid.appendChild(d);
+      cells.push({el:d,val:v,row:ri,col:ci});
+    });
   });
-  table.appendChild(tr);
-});
-wrap.appendChild(table);
-
-// ===== CLICK HANDLER =====
-function onLineClick(r,c,td){
-  document.querySelectorAll("td").forEach(x=>x.classList.remove("sel"));
-  td.classList.add("sel");
-
-  if(c+1>=rows[r].length) return;
-  const line=[rows[r][c], rows[r][c+1]];
-  analyze(line);
 }
 
-// ===== CORE ANALYSIS =====
-function analyze(line){
-  const occurrences=[];
-  const afterCount={};
+function select(val,ri,ci,el){
+  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('lines').innerHTML='';
+  document.getElementById('bubbles').innerHTML='';
+  document.getElementById('table').innerHTML=
+    '<tr><th>Base Jodi</th><th>Touch</th><th>After Result</th><th>Times</th></tr>';
+  document.getElementById('prediction').innerHTML='';
+  draw(val);
+}
 
-  for(let r=0;r<rows.length-1;r++){
-    for(let c=0;c<rows[r].length-1;c++){
-      if(rows[r][c]===line[0] && rows[r][c+1]===line[1]){
-        occurrences.push({row:r,col:c});
-        const next=rows[r+1][c];
-        afterCount[next]=(afterCount[next]||0)+1;
-      }
+function draw(val){
+  const hits=cells.filter(c=>c.val===val).slice(-3); // LINE LIMIT 3
+  const after=[];
+  hits.forEach((h,i)=>{
+    const nextRow=h.row+1;
+    if(rows[nextRow]){
+      const next=rows[nextRow][h.col];
+      after.push({touch:i+1,val:next});
+      line(h.el,nextCell(h.row+1,h.col));
     }
-  }
-
-  drawOccurrences(occurrences,line);
-  drawBubbles(afterCount);
-  drawAfterList(afterCount);
+  });
+  bubbles(after);
+  table(val,after);
 }
 
-// ===== DRAW OCCURRENCE BOXES =====
-function drawOccurrences(list,line){
-  const occ=document.getElementById("occ");
-  occ.innerHTML="";
+function nextCell(r,c){
+  return cells.find(x=>x.row===r && x.col===c)?.el;
+}
 
-  if(!list.length){
-    occ.innerHTML="<div class='empty'>No old occurrence</div>";
-    return;
-  }
+function line(a,b){
+  if(!a||!b)return;
+  const r1=a.getBoundingClientRect();
+  const r2=b.getBoundingClientRect();
+  const svg=document.getElementById('lines');
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  const d=`M ${r1.x+r1.width/2} ${r1.y+r1.height/2}
+           Q ${(r1.x+r2.x)/2} ${(r1.y+r2.y)/2-40}
+           ${r2.x+r2.width/2} ${r2.y+r2.height/2}`;
+  p.setAttribute("d",d);
+  p.setAttribute("stroke","red");
+  p.setAttribute("fill","none");
+  p.setAttribute("stroke-width","2");
+  svg.appendChild(p);
+}
 
-  list.forEach((o,i)=>{
-    const d=document.createElement("div");
-    d.className="occBox";
-    d.innerHTML=
-      `<div class="occTitle">
-        <span class="circle">${i+1}</span>
-        Line ${line[0]}-${line[1]} (Row ${o.row+1})
-      </div>`;
-    occ.appendChild(d);
+function bubbles(after){
+  const freq={};
+  after.forEach(a=>freq[a.val]=(freq[a.val]||0)+1);
+  const box=document.getElementById('bubbles');
+  Object.keys(freq).forEach(v=>{
+    const b=document.createElement('div');
+    const size=40+freq[v]*15;
+    b.className='bubble';
+    b.style.width=b.style.height=size+'px';
+    b.style.background='hsl('+v*4+',70%,50%)';
+    b.innerText=v;
+    b.title=`Value ${v} – ${freq[v]} times`;
+    box.appendChild(b);
   });
 }
 
-// ===== DRAW BUBBLES (ONLY AFTER CLICK) =====
-function drawBubbles(obj){
-  const bubbleBox=document.getElementById("bubbleBox");
-  bubbleBox.innerHTML="";
-
-  Object.keys(obj).forEach(k=>{
-    const size=36 + obj[k]*8;
-    const b=document.createElement("div");
-    b.className="bubble";
-    b.style.width=b.style.height=size+"px";
-    b.innerText=k;
-    bubbleBox.appendChild(b);
+function table(base,after){
+  const freq={};
+  after.forEach(a=>freq[a.val]=(freq[a.val]||0)+1);
+  const t=document.getElementById('table');
+  Object.keys(freq).forEach(v=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${base}</td><td>After Result</td><td>${v}</td><td>${freq[v]}</td>`;
+    t.appendChild(tr);
   });
+  predict(freq);
 }
 
-// ===== DRAW AFTER LIST =====
-function drawAfterList(obj){
-  const after=document.getElementById("after");
-  after.innerHTML="";
-
-  if(Object.keys(obj).length===0){
-    after.innerHTML="<div class='empty'>No past result</div>";
-    return;
-  }
-
-  Object.keys(obj).forEach(k=>{
-    const d=document.createElement("div");
-    d.className="afterBox";
-    d.innerHTML=`<span>${k}</span><span>${obj[k]} times</span>`;
-    after.appendChild(d);
+function predict(freq){
+  let max=0,best='';
+  Object.keys(freq).forEach(v=>{
+    if(freq[v]>max){max=freq[v];best=v;}
   });
+  if(best){
+    document.getElementById('prediction').innerHTML=
+      `🔥 <b>Strong Prediction:</b> ${best} <br> Appeared <b>${max}</b> times after same line`;
+  }
 }
 </script>
 
