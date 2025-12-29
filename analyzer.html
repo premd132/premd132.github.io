@@ -2,118 +2,168 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer</title>
+<title>🔥 Jodi Line Analyzer PRO – LEVEL 3</title>
 
 <style>
-body{
-  font-family: Arial;
-  padding:10px;
-}
-textarea{
-  width:100%;
-  height:120px;
-}
-table{
-  border-collapse:collapse;
-  margin-top:12px;
-}
+body{font-family:Arial;padding:10px}
+textarea{width:100%;height:120px}
+table{border-collapse:collapse;margin-top:12px}
 th,td{
   border:1px solid #444;
   padding:6px;
-  text-align:center;
   min-width:45px;
+  text-align:center;
   cursor:pointer;
 }
-th{
-  background:#f0f0f0;
+th{background:#eee}
+td:hover{background:#fff3cd}
+
+.same{border:3px solid red!important}
+.family{border:3px solid green!important}
+.side{border:3px solid blue!important}
+.day{border:3px dashed purple!important}
+
+.box{margin-top:12px;padding:8px;border:1px solid #aaa}
+.bubble{
+  display:inline-block;
+  margin:4px;
+  padding:10px;
+  border-radius:50%;
+  color:#fff;
   font-weight:bold;
 }
-td:hover{
-  background:#ffe;
-}
-.active{
-  background:#ffb !important;
-}
-#matches{
-  margin-top:15px;
-  font-weight:bold;
-}
+.red{background:#e74c3c}
+.green{background:#27ae60}
+.blue{background:#3498db}
+.purple{background:#8e44ad}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer</h2>
+<h2>🔥 Jodi Line Analyzer – PRO (LEVEL-3)</h2>
 
 <textarea id="input">
 Mon Tue Wed Thu Fri Sat
-52  91  78  16  64  33
-96  97  52  43  30  38
-53  67  12  78  97  53
-11  79  72  91  55  32
-70  09  64  27  97  84
+52 91 78 16 64 33
+96 97 52 43 30 38
+53 67 12 78 97 53
+11 79 72 91 55 32
+70 09 64 27 97 84
 </textarea>
 
 <br><br>
 <button onclick="generate()">Generate Chart</button>
 
 <div id="chart"></div>
-<div id="matches">Matches:</div>
+
+<div class="box" id="result"><b>Analysis:</b></div>
 
 <script>
 let matrix=[];
+const familyMap={
+ "1":"6","6":"1",
+ "2":"7","7":"2",
+ "3":"8","8":"3",
+ "4":"9","9":"4",
+ "5":"0","0":"5"
+};
 
 function generate(){
-  const raw=document.getElementById("input").value.trim().split("\n");
-  const chart=document.getElementById("chart");
-  chart.innerHTML="";
-  document.getElementById("matches").innerText="Matches:";
+  matrix=document.getElementById("input").value
+    .trim().split("\n")
+    .map(r=>r.trim().split(/\s+/));
 
-  matrix=raw.map(r=>r.trim().split(/\s+/));
+  let html="<table>";
+  html+="<tr>";
+  matrix[0].forEach(d=>html+="<th>"+d+"</th>");
+  html+="</tr>";
 
-  let table=document.createElement("table");
-
-  // HEADER (DAYS ON TOP)
-  let header=document.createElement("tr");
-  matrix[0].forEach(d=>{
-    let th=document.createElement("th");
-    th.innerText=d;
-    header.appendChild(th);
-  });
-  table.appendChild(header);
-
-  // DATA ROWS
   for(let r=1;r<matrix.length;r++){
-    let tr=document.createElement("tr");
+    html+="<tr>";
     for(let c=0;c<matrix[r].length;c++){
-      let td=document.createElement("td");
-      td.innerText=matrix[r][c];
-      td.onclick=()=>analyze(r,c,matrix[r][c]);
-      tr.appendChild(td);
+      html+=`<td onclick="analyze(${r},${c})">${matrix[r][c]}</td>`;
     }
-    table.appendChild(tr);
+    html+="</tr>";
   }
-
-  chart.appendChild(table);
+  html+="</table>";
+  document.getElementById("chart").innerHTML=html;
 }
 
-function analyze(row,col,val){
-  document.querySelectorAll("td").forEach(td=>td.classList.remove("active"));
+function getFamily(val){
+  return val.split("").map(d=>familyMap[d]||d).join("");
+}
 
-  let after=[];
+function analyze(row,col){
+  document.querySelectorAll("td").forEach(td=>{
+    td.classList.remove("same","family","side","day");
+  });
+
+  let val=matrix[row][col];
+  let fam=getFamily(val);
+
+  let same=[],family=[],side=[],dayMatch=[];
 
   for(let r=1;r<matrix.length-1;r++){
-    if(matrix[r][col]===val){
-      // highlight
-      document.querySelectorAll("table tr")[r].children[col].classList.add("active");
+    let nextRow=r+1;
 
-      // after result
-      after.push(matrix[r+1][col]);
+    // SAME
+    if(matrix[r][col]===val && same.length<3){
+      same.push(matrix[nextRow][col]);
+      mark(r,col,"same");
+    }
+
+    // FAMILY
+    if(matrix[r][col]===fam && family.length<3){
+      family.push(matrix[nextRow][col]);
+      mark(r,col,"family");
+    }
+
+    // SIDE
+    if(col>0 && matrix[r][col-1]===val && side.length<3){
+      side.push(matrix[nextRow][col-1]);
+      mark(r,col-1,"side");
+    }
+    if(col<matrix[0].length-1 && matrix[r][col+1]===val && side.length<3){
+      side.push(matrix[nextRow][col+1]);
+      mark(r,col+1,"side");
     }
   }
 
-  document.getElementById("matches").innerText=
-    "Matches for "+val+" → "+(after.length?after.join(", "):"No data");
+  // 🆕 SAME DAY / SAME ROW CHECK
+  for(let c=0;c<matrix[row].length;c++){
+    if(c===col) continue;
+    let cellVal=matrix[row][c];
+    let cellFam=getFamily(cellVal);
+
+    if(cellVal===val || cellVal===fam || cellFam===val){
+      if(dayMatch.length<3){
+        dayMatch.push(cellVal);
+        mark(row,c,"day");
+      }
+    }
+  }
+
+  document.getElementById("result").innerHTML=`
+  <b>Clicked Jodi:</b> ${val} | <b>Family:</b> ${fam}<br><br>
+
+  <b>🔴 SAME LINE</b><br>${bubbles(same,"red")}
+
+  <b>🟢 FAMILY LINE</b><br>${bubbles(family,"green")}
+
+  <b>🔵 SIDE LINE</b><br>${bubbles(side,"blue")}
+
+  <b>🟣 SAME DAY / SAME ROW MATCH</b><br>${bubbles(dayMatch,"purple")}
+  `;
+}
+
+function mark(r,c,cls){
+  document.querySelectorAll("table tr")[r].children[c].classList.add(cls);
+}
+
+function bubbles(arr,color){
+  if(arr.length===0) return "—";
+  return arr.map(v=>`<span class="bubble ${color}">${v}</span>`).join("");
 }
 </script>
 
