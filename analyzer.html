@@ -2,62 +2,37 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Analyzer – PRO MAX X8</title>
+<title>🔥 Jodi Analyzer – MEGA PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{margin:0;font-family:Arial;background:#f2f2f2}
-header{
-  position:sticky;top:0;background:#111;color:#fff;
-  padding:10px;text-align:center;font-weight:bold;z-index:10
-}
+header{background:#111;color:#fff;padding:10px;text-align:center;font-weight:bold}
 .container{padding:10px}
-textarea,input,select,button{
-  width:100%;padding:10px;margin:6px 0;font-size:16px
-}
+textarea,button{width:100%;padding:10px;margin:6px 0;font-size:15px}
 button{background:#222;color:#fff;border:none;border-radius:4px}
 table{border-collapse:collapse;width:100%;background:#fff}
-th,td{
-  border:1px solid #777;padding:6px;text-align:center;
-  min-width:40px;font-weight:bold
-}
+th,td{border:1px solid #777;padding:6px;text-align:center;font-weight:bold}
 th{background:#ddd}
 td.hit{background:#ffe066}
 #wrapper{position:relative}
 #svg{position:absolute;top:0;left:0;pointer-events:none}
-
-.bubble{
-  display:inline-flex;align-items:center;justify-content:center;
-  border-radius:50%;background:#444;color:#fff;
-  margin:4px;font-size:14px;font-weight:bold
-}
-.box{
-  background:#fff;border:2px solid #333;
-  padding:10px;margin-top:10px
-}
+.box{background:#fff;border:2px solid #333;padding:10px;margin-top:10px}
 .badge{background:#000;color:#fff;padding:4px 8px;border-radius:4px}
 .safe{background:#0a7}
-.star{color:red}
+.star{color:red;font-weight:bold}
+.muted{color:#666}
 </style>
 </head>
 
 <body>
 
-<header>🔥 Jodi Analyzer – PRO MAX (6•7•8)</header>
+<header>🔥 Jodi Analyzer – MEGA PRO (All-in-One)</header>
 
 <div class="container">
 
-<select id="game">
-  <option value="milan">Milan Day</option>
-  <option value="kalyan">Kalyan</option>
-  <option value="rajdhani">Rajdhani Night</option>
-</select>
-
-<input type="file" accept=".csv" onchange="importCSV(this)">
-<textarea id="input" placeholder="Paste record OR upload CSV"></textarea>
-
-<input id="pattern" placeholder="Pattern filter (example: 4-5, 6-7)">
-<button onclick="generate()">Generate</button>
+<textarea id="input" placeholder="Paste record (Mon–Sat rows)"></textarea>
+<button onclick="generate()">Generate Chart</button>
 
 <div id="wrapper">
   <svg id="svg"></svg>
@@ -70,23 +45,22 @@ td.hit{background:#ffe066}
 </div>
 
 <script>
+// ===== CUT ANK MAP =====
+const CUT_MAP={
+  "0":"5","5":"0",
+  "1":"6","6":"1",
+  "2":"7","7":"2",
+  "3":"8","8":"3",
+  "4":"9","9":"4"
+};
+
 let grid=[],cells=[],selected=null;
 
-function importCSV(f){
-  const file=f.files[0];
-  if(!file) return;
-  const r=new FileReader();
-  r.onload=e=>{
-    const lines=e.target.result.trim().split(/\n+/);
-    lines.shift(); // remove header
-    input.value=lines.map(l=>l.replace(/,/g," ")).join("\n");
-  };
-  r.readAsText(file);
-}
-
+// ===== BUILD TABLE =====
 function generate(){
   grid=[];cells=[];tbl.innerHTML="";svg.innerHTML="";
   after.style.display="none";finalBox.style.display="none";
+  if(!input.value.trim()) return;
 
   input.value.trim().split("\n").forEach(r=>{
     grid.push(r.trim().split(/\s+/));
@@ -110,36 +84,39 @@ function generate(){
   });
 }
 
-function matchPattern(v){
-  const p=pattern.value.trim();
-  if(!p) return true;
-  const [a,b]=p.split("-");
-  return v[0]==a && v[1]==b;
+// ===== HELPERS =====
+function getCutJodi(j){
+  if(!j||j.length!==2) return null;
+  return CUT_MAP[j[0]]+CUT_MAP[j[1]];
+}
+function getFamilyJodis(j){
+  const c=getCutJodi(j);
+  return Array.from(new Set([j, j[0]+c[1], c[0]+j[1], c]));
 }
 
+// ===== SELECT & DRAW =====
 function selectJodi(v){
   selected=v;
   cells.forEach(c=>c.td.classList.remove("hit"));
   svg.innerHTML="";
-  if(!matchPattern(v)) return;
-
-  let hits=cells.filter(c=>c.val===v && matchPattern(v));
+  const hits=cells.filter(c=>c.val===v);
   hits.forEach(h=>h.td.classList.add("hit"));
 
   const colors=["red","blue","green"];
   for(let i=0;i<Math.min(3,hits.length-1);i++){
-    draw(hits[i],hits[i+1],colors[i]);
+    drawLine(hits[i],hits[i+1],colors[i]);
   }
-  analyze(hits);
+
+  analyzeMega(v,hits);
 }
 
-function draw(a,b,color){
-  let r1=a.td.getBoundingClientRect();
-  let r2=b.td.getBoundingClientRect();
-  let p=wrapper.getBoundingClientRect();
+function drawLine(a,b,color){
+  const r1=a.td.getBoundingClientRect();
+  const r2=b.td.getBoundingClientRect();
+  const p=wrapper.getBoundingClientRect();
   svg.setAttribute("width",p.width);
   svg.setAttribute("height",p.height);
-  let l=document.createElementNS("http://www.w3.org/2000/svg","line");
+  const l=document.createElementNS("http://www.w3.org/2000/svg","line");
   l.setAttribute("x1",r1.left+r1.width/2-p.left);
   l.setAttribute("y1",r1.top+r1.height/2-p.top);
   l.setAttribute("x2",r2.left+r2.width/2-p.left);
@@ -149,29 +126,69 @@ function draw(a,b,color){
   svg.appendChild(l);
 }
 
-function analyze(hits){
+// ===== MEGA ANALYSIS =====
+function analyzeMega(jodi,hits){
+  const cut=getCutJodi(jodi);
+  const family=getFamilyJodis(jodi);
+
+  const origMap=collectAfter(jodi);
+  const cutMap=cut?collectAfter(cut):{};
+  const familyHits=checkFamilySamePos(family,jodi);
+
+  // merge maps
+  let merged={};
+  [origMap,cutMap].forEach(m=>{
+    Object.keys(m).forEach(k=>{
+      merged[k]=(merged[k]||0)+m[k];
+    });
+  });
+
+  let arr=Object.entries(merged).sort((a,b)=>b[1]-a[1]);
+
+  // AFTER BOX
+  let html=`<b>After Result (Original + Cut)</b><br>`;
+  arr.forEach(([k,v])=>html+=`• <span class="badge">${k}</span> → ${v}<br>`);
+  after.innerHTML=html||"No data";
+  after.style.display="block";
+
+  // FINAL DECISION
+  let tag="DANGER";
+  if(arr.length){
+    const top=arr[0];
+    if(origMap[top[0]] && cutMap[top[0]]) tag="STRONG";
+    else tag="SAFE";
+
+    finalBox.innerHTML=`
+      <b>🔥 FINAL DECISION</b><br>
+      Jodi: <span class="badge">${top[0]}</span><br>
+      Status: <b>${tag}</b><br>
+      Family Match (same position): ${familyHits.length}
+    `;
+    finalBox.style.display="block";
+  }
+}
+
+// ===== DATA COLLECTORS =====
+function collectAfter(j){
   let map={};
-  hits.forEach(h=>{
+  cells.filter(c=>c.val===j).forEach(h=>{
     let n=grid[h.ri+1]?.[h.ci];
     if(n && n!=="**") map[n]=(map[n]||0)+1;
   });
-
-  let arr=Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  let out="<b>After Result</b><br>";
-  arr.forEach(([k,v],i)=>{
-    out+=`${i+1}. <span class="badge">${k}</span> → ${v}<br>`;
+  return map;
+}
+function checkFamilySamePos(family,orig){
+  let res=[];
+  cells.forEach(c=>{
+    if(family.includes(c.val)){
+      cells.forEach(o=>{
+        if(o.val===orig && o.ci===c.ci && Math.abs(o.ri-c.ri)<=2){
+          res.push({f:c.val,row:c.ri,col:c.ci});
+        }
+      });
+    }
   });
-  after.innerHTML=out;
-  after.style.display="block";
-
-  if(arr.length){
-    let total=arr.reduce((s,[,v])=>s+v,0);
-    let t=arr[0];
-    finalBox.innerHTML=
-      `<b>🔥 FINAL JODI</b><br>
-       ⭐ <span class="badge">${t[0]}</span> (${((t[1]/total)*100).toFixed(1)}%)`;
-    finalBox.style.display="block";
-  }
+  return res;
 }
 </script>
 
