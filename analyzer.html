@@ -2,29 +2,28 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer – FINAL</title>
+<title>🔥 Jodi Trend Analyzer – FINAL</title>
+
 <style>
-body{font-family:Arial;background:#f7f7f7;padding:10px}
+body{font-family:Arial;background:#f5f5f5;padding:10px}
 textarea{width:100%;height:120px}
 table{border-collapse:collapse;margin-top:10px;background:#fff}
 th,td{
  border:1px solid #999;
  padding:6px;
  text-align:center;
- font-size:14px;
  cursor:pointer;
  position:relative;
 }
 th{background:#eaeaea}
 td:hover{background:#f1f1f1}
 
-.hit{background:#ffeb3b}
-.family{background:#b3e5fc}
-.line{outline:3px solid red}
+.selected{background:#ffeb3b}
+.trend{outline:3px solid red}
+.family{background:#bbdefb}
 
 .box{margin-top:10px;padding:8px;border:1px solid #ccc;background:#fff}
-
-.item{color:#0066cc;cursor:pointer;margin:3px 0}
+.item{color:#1565c0;cursor:pointer;margin:4px 0}
 
 #popup{
  position:fixed;top:0;left:0;width:100%;height:100%;
@@ -40,7 +39,7 @@ td:hover{background:#f1f1f1}
 
 <body>
 
-<h3>🔥 Jodi Line Analyzer – FINAL</h3>
+<h3>🔥 Jodi Trend Analyzer (FINAL)</h3>
 
 <textarea id="input">
 Mon Tue Wed Thu Fri Sat
@@ -58,14 +57,14 @@ Mon Tue Wed Thu Fri Sat
 <div id="tableBox"></div>
 
 <div class="box">
-<b>📊 Line Count List</b>
-<div id="list">Click any jodi</div>
+<b>📊 Trend List (Family + Same Angle)</b>
+<div id="trendList">Generate chart first</div>
 </div>
 
 <!-- POPUP -->
 <div id="popup" onclick="closePop()">
   <div id="popupBox" onclick="event.stopPropagation()">
-    <h4>📸 Line View (Photo-Style)</h4>
+    <h4>📸 Trend Detail</h4>
     <div id="popupData"></div>
     <br>
     <button onclick="closePop()">Close</button>
@@ -73,12 +72,36 @@ Mon Tue Wed Thu Fri Sat
 </div>
 
 <script>
-const familyMap={1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4,5:0,0:5};
-let GRID=[],DAYS=[],history=[];
+/* ================= BASE DATA ================= */
+const CUT={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
+let GRID=[],DAYS=[],TREND_HISTORY=[];
 
+/* ================= HELPERS ================= */
+function familyGroup(j){
+ let a=parseInt(j[0]), b=parseInt(j[1]);
+ return new Set([
+  j,
+  ""+a+CUT[b],
+  ""+CUT[a]+b,
+  ""+CUT[a]+CUT[b]
+ ]);
+}
+
+const DIRS=[
+ {dr:0,dc:1,name:"→"},
+ {dr:0,dc:-1,name:"←"},
+ {dr:1,dc:0,name:"↓"},
+ {dr:-1,dc:0,name:"↑"},
+ {dr:1,dc:1,name:"↘"},
+ {dr:1,dc:-1,name:"↙"},
+ {dr:-1,dc:1,name:"↗"},
+ {dr:-1,dc:-1,name:"↖"}
+];
+
+/* ================= BUILD TABLE ================= */
 function build(){
- history=[];
- document.getElementById("list").innerHTML="Click any jodi";
+ TREND_HISTORY=[];
+ document.getElementById("trendList").innerHTML="";
 
  let raw=document.getElementById("input").value.trim().split("\n");
  DAYS=raw[0].trim().split(/\s+/);
@@ -96,149 +119,100 @@ function build(){
   html+="</tr>";
  });
  html+="</table>";
+
  document.getElementById("tableBox").innerHTML=html;
+
+ findTrendsFromLast(); // 🔥 AUTO TREND
 }
 
+/* ================= CORE LOGIC ================= */
 function clearMarks(){
  document.querySelectorAll("td").forEach(td=>{
-  td.classList.remove("hit","family","line");
+  td.classList.remove("selected","trend","family");
  });
 }
 
 function analyze(r,c){
  clearMarks();
- history=[];
+ document.getElementById("grid").rows[r+1].cells[c].classList.add("selected");
+}
 
- let base=GRID[r][c];
- let fam=familyMap[base];
+function findTrendsFromLast(){
+ TREND_HISTORY=[];
+ clearMarks();
 
- let table=document.getElementById("grid");
- table.rows[r+1].cells[c].classList.add("hit");
+ let lr=GRID.length-1;
+ let lc=GRID[0].length-1;
+ let base=GRID[lr][lc];
+ let fam=familyGroup(base);
 
- // vertical + zigzag scan
- for(let i=0;i<GRID.length;i++){
-  let v=GRID[i][c];
-  let cell=table.rows[i+1].cells[c];
+ document.getElementById("grid").rows[lr+1].cells[lc].classList.add("selected");
 
-  if(v==base){
-    cell.classList.add("line");
-    history.push({type:"SAME",from:i,to:i+1,col:c});
+ DIRS.forEach(d=>{
+  let nr=lr+d.dr, nc=lc+d.dc;
+  if(GRID[nr] && GRID[nr][nc] && fam.has(GRID[nr][nc])){
+    scanFullRecord(d,fam);
   }
-  if(v==fam){
-    cell.classList.add("family");
-    history.push({type:"FAMILY",from:i,to:i+1,col:c});
-  }
+ });
 
-  // zigzag right
-  if(i+1<GRID.length && c+1<GRID[0].length){
-    if(GRID[i][c]==base && GRID[i+1][c+1]==base){
-      table.rows[i+2].cells[c+1].classList.add("line");
-      history.push({type:"ZIGZAG ↘",from:i,to:i+1,col:c});
+ renderTrendList();
+}
+
+function scanFullRecord(dir,fam){
+ for(let r=0;r<GRID.length;r++){
+  for(let c=0;c<GRID[0].length;c++){
+   if(fam.has(GRID[r][c])){
+    let nr=r+dir.dr, nc=c+dir.dc;
+    if(GRID[nr] && GRID[nr][nc] && fam.has(GRID[nr][nc])){
+     TREND_HISTORY.push({
+      from:[r,c],
+      to:[nr,nc],
+      dir:dir.name,
+      a:GRID[r][c],
+      b:GRID[nr][nc]
+     });
+     markCells(r,c,nr,nc);
     }
-  }
-  // zigzag left
-  if(i+1<GRID.length && c-1>=0){
-    if(GRID[i][c]==base && GRID[i+1][c-1]==base){
-      table.rows[i+2].cells[c-1].classList.add("line");
-      history.push({type:"ZIGZAG ↙",from:i,to:i+1,col:c});
-    }
+   }
   }
  }
-
- renderList(base,fam);
 }
 
-function renderList(base,fam){
- let out="";
- history.forEach((h,i)=>{
-  out+=`<div class="item" onclick="openPop(${i},'${base}','${fam}')">
-  ${h.type} | Row ${h.from+1}
-  </div>`;
+function markCells(r,c,nr,nc){
+ let table=document.getElementById("grid");
+ table.rows[r+1].cells[c].classList.add("trend");
+ table.rows[nr+1].cells[nc].classList.add("family");
+}
+
+/* ================= UI ================= */
+function renderTrendList(){
+ let html="";
+ TREND_HISTORY.forEach((t,i)=>{
+  html+=`
+   <div class="item" onclick="openPop(${i})">
+    ${t.dir} : ${t.a} → ${t.b} (row ${t.from[0]+1})
+   </div>`;
  });
- document.getElementById("list").innerHTML=out||"No pattern";
+ document.getElementById("trendList").innerHTML=
+  html || "No family trend found";
 }
 
-function openPop(i,base,fam){
- let h=history[i];
+function openPop(i){
+ let t=TREND_HISTORY[i];
  document.getElementById("popupData").innerHTML=
- `<b>Jodi:</b> ${base}<br>
-  <b>Family:</b> ${fam}<br>
-  <b>Type:</b> ${h.type}<br>
-  <b>Row:</b> ${h.from+1} → ${h.to+1}<br>
-  <p style="color:red">Photo-style line highlighted on chart</p>`;
+ `<b>Trend:</b> ${t.dir}<br>
+  <b>From:</b> ${t.a}<br>
+  <b>To:</b> ${t.b}<br>
+  <b>Row:</b> ${t.from[0]+1}<br><br>
+  <span style="color:red">
+   Same family + same angle trend detected
+  </span>`;
  document.getElementById("popup").style.display="flex";
 }
 
 function closePop(){
  document.getElementById("popup").style.display="none";
 }
- // ===== TREND LINE PATCH (PASTE AT END) =====
-
-// family group
-function familyGroup(j){
-  const map={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
-  let a=parseInt(j[0]), b=parseInt(j[1]);
-  return new Set([
-    j,
-    ""+a+map[b],
-    ""+map[a]+b,
-    ""+map[a]+map[b]
-  ]);
-}
-
-// trend directions
-const TREND_DIRS = [
- {dr:0,dc:1,name:"→"},
- {dr:0,dc:-1,name:"←"},
- {dr:1,dc:0,name:"↓"},
- {dr:-1,dc:0,name:"↑"},
- {dr:1,dc:1,name:"↘"},
- {dr:1,dc:-1,name:"↙"},
- {dr:-1,dc:1,name:"↗"},
- {dr:-1,dc:-1,name:"↖"}
-];
-
-// detect trend from LAST jodi
-function detectLastTrends(){
-  let r=GRID.length-1;
-  let c=GRID[0].length-1;
-  let base=GRID[r][c];
-  let fam=familyGroup(base);
-
-  let trends=[];
-  TREND_DIRS.forEach(d=>{
-    let nr=r+d.dr, nc=c+d.dc;
-    if(GRID[nr] && GRID[nr][nc]){
-      if(fam.has(GRID[nr][nc])){
-        trends.push({dir:d,family:fam});
-      }
-    }
-  });
-  return trends;
-}
-
-// search same trend in full record
-function findSameTrends(){
-  let trends=detectLastTrends();
-  let found=[];
-  trends.forEach(t=>{
-    for(let r=0;r<GRID.length;r++){
-      for(let c=0;c<GRID[0].length;c++){
-        if(t.family.has(GRID[r][c])){
-          let nr=r+t.dir.dr, nc=c+t.dir.dc;
-          if(GRID[nr] && GRID[nr][nc]){
-            if(t.family.has(GRID[nr][nc])){
-              found.push({from:[r,c],to:[nr,nc],dir:t.dir.name});
-            }
-          }
-        }
-      }
-    }
-  });
-  return found;
-}
-
-// ===== END PATCH =====
 </script>
 
 </body>
