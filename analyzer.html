@@ -2,134 +2,118 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Jodi Line Analyzer</title>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<title>🔥 Jodi Line Analyzer</title>
 
 <style>
-body{font-family:Arial;padding:10px}
-table{border-collapse:collapse}
-td{border:1px solid #999;padding:6px;text-align:center;cursor:pointer}
-td.main{background:#ffeb3b}
-td.family{background:#c8e6c9}
-td.hit{background:#ff5252;color:white}
-.bubble{display:inline-block;margin:4px;padding:8px;border-radius:50%;background:#673ab7;color:#fff}
+body{
+  font-family: Arial;
+  padding:10px;
+}
+textarea{
+  width:100%;
+  height:120px;
+}
+table{
+  border-collapse:collapse;
+  margin-top:12px;
+}
+th,td{
+  border:1px solid #444;
+  padding:6px;
+  text-align:center;
+  min-width:45px;
+  cursor:pointer;
+}
+th{
+  background:#f0f0f0;
+  font-weight:bold;
+}
+td:hover{
+  background:#ffe;
+}
+.active{
+  background:#ffb !important;
+}
+#matches{
+  margin-top:15px;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
-<h3>🔥 Jodi Line Analyzer</h3>
+<h2>🔥 Jodi Line Analyzer</h2>
 
-<textarea id="data" rows="6" style="width:100%">
-Mon 52 96 53 11 70
-Tue 91 97 67 79 09
-Wed 78 52 12 72 64
-Thu 16 43 78 91 27
-Fri 64 30 97 55 97
-Sat 33 38 53 32 84
+<textarea id="input">
+Mon Tue Wed Thu Fri Sat
+52  91  78  16  64  33
+96  97  52  43  30  38
+53  67  12  78  97  53
+11  79  72  91  55  32
+70  09  64  27  97  84
 </textarea>
 
 <br><br>
 <button onclick="generate()">Generate Chart</button>
-<button onclick="downloadImage()">📸 Download</button>
 
-<div id="wrap" style="position:relative;margin-top:15px">
-<svg id="lines" style="position:absolute;width:100%;height:100%"></svg>
-<div id="table"></div>
-</div>
-
-<h4>Matches</h4>
-<div id="bubbles"></div>
+<div id="chart"></div>
+<div id="matches">Matches:</div>
 
 <script>
-const CUT={0:5,5:0,1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4};
-let grid=[];
-
-function family(j){
- let a=Math.floor(j/10),b=j%10;
- return [...new Set([j,a*10+CUT[b],CUT[a]*10+b,CUT[a]*10+CUT[b]])];
-}
+let matrix=[];
 
 function generate(){
- grid=[];
- document.getElementById("table").innerHTML="";
- document.getElementById("bubbles").innerHTML="";
- document.getElementById("lines").innerHTML="";
+  const raw=document.getElementById("input").value.trim().split("\n");
+  const chart=document.getElementById("chart");
+  chart.innerHTML="";
+  document.getElementById("matches").innerText="Matches:";
 
- let rows=document.getElementById("data").value.trim().split("\n");
- rows.forEach(r=>{
-  let n=r.split(/\s+/).slice(1).map(x=>parseInt(x));
-  grid.push(n);
- });
+  matrix=raw.map(r=>r.trim().split(/\s+/));
 
- let t=document.createElement("table");
+  let table=document.createElement("table");
 
- grid.forEach((row,r)=>{
-  let tr=document.createElement("tr");
-  row.forEach((v,c)=>{
-   let td=document.createElement("td");
-   td.innerText=v;
-   td.onclick=()=>analyze(r,c,td);
-   tr.appendChild(td);
+  // HEADER (DAYS ON TOP)
+  let header=document.createElement("tr");
+  matrix[0].forEach(d=>{
+    let th=document.createElement("th");
+    th.innerText=d;
+    header.appendChild(th);
   });
-  t.appendChild(tr);
- });
+  table.appendChild(header);
 
- document.getElementById("table").appendChild(t);
-}
-
-function analyze(r,c,cell){
- document.querySelectorAll("td").forEach(x=>x.className="");
- document.getElementById("bubbles").innerHTML="";
- document.getElementById("lines").innerHTML="";
-
- let base=grid[r][c];
- let fam=family(base);
-
- document.querySelectorAll("td").forEach(td=>{
-  let v=parseInt(td.innerText);
-  if(v===base) td.classList.add("main");
-  if(fam.includes(v)) td.classList.add("family");
- });
-
- if(grid[r+1]){
-  let v=grid[r+1][c];
-  if(fam.includes(v)){
-   drawLine(cell,document.querySelectorAll("tr")[r+1].children[c]);
-   bubble(v);
+  // DATA ROWS
+  for(let r=1;r<matrix.length;r++){
+    let tr=document.createElement("tr");
+    for(let c=0;c<matrix[r].length;c++){
+      let td=document.createElement("td");
+      td.innerText=matrix[r][c];
+      td.onclick=()=>analyze(r,c,matrix[r][c]);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
   }
- }
+
+  chart.appendChild(table);
 }
 
-function drawLine(a,b){
- let r1=a.getBoundingClientRect(),r2=b.getBoundingClientRect();
- let svg=document.getElementById("lines");
- let p=svg.getBoundingClientRect();
- let l=document.createElementNS("http://www.w3.org/2000/svg","line");
- l.setAttribute("x1",r1.left+r1.width/2-p.left);
- l.setAttribute("y1",r1.top+r1.height/2-p.top);
- l.setAttribute("x2",r2.left+r2.width/2-p.left);
- l.setAttribute("y2",r2.top+r2.height/2-p.top);
- l.setAttribute("stroke","red");
- l.setAttribute("stroke-width","3");
- svg.appendChild(l);
-}
+function analyze(row,col,val){
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("active"));
 
-function bubble(v){
- let b=document.createElement("div");
- b.className="bubble";
- b.innerText=v;
- document.getElementById("bubbles").appendChild(b);
-}
+  let after=[];
 
-function downloadImage(){
- html2canvas(document.body).then(c=>{
-  let a=document.createElement("a");
-  a.href=c.toDataURL();
-  a.download="chart.png";
-  a.click();
- });
+  for(let r=1;r<matrix.length-1;r++){
+    if(matrix[r][col]===val){
+      // highlight
+      document.querySelectorAll("table tr")[r].children[col].classList.add("active");
+
+      // after result
+      after.push(matrix[r+1][col]);
+    }
+  }
+
+  document.getElementById("matches").innerText=
+    "Matches for "+val+" → "+(after.length?after.join(", "):"No data");
 }
 </script>
 
