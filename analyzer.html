@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – ORIGINAL CHART MODE</title>
+<title>Exact Pattern Analyzer – PERFECT ALIGNMENT</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -53,7 +53,7 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact Pattern Analyzer (Original Chart Drawing)</h2>
+<h2>📊 Exact Pattern Analyzer (Perfect Circle Alignment)</h2>
 
 <div id="top">
 <input type="file" id="csv">
@@ -135,7 +135,7 @@ cvs.onclick=e=>{
  let c=Math.floor((e.clientX-r.left-60)/cellW);
  let ro=Math.floor((e.clientY-r.top-40)/cellH);
  if(grid[ro] && grid[ro][c]){
-  userPath.push({r:ro,c,val:grid[ro][c]});
+  userPath.push({r:ro,c});
   drawUser();
   if(userPath.length>1) search();
  }
@@ -172,7 +172,7 @@ function search(){
   for(let i=0;i<userPath.length;i++){
    let rr=i?base+gaps[i-1]:base;
    if(!grid[rr]){ok=false;break;}
-   let col=grid[rr].findIndex(v=>family(userPath[i].val).includes(v));
+   let col=grid[rr].findIndex(v=>family(grid[userPath[i].r][userPath[i].c]).includes(v));
    if(col<0){ok=false;break;}
    pts.push({r:rr,c:col});
   }
@@ -192,7 +192,6 @@ function search(){
 function showPattern(p){
  drawChart();
 
- // draw on main chart
  p.forEach((pt,i)=>{
   let x=60+pt.c*cellW+cellW/2;
   let y=40+pt.r*cellH+cellH/2;
@@ -207,37 +206,39 @@ function showPattern(p){
   }
  });
 
- // popup snapshot
+ /* popup snapshot */
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
- let h=(maxR-minR)*cellH+60;
+ let cropY=40+minR*cellH;
+ let h=(maxR-minR)*cellH+40;
  let w=cvs.width;
 
  pop.width=w;
  pop.height=h;
 
- // draw original chart image
- pctx.drawImage(
-  cvs,
-  0,40+minR*cellH,w,h,
-  0,0,w,h
- );
+ // original chart image
+ pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
 
- // overlay line
+ // overlay – PERFECTLY ALIGNED
  p.forEach((pt,i)=>{
   let x=60+pt.c*cellW+cellW/2;
-  let y=40+(pt.r-minR)*cellH+cellH/2;
-  pctx.beginPath();pctx.arc(x,y,11,0,Math.PI*2);
-  pctx.strokeStyle="red";pctx.stroke();
+  let y=(40+pt.r*cellH+cellH/2)-cropY;
+
+  pctx.beginPath();
+  pctx.arc(x,y,11,0,Math.PI*2);
+  pctx.strokeStyle="red";
+  pctx.stroke();
+
   if(i){
    let pr=p[i-1];
    pctx.beginPath();
    pctx.moveTo(
     60+pr.c*cellW+cellW/2,
-    40+(pr.r-minR)*cellH+cellH/2
+    (40+pr.r*cellH+cellH/2)-cropY
    );
    pctx.lineTo(x,y);
-   pctx.strokeStyle="green";pctx.stroke();
+   pctx.strokeStyle="green";
+   pctx.stroke();
   }
  });
 
