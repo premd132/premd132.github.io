@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – Final</title>
+<title>Exact Pattern Analyzer – Drawing Fixed</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -54,12 +54,12 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact User-Drawn Pattern Analyzer</h2>
+<h2>📊 Exact User-Drawn Pattern Analyzer (Drawing Fixed)</h2>
 
 <div id="top">
 <input type="file" id="csv">
 <button onclick="resetAll()">Reset</button>
-<p><b>Jaise chart me click karoge → wahi exact pattern search hoga</b></p>
+<p><b>Jaise chart me click karoge → wahi exact drawing aur wahi search</b></p>
 </div>
 
 <div id="wrap">
@@ -72,7 +72,7 @@ canvas{background:#fff}
 <!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="mini" width="320" height="220"></canvas>
+  <canvas id="mini" width="360" height="260"></canvas>
  </div>
 </div>
 
@@ -131,56 +131,52 @@ function drawChart(){
  });
 }
 
-/* ================= STRICT FAMILY LOGIC ================= */
-/* ONLY SAME / MIRROR / DOUBLE */
+/* ================= STRICT FAMILY ================= */
 function family(j){
  let a=j[0], b=j[1];
- return [
-  j,
-  b+a,
-  a+a,
-  b+b
- ];
+ return [j, b+a, a+a, b+b];
 }
 
-/* ================= CLICK = DRAW USER PATTERN ================= */
+/* ================= CLICK = STORE EXACT COORDINATES ================= */
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
- const x=e.clientX-rect.left;
- const y=e.clientY-rect.top;
+ const mx=e.clientX-rect.left;
+ const my=e.clientY-rect.top;
 
- const c=Math.floor((x-60)/cellW);
- const r=Math.floor((y-40)/cellH);
+ const c=Math.floor((mx-60)/cellW);
+ const r=Math.floor((my-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-  userPath.push({r,c,val:grid[r][c]});
+  const cx=60+c*cellW+cellW/2;
+  const cy=40+r*cellH+cellH/2;
+
+  userPath.push({
+    r,c,
+    val:grid[r][c],
+    x:cx,
+    y:cy
+  });
+
   drawUserPath();
   if(userPath.length>=2) searchPatterns();
  }
 });
 
-/* ================= DRAW USER PATH ================= */
+/* ================= DRAW USER PATH (EXACT) ================= */
 function drawUserPath(){
  drawChart();
 
  userPath.forEach((p,i)=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
-
   ctx.beginPath();
-  ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.arc(p.x,p.y,11,0,Math.PI*2);
   ctx.strokeStyle="red";
   ctx.lineWidth=2;
   ctx.stroke();
 
   if(i){
-   let q=userPath[i-1];
    ctx.beginPath();
-   ctx.moveTo(
-    60+q.c*cellW+cellW/2,
-    40+q.r*cellH+cellH/2
-   );
-   ctx.lineTo(x,y);
+   ctx.moveTo(userPath[i-1].x,userPath[i-1].y);
+   ctx.lineTo(p.x,p.y);
    ctx.strokeStyle="green";
    ctx.lineWidth=2;
    ctx.stroke();
@@ -206,14 +202,17 @@ function searchPatterns(){
   let pts=[],ok=true;
 
   for(let i=0;i<userPath.length;i++){
-   let rr = (i===0)? base : base + gaps[i-1];
-   if(!grid[rr]){ ok=false; break; }
+   let rr=(i===0)?base:base+gaps[i-1];
+   if(!grid[rr]){ok=false;break;}
 
-   let fam = family(userPath[i].val);
-   let col = grid[rr].findIndex(v=>fam.includes(v));
-   if(col===-1){ ok=false; break; }
+   let fam=family(userPath[i].val);
+   let col=grid[rr].findIndex(v=>fam.includes(v));
+   if(col===-1){ok=false;break;}
 
-   pts.push({r:rr,c:col,val:grid[rr][col]});
+   let x=60+col*cellW+cellW/2;
+   let y=40+rr*cellH+cellH/2;
+
+   pts.push({r:rr,c:col,val:grid[rr][col],x,y});
   }
 
   if(ok) foundPatterns.push(pts);
@@ -227,38 +226,43 @@ function renderCheckLines(){
  foundPatterns.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
-  d.innerHTML=
-   `Pattern ${i+1}<br>${p.map(x=>x.val).join(" → ")}`;
+  d.innerHTML=`Pattern ${i+1}<br>${p.map(x=>x.val).join(" → ")}`;
   d.onclick=()=>openPopup(p);
   document.getElementById("right").appendChild(d);
  });
 }
 
-/* ================= POPUP – EXACT SAME SHAPE ================= */
+/* ================= POPUP – SAME GEOMETRY (SCALED) ================= */
 function openPopup(p){
  document.getElementById("modal").style.display="flex";
  mctx.clearRect(0,0,mini.width,mini.height);
 
- let minR=Math.min(...p.map(x=>x.r));
- let minC=Math.min(...p.map(x=>x.c));
+ const minX=Math.min(...p.map(pt=>pt.x));
+ const minY=Math.min(...p.map(pt=>pt.y));
+ const maxX=Math.max(...p.map(pt=>pt.x));
+ const maxY=Math.max(...p.map(pt=>pt.y));
+
+ const scale=Math.min(
+  (mini.width-60)/(maxX-minX),
+  (mini.height-60)/(maxY-minY)
+ );
 
  p.forEach((pt,i)=>{
-  let x=60+(pt.c-minC)*50;
-  let y=40+(pt.r-minR)*30;
+  const x=30+(pt.x-minX)*scale;
+  const y=30+(pt.y-minY)*scale;
 
   mctx.beginPath();
-  mctx.arc(x,y,9,0,Math.PI*2);
+  mctx.arc(x,y,8,0,Math.PI*2);
   mctx.strokeStyle="red";
   mctx.lineWidth=2;
   mctx.stroke();
 
-  // show jodi text
   mctx.fillText(pt.val,x-8,y-12);
 
   if(i){
-   let pr=p[i-1];
-   let px=60+(pr.c-minC)*50;
-   let py=40+(pr.r-minR)*30;
+   const pr=p[i-1];
+   const px=30+(pr.x-minX)*scale;
+   const py=30+(pr.y-minY)*scale;
 
    mctx.beginPath();
    mctx.moveTo(px,py);
