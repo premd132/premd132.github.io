@@ -2,13 +2,14 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Click Path Historical Pattern Finder</title>
+<title>Historical Pattern Analyzer</title>
 
 <style>
 body{font-family:Arial;background:#f1d18a;margin:0}
 h2{text-align:center;padding:10px}
 
 #top{text-align:center;padding:10px}
+button{padding:6px 10px;margin:5px}
 
 #chartWrap{
   height:80vh;
@@ -30,25 +31,17 @@ canvas{background:#fff}
  cursor:pointer
 }
 .check:hover{background:#ffe3b3}
-
-#info{
- text-align:center;
- font-size:14px;
- margin-top:5px;
-}
 </style>
 </head>
 
 <body>
 
-<h2>📊 Click-Path Based Historical Pattern Tool</h2>
+<h2>📊 Historical Click-Path Pattern Tool</h2>
 
 <div id="top">
 <input type="file" id="csv">
-<div id="info">
-Chart me lagatar 2-3-4 jodi par click karke path banao  
-→ system wahi path purane record me dhoondhega
-</div>
+<button onclick="resetAll()">Reset Click</button>
+<p><b>Chart me 2–4 jodi par click karo → sirf OLD patterns dikhenge</b></p>
 </div>
 
 <div id="wrap">
@@ -63,8 +56,8 @@ Chart me lagatar 2-3-4 jodi par click karke path banao
 
 <script>
 let headers=[],grid=[];
-let clickPath=[];       // user clicked pattern
-let foundPatterns=[];  // historical matches
+let clickSeq=[];        // only for search
+let foundPatterns=[];
 
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
@@ -77,6 +70,13 @@ document.getElementById("csv").onchange=e=>{
  r.readAsText(e.target.files[0]);
 };
 
+function resetAll(){
+ clickSeq=[];
+ foundPatterns=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ drawChart();
+}
+
 function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
@@ -85,10 +85,7 @@ function loadCSV(txt){
  cvs.width = headers.length * cellW + 100;
  cvs.height = grid.length * cellH + 60;
 
- clickPath=[];
- foundPatterns=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
+ resetAll();
 }
 
 function drawChart(){
@@ -113,7 +110,7 @@ function family(j){
  return [j, j[1]+j[0], j[0]+j[0], j[1]+j[1]];
 }
 
-// Detect click on chart
+// chart click
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const x=e.clientX-rect.left;
@@ -123,45 +120,18 @@ cvs.addEventListener("click",e=>{
  const r=Math.floor((y-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-   clickPath.push({r,c,val:grid[r][c]});
-   drawUserPath();
-   if(clickPath.length>=2){
-     searchHistoricalPatterns();
+   clickSeq.push(grid[r][c]);
+   if(clickSeq.length>=2){
+     searchOldPatterns();
    }
  }
 });
 
-function drawUserPath(){
- drawChart();
-
- // draw user clicked points
- clickPath.forEach(p=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
-  ctx.beginPath();
-  ctx.arc(x,y,12,0,Math.PI*2);
-  ctx.strokeStyle="red";
-  ctx.lineWidth=2;
-  ctx.stroke();
- });
-
- // draw temporary line
- ctx.beginPath();
- let f=clickPath[0];
- ctx.moveTo(60+f.c*cellW+cellW/2,40+f.r*cellH+cellH/2);
- clickPath.forEach(p=>{
-  ctx.lineTo(60+p.c*cellW+cellW/2,40+p.r*cellH+cellH/2);
- });
- ctx.strokeStyle="green";
- ctx.lineWidth=2;
- ctx.stroke();
-}
-
-function searchHistoricalPatterns(){
+function searchOldPatterns(){
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
 
- const seq = clickPath.map(p=>p.val);
+ const seq = clickSeq;
 
  for(let r=0;r<=grid.length-seq.length;r++){
    let pts=[];
@@ -204,6 +174,12 @@ function renderCheckLines(){
 function drawSinglePattern(p){
  drawChart();
 
+ // find pattern range
+ let startRow=p[0].r;
+ let endRow=p[p.length-1].r;
+ let extraRow=endRow+1;
+
+ // draw pattern
  p.forEach(pt=>{
   let x=60+pt.c*cellW+cellW/2;
   let y=40+pt.r*cellH+cellH/2;
@@ -223,6 +199,16 @@ function drawSinglePattern(p){
  ctx.strokeStyle="green";
  ctx.lineWidth=2;
  ctx.stroke();
+
+ // highlight one row below (if exists)
+ if(grid[extraRow]){
+   grid[extraRow].forEach((v,c)=>{
+     let x=60+c*cellW;
+     let y=40+extraRow*cellH;
+     ctx.strokeStyle="blue";
+     ctx.strokeRect(x,y,cellW,cellH);
+   });
+ }
 }
 </script>
 
