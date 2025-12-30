@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Historical Pattern Analyzer</title>
+<title>Row-Gap Pattern Analyzer</title>
 
 <style>
 body{font-family:Arial;background:#f1d18a;margin:0}
@@ -36,12 +36,12 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Historical Click-Path Pattern Tool</h2>
+<h2>📊 Click Gap Based Historical Pattern Finder</h2>
 
 <div id="top">
 <input type="file" id="csv">
-<button onclick="resetAll()">Reset Click</button>
-<p><b>Chart me 2–4 jodi par click karo → sirf OLD patterns dikhenge</b></p>
+<button onclick="resetAll()">Reset</button>
+<p><b>Jis tarah jodi me click karoge (row gap ke sath), wahi pattern search hoga</b></p>
 </div>
 
 <div id="wrap">
@@ -56,7 +56,7 @@ canvas{background:#fff}
 
 <script>
 let headers=[],grid=[];
-let clickSeq=[];        // only for search
+let userPath=[];       // user clicks with row gaps
 let foundPatterns=[];
 
 const cvs=document.getElementById("chart");
@@ -71,7 +71,7 @@ document.getElementById("csv").onchange=e=>{
 };
 
 function resetAll(){
- clickSeq=[];
+ userPath=[];
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
  drawChart();
@@ -110,7 +110,7 @@ function family(j){
  return [j, j[1]+j[0], j[0]+j[0], j[1]+j[1]];
 }
 
-// chart click
+// user click on chart
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const x=e.clientX-rect.left;
@@ -120,30 +120,71 @@ cvs.addEventListener("click",e=>{
  const r=Math.floor((y-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-   clickSeq.push(grid[r][c]);
-   if(clickSeq.length>=2){
-     searchOldPatterns();
+   userPath.push({r,c,val:grid[r][c]});
+   drawUserPath();
+   if(userPath.length>=2){
+     searchPatterns();
    }
  }
 });
 
-function searchOldPatterns(){
+function drawUserPath(){
+ drawChart();
+
+ // draw dashed user path
+ ctx.setLineDash([6,4]);
+ userPath.forEach(p=>{
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
+  ctx.beginPath();
+  ctx.arc(x,y,10,0,Math.PI*2);
+  ctx.strokeStyle="red";
+  ctx.lineWidth=2;
+  ctx.stroke();
+ });
+
+ ctx.beginPath();
+ let f=userPath[0];
+ ctx.moveTo(60+f.c*cellW+cellW/2,40+f.r*cellH+cellH/2);
+ userPath.forEach(p=>{
+  ctx.lineTo(60+p.c*cellW+cellW/2,40+p.r*cellH+cellH/2);
+ });
+ ctx.strokeStyle="green";
+ ctx.lineWidth=2;
+ ctx.stroke();
+ ctx.setLineDash([]);
+}
+
+function rowGaps(){
+ let gaps=[];
+ for(let i=1;i<userPath.length;i++){
+   gaps.push(userPath[i].r - userPath[i-1].r);
+ }
+ return gaps;
+}
+
+function searchPatterns(){
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
 
- const seq = clickSeq;
+ const gaps=rowGaps();
 
- for(let r=0;r<=grid.length-seq.length;r++){
+ for(let r=0;r<grid.length;r++){
    let pts=[];
    let ok=true;
 
-   for(let i=0;i<seq.length;i++){
-     let fam=family(seq[i]);
+   pts.push({r,c:0,val:null});
+
+   for(let i=0;i<gaps.length;i++){
+     let nextRow = r + gaps[i];
+     if(!grid[nextRow]){ ok=false; break; }
+
+     let fam=family(userPath[i+1].val);
      let found=false;
 
-     for(let c=0;c<grid[r+i].length;c++){
-       if(fam.includes(grid[r+i][c])){
-         pts.push({r:r+i,c,val:grid[r+i][c]});
+     for(let c=0;c<grid[nextRow].length;c++){
+       if(fam.includes(grid[nextRow][c])){
+         pts.push({r:nextRow,c,val:grid[nextRow][c]});
          found=true;
          break;
        }
@@ -152,7 +193,7 @@ function searchOldPatterns(){
    }
 
    if(ok){
-     foundPatterns.push(pts);
+     foundPatterns.push(pts.slice(1));
    }
  }
 
@@ -165,6 +206,7 @@ function renderCheckLines(){
   d.className="check";
   d.innerHTML=
    `Pattern ${idx+1}<br>
+    Row Gaps: ${rowGaps().join(", ")}<br>
     Flow: ${p.map(x=>x.val).join(" → ")}`;
   d.onclick=()=>drawSinglePattern(p);
   document.getElementById("right").appendChild(d);
@@ -174,12 +216,9 @@ function renderCheckLines(){
 function drawSinglePattern(p){
  drawChart();
 
- // find pattern range
- let startRow=p[0].r;
  let endRow=p[p.length-1].r;
- let extraRow=endRow+1;
 
- // draw pattern
+ // draw solid historical pattern
  p.forEach(pt=>{
   let x=60+pt.c*cellW+cellW/2;
   let y=40+pt.r*cellH+cellH/2;
@@ -200,11 +239,11 @@ function drawSinglePattern(p){
  ctx.lineWidth=2;
  ctx.stroke();
 
- // highlight one row below (if exists)
- if(grid[extraRow]){
-   grid[extraRow].forEach((v,c)=>{
+ // show one row below
+ if(grid[endRow+1]){
+   grid[endRow+1].forEach((v,c)=>{
      let x=60+c*cellW;
-     let y=40+extraRow*cellH;
+     let y=40+(endRow+1)*cellH;
      ctx.strokeStyle="blue";
      ctx.strokeRect(x,y,cellW,cellH);
    });
