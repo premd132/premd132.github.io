@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – Drawing Fixed</title>
+<title>Exact Historical Pattern Analyzer – FINAL</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -47,19 +47,35 @@ canvas{background:#fff}
 #modalBox{
  background:#fff;
  padding:10px;
- border-radius:5px;
+ border-radius:6px;
+ max-width:95vw;
+ max-height:90vh;
+ overflow:auto;
+}
+#popupRows{
+ margin-top:10px;
+ font-size:13px;
+}
+#popupRows table{
+ border-collapse:collapse;
+ width:100%;
+}
+#popupRows td,#popupRows th{
+ border:1px solid #999;
+ padding:4px;
+ text-align:center;
 }
 </style>
 </head>
 
 <body>
 
-<h2>📊 Exact User-Drawn Pattern Analyzer (Drawing Fixed)</h2>
+<h2>📊 Exact User-Drawn Historical Pattern Analyzer</h2>
 
 <div id="top">
 <input type="file" id="csv">
 <button onclick="resetAll()">Reset</button>
-<p><b>Jaise chart me click karoge → wahi exact drawing aur wahi search</b></p>
+<p><b>Jaise chart me line banao → purane record ki wahi exact line milegi</b></p>
 </div>
 
 <div id="wrap">
@@ -72,7 +88,8 @@ canvas{background:#fff}
 <!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="mini" width="360" height="260"></canvas>
+  <canvas id="mini" width="500" height="350"></canvas>
+  <div id="popupRows"></div>
  </div>
 </div>
 
@@ -98,10 +115,8 @@ function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
  grid=lines.map(l=>l.split(","));
-
  cvs.width=headers.length*cellW+100;
  cvs.height=grid.length*cellH+60;
-
  resetAll();
 }
 
@@ -117,14 +132,10 @@ function resetAll(){
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
-
- headers.forEach((h,i)=>{
-  ctx.fillText(h,80+i*cellW,20);
- });
-
+ headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
  grid.forEach((row,r)=>{
   row.forEach((v,c)=>{
-   let x=60+c*cellW, y=40+r*cellH;
+   let x=60+c*cellW,y=40+r*cellH;
    ctx.strokeRect(x,y,cellW,cellH);
    ctx.fillText(v,x+cellW/2-8,y+18);
   });
@@ -133,45 +144,40 @@ function drawChart(){
 
 /* ================= STRICT FAMILY ================= */
 function family(j){
- let a=j[0], b=j[1];
- return [j, b+a, a+a, b+b];
+ let a=j[0],b=j[1];
+ return [j,b+a,a+a,b+b];
 }
 
-/* ================= CLICK = STORE EXACT COORDINATES ================= */
+/* ================= USER CLICK ================= */
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const mx=e.clientX-rect.left;
  const my=e.clientY-rect.top;
-
  const c=Math.floor((mx-60)/cellW);
  const r=Math.floor((my-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-  const cx=60+c*cellW+cellW/2;
-  const cy=40+r*cellH+cellH/2;
-
   userPath.push({
-    r,c,
-    val:grid[r][c],
-    x:cx,
-    y:cy
+   r,c,
+   val:grid[r][c],
+   x:60+c*cellW+cellW/2,
+   y:40+r*cellH+cellH/2
   });
-
   drawUserPath();
   if(userPath.length>=2) searchPatterns();
  }
 });
 
-/* ================= DRAW USER PATH (EXACT) ================= */
+/* ================= DRAW USER PATH ================= */
 function drawUserPath(){
  drawChart();
-
  userPath.forEach((p,i)=>{
   ctx.beginPath();
   ctx.arc(p.x,p.y,11,0,Math.PI*2);
   ctx.strokeStyle="red";
   ctx.lineWidth=2;
   ctx.stroke();
+  ctx.fillText(p.val,p.x-8,p.y-14);
 
   if(i){
    ctx.beginPath();
@@ -184,7 +190,7 @@ function drawUserPath(){
  });
 }
 
-/* ================= ROW GAP ================= */
+/* ================= ROW GAPS ================= */
 function rowGaps(){
  let g=[];
  for(let i=1;i<userPath.length;i++)
@@ -192,7 +198,7 @@ function rowGaps(){
  return g;
 }
 
-/* ================= SEARCH HISTORICAL PATTERNS ================= */
+/* ================= SEARCH HISTORICAL ================= */
 function searchPatterns(){
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
@@ -200,24 +206,20 @@ function searchPatterns(){
 
  for(let base=0;base<grid.length;base++){
   let pts=[],ok=true;
-
   for(let i=0;i<userPath.length;i++){
-   let rr=(i===0)?base:base+gaps[i-1];
+   let rr=i===0?base:base+gaps[i-1];
    if(!grid[rr]){ok=false;break;}
-
    let fam=family(userPath[i].val);
    let col=grid[rr].findIndex(v=>fam.includes(v));
    if(col===-1){ok=false;break;}
-
-   let x=60+col*cellW+cellW/2;
-   let y=40+rr*cellH+cellH/2;
-
-   pts.push({r:rr,c:col,val:grid[rr][col],x,y});
+   pts.push({
+    r:rr,c:col,val:grid[rr][col],
+    x:60+col*cellW+cellW/2,
+    y:40+rr*cellH+cellH/2
+   });
   }
-
   if(ok) foundPatterns.push(pts);
  }
-
  renderCheckLines();
 }
 
@@ -232,7 +234,7 @@ function renderCheckLines(){
  });
 }
 
-/* ================= POPUP – SAME GEOMETRY (SCALED) ================= */
+/* ================= POPUP ================= */
 function openPopup(p){
  document.getElementById("modal").style.display="flex";
  mctx.clearRect(0,0,mini.width,mini.height);
@@ -243,27 +245,25 @@ function openPopup(p){
  const maxY=Math.max(...p.map(pt=>pt.y));
 
  const scale=Math.min(
-  (mini.width-60)/(maxX-minX),
-  (mini.height-60)/(maxY-minY)
+  (mini.width-80)/(maxX-minX),
+  (mini.height-80)/(maxY-minY)
  );
 
  p.forEach((pt,i)=>{
-  const x=30+(pt.x-minX)*scale;
-  const y=30+(pt.y-minY)*scale;
+  let x=40+(pt.x-minX)*scale;
+  let y=40+(pt.y-minY)*scale;
 
   mctx.beginPath();
   mctx.arc(x,y,8,0,Math.PI*2);
   mctx.strokeStyle="red";
   mctx.lineWidth=2;
   mctx.stroke();
-
   mctx.fillText(pt.val,x-8,y-12);
 
   if(i){
-   const pr=p[i-1];
-   const px=30+(pr.x-minX)*scale;
-   const py=30+(pr.y-minY)*scale;
-
+   let pr=p[i-1];
+   let px=40+(pr.x-minX)*scale;
+   let py=40+(pr.y-minY)*scale;
    mctx.beginPath();
    mctx.moveTo(px,py);
    mctx.lineTo(x,y);
@@ -272,6 +272,19 @@ function openPopup(p){
    mctx.stroke();
   }
  });
+
+ /* ---- show full rows ---- */
+ let rows=[...new Set(p.map(x=>x.r))];
+ let html="<h4>Line Rows – Full Jodi Data</h4><table><tr>";
+ headers.forEach(h=>html+=`<th>${h}</th>`);
+ html+="</tr>";
+ rows.forEach(r=>{
+  html+="<tr>";
+  grid[r].forEach(v=>html+=`<td>${v}</td>`);
+  html+="</tr>";
+ });
+ html+="</table>";
+ document.getElementById("popupRows").innerHTML=html;
 }
 </script>
 
