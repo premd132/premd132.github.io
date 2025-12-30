@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Exact Historical Pattern Analyzer – FINAL FIX</title>
+<title>Exact Historical Pattern Analyzer – VISUAL PROOF</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -38,8 +38,8 @@ canvas{background:#fff}
  background:#fff;
  padding:10px;
  border-radius:6px;
- max-width:95vw;
- max-height:90vh;
+ max-width:96vw;
+ max-height:92vh;
  overflow:auto;
 }
 #popupRows table{
@@ -58,12 +58,12 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact User-Drawn Historical Pattern Analyzer</h2>
+<h2>📊 Exact Pattern Analyzer – Visual Proof Mode</h2>
 
 <div id="top">
 <input type="file" id="csv">
 <button onclick="resetAll()">Reset</button>
-<p><b>Jaise chart me line banao → purane record ki wahi exact line milegi</b></p>
+<p><b>Jaise chart me line banao → purane record ki wahi exact line + data dikhega</b></p>
 </div>
 
 <div id="wrap">
@@ -76,7 +76,7 @@ canvas{background:#fff}
 <!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="mini" width="520" height="360"></canvas>
+  <canvas id="mini" width="900" height="420"></canvas>
   <div id="popupRows"></div>
  </div>
 </div>
@@ -216,36 +216,30 @@ function renderCheckLines(){
  });
 }
 
-/* ========== DRAW HISTORICAL ON MAIN CHART + POPUP ========== */
+/* ========== SHOW HISTORICAL ========== */
 function showHistorical(p){
- /* main chart */
  drawChart();
  p.forEach((pt,i)=>{
   let x=60+pt.c*cellW+cellW/2;
   let y=40+pt.r*cellH+cellH/2;
-
   ctx.beginPath();
   ctx.arc(x,y,11,0,Math.PI*2);
   ctx.strokeStyle="red";
-  ctx.lineWidth=2;
   ctx.stroke();
   ctx.fillText(pt.val,x-8,y-14);
-
   if(i){
    let pr=p[i-1];
    ctx.beginPath();
    ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
    ctx.lineTo(x,y);
    ctx.strokeStyle="green";
-   ctx.lineWidth=2;
    ctx.stroke();
   }
  });
-
  openPopup(p);
 }
 
-/* ========== POPUP ========== */
+/* ========== POPUP – FULL DATA ON GRAPH ========== */
 function openPopup(p){
  document.getElementById("modal").style.display="flex";
  mctx.clearRect(0,0,mini.width,mini.height);
@@ -254,24 +248,25 @@ function openPopup(p){
  const minC=Math.min(...p.map(x=>x.c));
 
  p.forEach((pt,i)=>{
-  let x=60+(pt.c-minC)*80;
-  let y=60+(pt.r-minR)*40;
+  let x=80+(pt.c-minC)*140;
+  let y=80+(pt.r-minR)*70;
 
   mctx.beginPath();
-  mctx.arc(x,y,8,0,Math.PI*2);
+  mctx.arc(x,y,9,0,Math.PI*2);
   mctx.strokeStyle="red";
   mctx.stroke();
 
-  mctx.fillText(pt.val,x-8,y-12);
+  // jodi number
+  mctx.fillText(pt.val,x-8,y-14);
 
-  // full jodi text
-  let rowText=grid[pt.r].join(" , ");
+  // FULL ROW TEXT (Mon–Sat)
+  let rowText = headers.map((h,idx)=>`${grid[pt.r][idx]}`).join(", ");
   mctx.fillText(rowText,x+12,y+4);
 
   if(i){
    let pr=p[i-1];
-   let px=60+(pr.c-minC)*80;
-   let py=60+(pr.r-minR)*40;
+   let px=80+(pr.c-minC)*140;
+   let py=80+(pr.r-minR)*70;
    mctx.beginPath();
    mctx.moveTo(px,py);
    mctx.lineTo(x,y);
@@ -280,7 +275,7 @@ function openPopup(p){
   }
  });
 
- /* table */
+ /* table also */
  let rows=[...new Set(p.map(x=>x.r))];
  let html="<h4>Line Rows – Full Jodi Data</h4><table><tr>";
  headers.forEach(h=>html+=`<th>${h}</th>`);
