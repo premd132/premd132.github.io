@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – PERFECT ALIGNMENT</title>
+<title>Exact Pattern Analyzer – SAME ROW + SAME COLUMN</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -11,19 +11,10 @@ h2{text-align:center;margin:10px}
 button{padding:6px 12px}
 
 #wrap{display:flex;gap:10px;padding:10px}
-#chartWrap{
- height:80vh;
- overflow:auto;
- border:3px solid #000;
- background:#fff
-}
+#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
 
-#right{
- width:35%;
- max-height:80vh;
- overflow:auto
-}
+#right{width:35%;max-height:80vh;overflow:auto}
 .check{
  background:#fff;
  margin:6px;
@@ -32,7 +23,6 @@ canvas{background:#fff}
  cursor:pointer
 }
 
-/* popup */
 #modal{
  display:none;
  position:fixed;
@@ -53,7 +43,7 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact Pattern Analyzer (Perfect Circle Alignment)</h2>
+<h2>📊 Exact Pattern Analyzer (Same Row + Same Column)</h2>
 
 <div id="top">
 <input type="file" id="csv">
@@ -67,7 +57,6 @@ canvas{background:#fff}
  <div id="right"><b>Pattern Check Lines</b></div>
 </div>
 
-<!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
   <canvas id="popup"></canvas>
@@ -75,7 +64,7 @@ canvas{background:#fff}
 </div>
 
 <script>
-/* ========= GLOBAL ========= */
+/* ===== GLOBAL ===== */
 let headers=[],grid=[];
 let userPath=[],found=[];
 const cellW=80,cellH=30;
@@ -85,7 +74,7 @@ const ctx=cvs.getContext("2d");
 const pop=document.getElementById("popup");
 const pctx=pop.getContext("2d");
 
-/* ========= LOAD CSV ========= */
+/* ===== LOAD CSV ===== */
 csv.onchange=e=>{
  let r=new FileReader();
  r.onload=()=>loadCSV(r.result);
@@ -101,7 +90,7 @@ function loadCSV(t){
  resetAll();
 }
 
-/* ========= RESET ========= */
+/* ===== RESET ===== */
 function resetAll(){
  userPath=[];
  found=[];
@@ -109,7 +98,7 @@ function resetAll(){
  drawChart();
 }
 
-/* ========= DRAW CHART ========= */
+/* ===== DRAW CHART ===== */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
@@ -123,25 +112,19 @@ function drawChart(){
  });
 }
 
-/* ========= FAMILY ========= */
-function family(j){
- let a=j[0],b=j[1];
- return [j,b+a,a+a,b+b];
-}
-
-/* ========= CLICK ========= */
+/* ===== CLICK ===== */
 cvs.onclick=e=>{
  let r=cvs.getBoundingClientRect();
- let c=Math.floor((e.clientX-r.left-60)/cellW);
- let ro=Math.floor((e.clientY-r.top-40)/cellH);
- if(grid[ro] && grid[ro][c]){
-  userPath.push({r:ro,c});
+ let col=Math.floor((e.clientX-r.left-60)/cellW);
+ let row=Math.floor((e.clientY-r.top-40)/cellH);
+ if(grid[row] && grid[row][col]){
+  userPath.push({r:row,c:col});
   drawUser();
   if(userPath.length>1) search();
  }
 };
 
-/* ========= DRAW USER ========= */
+/* ===== DRAW USER ===== */
 function drawUser(){
  drawChart();
  userPath.forEach((p,i)=>{
@@ -159,24 +142,31 @@ function drawUser(){
  });
 }
 
-/* ========= SEARCH ========= */
+/* ===== SEARCH EXACT SAME PATTERN ===== */
 function search(){
  found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- let gaps=[];
- for(let i=1;i<userPath.length;i++)
-  gaps.push(userPath[i].r-userPath[i-1].r);
 
- for(let base=0;base<grid.length;base++){
-  let pts=[],ok=true;
-  for(let i=0;i<userPath.length;i++){
-   let rr=i?base+gaps[i-1]:base;
-   if(!grid[rr]){ok=false;break;}
-   let col=grid[rr].findIndex(v=>family(grid[userPath[i].r][userPath[i].c]).includes(v));
-   if(col<0){ok=false;break;}
-   pts.push({r:rr,c:col});
+ let rowGaps=[],colGaps=[];
+ for(let i=1;i<userPath.length;i++){
+  rowGaps.push(userPath[i].r-userPath[i-1].r);
+  colGaps.push(userPath[i].c-userPath[i-1].c);
+ }
+
+ for(let baseR=0;baseR<grid.length;baseR++){
+  for(let baseC=0;baseC<headers.length;baseC++){
+   let pts=[{r:baseR,c:baseC}];
+   let ok=true;
+
+   for(let i=1;i<userPath.length;i++){
+    let nr=baseR+rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
+    let nc=baseC+colGaps.slice(0,i).reduce((a,b)=>a+b,0);
+    if(!grid[nr] || !grid[nr][nc]){ok=false;break;}
+    pts.push({r:nr,c:nc});
+   }
+
+   if(ok) found.push(pts);
   }
-  if(ok) found.push(pts);
  }
 
  found.forEach((p,i)=>{
@@ -188,7 +178,7 @@ function search(){
  });
 }
 
-/* ========= SHOW PATTERN ========= */
+/* ===== SHOW PATTERN ===== */
 function showPattern(p){
  drawChart();
 
@@ -206,7 +196,11 @@ function showPattern(p){
   }
  });
 
- /* popup snapshot */
+ showPopup(p);
+}
+
+/* ===== POPUP ORIGINAL CHART ===== */
+function showPopup(p){
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
  let cropY=40+minR*cellH;
@@ -216,19 +210,13 @@ function showPattern(p){
  pop.width=w;
  pop.height=h;
 
- // original chart image
  pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
 
- // overlay – PERFECTLY ALIGNED
  p.forEach((pt,i)=>{
   let x=60+pt.c*cellW+cellW/2;
   let y=(40+pt.r*cellH+cellH/2)-cropY;
-
-  pctx.beginPath();
-  pctx.arc(x,y,11,0,Math.PI*2);
-  pctx.strokeStyle="red";
-  pctx.stroke();
-
+  pctx.beginPath();pctx.arc(x,y,11,0,Math.PI*2);
+  pctx.strokeStyle="red";pctx.stroke();
   if(i){
    let pr=p[i-1];
    pctx.beginPath();
@@ -237,8 +225,7 @@ function showPattern(p){
     (40+pr.r*cellH+cellH/2)-cropY
    );
    pctx.lineTo(x,y);
-   pctx.strokeStyle="green";
-   pctx.stroke();
+   pctx.strokeStyle="green";pctx.stroke();
   }
  });
 
