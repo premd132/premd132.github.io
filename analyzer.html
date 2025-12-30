@@ -2,29 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Exact Historical Pattern Analyzer – FINAL</title>
+<title>Exact Historical Pattern Analyzer – FINAL FIX</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
 h2{text-align:center;margin:10px}
-
 #top{text-align:center;padding:10px}
 button{padding:6px 12px;margin:5px}
 
 #wrap{display:flex;gap:12px;padding:10px}
-#chartWrap{
- height:80vh;
- overflow:auto;
- border:3px solid #000;
- background:#fff
-}
+#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
 
-#right{
- width:35%;
- max-height:80vh;
- overflow:auto
-}
+#right{width:35%;max-height:80vh;overflow:auto}
 .check{
  background:#fff;
  margin:6px;
@@ -52,18 +42,16 @@ canvas{background:#fff}
  max-height:90vh;
  overflow:auto;
 }
-#popupRows{
- margin-top:10px;
- font-size:13px;
-}
 #popupRows table{
  border-collapse:collapse;
  width:100%;
+ margin-top:10px;
 }
-#popupRows td,#popupRows th{
+#popupRows th,#popupRows td{
  border:1px solid #999;
  padding:4px;
  text-align:center;
+ font-size:12px;
 }
 </style>
 </head>
@@ -88,13 +76,13 @@ canvas{background:#fff}
 <!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="mini" width="500" height="350"></canvas>
+  <canvas id="mini" width="520" height="360"></canvas>
   <div id="popupRows"></div>
  </div>
 </div>
 
 <script>
-/* ================= GLOBAL ================= */
+/* ========== GLOBAL ========== */
 let headers=[],grid=[];
 let userPath=[],foundPatterns=[];
 const cellW=80, cellH=30;
@@ -104,7 +92,7 @@ const ctx=cvs.getContext("2d");
 const mini=document.getElementById("mini");
 const mctx=mini.getContext("2d");
 
-/* ================= LOAD CSV ================= */
+/* ========== LOAD CSV ========== */
 document.getElementById("csv").onchange=e=>{
  const r=new FileReader();
  r.onload=()=>loadCSV(r.result);
@@ -120,7 +108,7 @@ function loadCSV(txt){
  resetAll();
 }
 
-/* ================= RESET ================= */
+/* ========== RESET ========== */
 function resetAll(){
  userPath=[];
  foundPatterns=[];
@@ -128,7 +116,7 @@ function resetAll(){
  drawChart();
 }
 
-/* ================= DRAW FULL CHART ================= */
+/* ========== DRAW FULL CHART ========== */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
@@ -142,13 +130,13 @@ function drawChart(){
  });
 }
 
-/* ================= STRICT FAMILY ================= */
+/* ========== FAMILY (STRICT) ========== */
 function family(j){
  let a=j[0],b=j[1];
  return [j,b+a,a+a,b+b];
 }
 
-/* ================= USER CLICK ================= */
+/* ========== USER CLICK ========== */
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const mx=e.clientX-rect.left;
@@ -157,32 +145,30 @@ cvs.addEventListener("click",e=>{
  const r=Math.floor((my-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-  userPath.push({
-   r,c,
-   val:grid[r][c],
-   x:60+c*cellW+cellW/2,
-   y:40+r*cellH+cellH/2
-  });
+  userPath.push({r,c,val:grid[r][c]});
   drawUserPath();
   if(userPath.length>=2) searchPatterns();
  }
 });
 
-/* ================= DRAW USER PATH ================= */
+/* ========== DRAW USER PATH ========== */
 function drawUserPath(){
  drawChart();
  userPath.forEach((p,i)=>{
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
   ctx.beginPath();
-  ctx.arc(p.x,p.y,11,0,Math.PI*2);
+  ctx.arc(x,y,11,0,Math.PI*2);
   ctx.strokeStyle="red";
   ctx.lineWidth=2;
   ctx.stroke();
-  ctx.fillText(p.val,p.x-8,p.y-14);
+  ctx.fillText(p.val,x-8,y-14);
 
   if(i){
+   let q=userPath[i-1];
    ctx.beginPath();
-   ctx.moveTo(userPath[i-1].x,userPath[i-1].y);
-   ctx.lineTo(p.x,p.y);
+   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
+   ctx.lineTo(x,y);
    ctx.strokeStyle="green";
    ctx.lineWidth=2;
    ctx.stroke();
@@ -190,7 +176,7 @@ function drawUserPath(){
  });
 }
 
-/* ================= ROW GAPS ================= */
+/* ========== ROW GAP ========== */
 function rowGaps(){
  let g=[];
  for(let i=1;i<userPath.length;i++)
@@ -198,7 +184,7 @@ function rowGaps(){
  return g;
 }
 
-/* ================= SEARCH HISTORICAL ================= */
+/* ========== SEARCH HISTORICAL ========== */
 function searchPatterns(){
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
@@ -212,68 +198,89 @@ function searchPatterns(){
    let fam=family(userPath[i].val);
    let col=grid[rr].findIndex(v=>fam.includes(v));
    if(col===-1){ok=false;break;}
-   pts.push({
-    r:rr,c:col,val:grid[rr][col],
-    x:60+col*cellW+cellW/2,
-    y:40+rr*cellH+cellH/2
-   });
+   pts.push({r:rr,c:col,val:grid[rr][col]});
   }
   if(ok) foundPatterns.push(pts);
  }
  renderCheckLines();
 }
 
-/* ================= CHECK LINES ================= */
+/* ========== CHECK LINES ========== */
 function renderCheckLines(){
  foundPatterns.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
   d.innerHTML=`Pattern ${i+1}<br>${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>openPopup(p);
+  d.onclick=()=>showHistorical(p);
   document.getElementById("right").appendChild(d);
  });
 }
 
-/* ================= POPUP ================= */
+/* ========== DRAW HISTORICAL ON MAIN CHART + POPUP ========== */
+function showHistorical(p){
+ /* main chart */
+ drawChart();
+ p.forEach((pt,i)=>{
+  let x=60+pt.c*cellW+cellW/2;
+  let y=40+pt.r*cellH+cellH/2;
+
+  ctx.beginPath();
+  ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.strokeStyle="red";
+  ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.fillText(pt.val,x-8,y-14);
+
+  if(i){
+   let pr=p[i-1];
+   ctx.beginPath();
+   ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
+   ctx.lineTo(x,y);
+   ctx.strokeStyle="green";
+   ctx.lineWidth=2;
+   ctx.stroke();
+  }
+ });
+
+ openPopup(p);
+}
+
+/* ========== POPUP ========== */
 function openPopup(p){
  document.getElementById("modal").style.display="flex";
  mctx.clearRect(0,0,mini.width,mini.height);
 
- const minX=Math.min(...p.map(pt=>pt.x));
- const minY=Math.min(...p.map(pt=>pt.y));
- const maxX=Math.max(...p.map(pt=>pt.x));
- const maxY=Math.max(...p.map(pt=>pt.y));
-
- const scale=Math.min(
-  (mini.width-80)/(maxX-minX),
-  (mini.height-80)/(maxY-minY)
- );
+ const minR=Math.min(...p.map(x=>x.r));
+ const minC=Math.min(...p.map(x=>x.c));
 
  p.forEach((pt,i)=>{
-  let x=40+(pt.x-minX)*scale;
-  let y=40+(pt.y-minY)*scale;
+  let x=60+(pt.c-minC)*80;
+  let y=60+(pt.r-minR)*40;
 
   mctx.beginPath();
   mctx.arc(x,y,8,0,Math.PI*2);
   mctx.strokeStyle="red";
-  mctx.lineWidth=2;
   mctx.stroke();
+
   mctx.fillText(pt.val,x-8,y-12);
+
+  // full jodi text
+  let rowText=grid[pt.r].join(" , ");
+  mctx.fillText(rowText,x+12,y+4);
 
   if(i){
    let pr=p[i-1];
-   let px=40+(pr.x-minX)*scale;
-   let py=40+(pr.y-minY)*scale;
+   let px=60+(pr.c-minC)*80;
+   let py=60+(pr.r-minR)*40;
    mctx.beginPath();
    mctx.moveTo(px,py);
    mctx.lineTo(x,y);
    mctx.strokeStyle="green";
-   mctx.lineWidth=2;
    mctx.stroke();
   }
  });
 
- /* ---- show full rows ---- */
+ /* table */
  let rows=[...new Set(p.map(x=>x.r))];
  let html="<h4>Line Rows – Full Jodi Data</h4><table><tr>";
  headers.forEach(h=>html+=`<th>${h}</th>`);
