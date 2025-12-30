@@ -2,76 +2,91 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Record Pattern Analyzer</title>
+<title>CSV Chart Pattern Analyzer</title>
 
 <style>
-body{font-family:Arial;background:#f2d7a3}
+body{font-family:Arial;background:#f3d8a8}
 h2{text-align:center}
-#top{padding:10px;text-align:center}
+#top{text-align:center;padding:10px}
 canvas{background:#fff;border:3px solid #000}
-#panel{display:flex;gap:20px;padding:10px}
+#layout{display:flex;gap:15px;padding:10px}
 #right{width:35%;max-height:520px;overflow:auto}
 .item{background:#fff;padding:8px;margin:6px;border-left:5px solid red;cursor:pointer}
-.item:hover{background:#ffe0b3}
-input,button{padding:6px;margin:5px}
-.jodiBtn{background:#000;color:#fff;border:none;padding:6px 10px;margin:3px;cursor:pointer}
+.item:hover{background:#ffe2b3}
+.jodiBtn{padding:6px 10px;margin:3px;border:none;background:#000;color:#fff;cursor:pointer}
 .jodiBtn.active{background:red}
 </style>
 </head>
 
 <body>
 
-<h2>📊 Multi-Jodi Pattern Record Analyzer</h2>
+<h2>📊 CSV Chart + Multi Jodi Pattern Analyzer</h2>
 
 <div id="top">
-<input type="file" id="csvFile">
-<br>
+<input type="file" id="csvFile"><br><br>
 <b>Select 2 / 3 / 4 Jodi</b><br>
 <div id="jodiBox"></div>
-<button onclick="runAnalysis()">Analyze Pattern</button>
+<button onclick="analyze()">Analyze Pattern</button>
 </div>
 
-<div id="panel">
-<canvas id="chart" width="620" height="520"></canvas>
+<div id="layout">
+<canvas id="chart" width="700" height="520"></canvas>
 <div id="right"><b>Pattern Check Line</b></div>
 </div>
 
 <script>
-let rawData=[],records=[];
+let headers=[],table=[];
 let selected=[];
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
 
 document.getElementById("csvFile").onchange=e=>{
  const r=new FileReader();
- r.onload=()=>parseCSV(r.result);
+ r.onload=()=>loadCSV(r.result);
  r.readAsText(e.target.files[0]);
 };
 
-function parseCSV(txt){
+function loadCSV(txt){
  let lines=txt.trim().split("\n");
- let head=lines.shift().split(",");
- records=[];
- lines.forEach((l,i)=>{
-   let v=l.split(",");
-   v.forEach((j,idx)=>{
-     records.push({day:head[idx],jodi:j,row:i,col:idx});
+ headers=lines.shift().split(",");
+ table=lines.map(l=>l.split(","));
+ drawChart();
+ buildJodiButtons();
+}
+
+function drawChart(){
+ ctx.clearRect(0,0,cvs.width,cvs.height);
+ ctx.font="12px Arial";
+
+ // headers
+ headers.forEach((h,i)=>{
+   ctx.fillText(h,90+i*90,20);
+ });
+
+ // grid + values
+ table.forEach((row,r)=>{
+   row.forEach((v,c)=>{
+     let x=80+c*90;
+     let y=40+r*30;
+     ctx.strokeRect(x-30,y-15,60,25);
+     ctx.fillText(v,x-8,y+5);
    });
  });
- buildJodiButtons();
 }
 
 function buildJodiButtons(){
  let box=document.getElementById("jodiBox");
  box.innerHTML="";
- let set=[...new Set(records.map(r=>r.jodi))];
+ let set=new Set();
+ table.flat().forEach(j=>set.add(j));
+
  set.forEach(j=>{
   let b=document.createElement("button");
   b.innerText=j;
   b.className="jodiBtn";
   b.onclick=()=>{
     if(selected.includes(j)){
-      selected=selected.filter(x=>x!=j);
+      selected=selected.filter(x=>x!==j);
       b.classList.remove("active");
     }else if(selected.length<4){
       selected.push(j);
@@ -82,34 +97,39 @@ function buildJodiButtons(){
  });
 }
 
-function runAnalysis(){
- ctx.clearRect(0,0,620,520);
+function analyze(){
+ drawChart();
  document.getElementById("right").innerHTML="<b>Pattern Check Line</b>";
- if(selected.length<2) return alert("Minimum 2 jodi select karo");
+ if(selected.length<2){alert("Minimum 2 jodi select karo");return;}
 
- let match=records.filter(r=>selected.includes(r.jodi));
- let pos=[];
- match.forEach((m,i)=>{
-  let x=80+m.col*80;
-  let y=40+m.row*30;
-  pos.push({x,y,jodi:m.jodi});
-  drawCircle(x,y,m.jodi);
+ let points=[];
+ table.forEach((row,r)=>{
+  row.forEach((v,c)=>{
+    if(selected.includes(v)){
+      let x=80+c*90;
+      let y=40+r*30;
+      points.push({x,y,val:v});
+      circle(x,y,v);
+    }
+  });
  });
 
- drawLine(pos);
- addCheckLine(pos);
+ if(points.length>1){
+   line(points);
+   addCheckLine();
+ }
 }
 
-function drawCircle(x,y,t){
+function circle(x,y,t){
  ctx.beginPath();
- ctx.arc(x,y,16,0,Math.PI*2);
+ ctx.arc(x,y,14,0,Math.PI*2);
  ctx.strokeStyle="red";
  ctx.lineWidth=2;
  ctx.stroke();
  ctx.fillText(t,x-7,y+4);
 }
 
-function drawLine(p){
+function line(p){
  ctx.beginPath();
  ctx.moveTo(p[0].x,p[0].y);
  p.forEach(n=>ctx.lineTo(n.x,n.y));
@@ -118,17 +138,17 @@ function drawLine(p){
  ctx.stroke();
 }
 
-function addCheckLine(p){
+function addCheckLine(){
  let d=document.createElement("div");
  d.className="item";
- d.innerHTML=`Pattern → ${selected.join("-")}`;
+ d.innerHTML="Pattern → "+selected.join(" - ");
  d.onclick=exportImage;
  document.getElementById("right").appendChild(d);
 }
 
 function exportImage(){
  let a=document.createElement("a");
- a.download="pattern_result.png";
+ a.download="pattern_chart.png";
  a.href=cvs.toDataURL();
  a.click();
 }
