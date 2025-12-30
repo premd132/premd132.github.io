@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Full CSV Historical Pattern Analyzer</title>
+<title>Advanced Historical Pattern Analyzer</title>
 
 <style>
 body{font-family:Arial;background:#f1d18a;margin:0}
@@ -35,11 +35,11 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Full CSV View + Historical Pattern Finder</h2>
+<h2>📊 Multi-Jodi Historical Pattern Finder</h2>
 
 <div id="top">
 <input type="file" id="csv">
-<p><b>Chart me jodi par click karo → system old pattern dhoondhega</b></p>
+<p><b>Chart me 2 / 3 / 4 jodi par click karo → purane same pattern milenge</b></p>
 </div>
 
 <div id="wrap">
@@ -54,7 +54,9 @@ canvas{background:#fff}
 
 <script>
 let headers=[],grid=[];
-let selected=[];
+let selectedSeq=[];
+let foundPatterns=[];
+
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
 
@@ -75,6 +77,9 @@ function loadCSV(txt){
  cvs.height = grid.length * cellH + 60;
 
  drawChart();
+ selectedSeq=[];
+ foundPatterns=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
 }
 
 function drawChart(){
@@ -95,7 +100,11 @@ function drawChart(){
  });
 }
 
-// cell click detect
+function family(j){
+ return [j, j[1]+j[0], j[0]+j[0], j[1]+j[1]];
+}
+
+// chart cell click
 cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const x=e.clientX-rect.left;
@@ -105,47 +114,62 @@ cvs.addEventListener("click",e=>{
  const r=Math.floor((y-40)/cellH);
 
  if(grid[r] && grid[r][c]){
-   selectJodi(grid[r][c]);
+   selectedSeq.push(grid[r][c]);
+   searchOldPatterns();
  }
 });
 
-function family(j){
- return [j, j[1]+j[0], j[0]+j[0], j[1]+j[1]];
-}
-
-function selectJodi(j){
- selected = family(j);
- findOldPatterns();
-}
-
-function findOldPatterns(){
+function searchOldPatterns(){
  drawChart();
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ foundPatterns=[];
 
- let matches=[];
- grid.forEach((row,r)=>{
-  row.forEach((v,c)=>{
-   if(selected.includes(v)){
-    matches.push({r,c,v});
+ if(selectedSeq.length < 2) return;
+
+ // scan historical record
+ for(let r=0; r<=grid.length-selectedSeq.length; r++){
+   let match=true;
+   let points=[];
+
+   for(let i=0;i<selectedSeq.length;i++){
+     let fam=family(selectedSeq[i]);
+     let found=false;
+
+     for(let c=0;c<grid[r+i].length;c++){
+       if(fam.includes(grid[r+i][c])){
+         points.push({r:r+i,c,val:grid[r+i][c]});
+         found=true;
+         break;
+       }
+     }
+     if(!found){ match=false; break; }
    }
-  });
- });
 
- if(matches.length<2) return;
+   if(match){
+     foundPatterns.push(points);
+   }
+ }
 
- drawPattern(matches);
-
- let d=document.createElement("div");
- d.className="check";
- d.innerHTML=`Old Pattern Found<br>Jodi/Family: ${[...new Set(matches.map(m=>m.v))].join(" → ")}`;
- d.onclick=exportImage;
- document.getElementById("right").appendChild(d);
+ renderCheckLines();
 }
 
-function drawPattern(arr){
- arr.forEach(p=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
+function renderCheckLines(){
+ foundPatterns.forEach((p,idx)=>{
+  let d=document.createElement("div");
+  d.className="check";
+  d.innerHTML=`Pattern ${idx+1}<br>
+  Jodi Flow: ${p.map(x=>x.val).join(" → ")}`;
+  d.onclick=()=>drawSinglePattern(p);
+  document.getElementById("right").appendChild(d);
+ });
+}
+
+function drawSinglePattern(p){
+ drawChart();
+
+ p.forEach(pt=>{
+  let x=60+pt.c*cellW+cellW/2;
+  let y=40+pt.r*cellH+cellH/2;
   ctx.beginPath();
   ctx.arc(x,y,12,0,Math.PI*2);
   ctx.strokeStyle="red";
@@ -154,21 +178,14 @@ function drawPattern(arr){
  });
 
  ctx.beginPath();
- let f=arr[0];
+ let f=p[0];
  ctx.moveTo(60+f.c*cellW+cellW/2,40+f.r*cellH+cellH/2);
- arr.forEach(p=>{
-  ctx.lineTo(60+p.c*cellW+cellW/2,40+p.r*cellH+cellH/2);
+ p.forEach(pt=>{
+  ctx.lineTo(60+pt.c*cellW+cellW/2,40+pt.r*cellH+cellH/2);
  });
  ctx.strokeStyle="green";
  ctx.lineWidth=2;
  ctx.stroke();
-}
-
-function exportImage(){
- let a=document.createElement("a");
- a.download="old_pattern.png";
- a.href=cvs.toDataURL();
- a.click();
 }
 </script>
 
