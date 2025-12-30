@@ -1,46 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>CSV Chart Pattern Analyzer</title>
-
+<title>Historical Jodi Pattern Analyzer</title>
 <style>
-body{font-family:Arial;background:#f3d8a8}
+body{font-family:Arial;background:#f1d18a}
 h2{text-align:center}
 #top{text-align:center;padding:10px}
 canvas{background:#fff;border:3px solid #000}
-#layout{display:flex;gap:15px;padding:10px}
+#wrap{display:flex;gap:15px;padding:10px}
 #right{width:35%;max-height:520px;overflow:auto}
-.item{background:#fff;padding:8px;margin:6px;border-left:5px solid red;cursor:pointer}
-.item:hover{background:#ffe2b3}
-.jodiBtn{padding:6px 10px;margin:3px;border:none;background:#000;color:#fff;cursor:pointer}
-.jodiBtn.active{background:red}
+.check{background:#fff;margin:6px;padding:8px;border-left:5px solid red;cursor:pointer}
+.check:hover{background:#ffe3b3}
+.jodi{padding:6px 10px;margin:3px;border:none;background:#000;color:#fff;cursor:pointer}
+.jodi.active{background:red}
 </style>
 </head>
 
 <body>
 
-<h2>📊 CSV Chart + Multi Jodi Pattern Analyzer</h2>
+<h2>📊 Historical CSV Jodi Pattern Tool</h2>
 
 <div id="top">
-<input type="file" id="csvFile"><br><br>
-<b>Select 2 / 3 / 4 Jodi</b><br>
-<div id="jodiBox"></div>
-<button onclick="analyze()">Analyze Pattern</button>
+<input type="file" id="csv"><br><br>
+<b>Click Any Jodi (Auto family + old pattern search)</b><br>
+<div id="buttons"></div>
 </div>
 
-<div id="layout">
-<canvas id="chart" width="700" height="520"></canvas>
-<div id="right"><b>Pattern Check Line</b></div>
+<div id="wrap">
+<canvas id="chart" width="750" height="520"></canvas>
+<div id="right"><b>Pattern Check Lines</b></div>
 </div>
 
 <script>
-let headers=[],table=[];
+let headers=[],grid=[];
 let selected=[];
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
 
-document.getElementById("csvFile").onchange=e=>{
+document.getElementById("csv").onchange=e=>{
  const r=new FileReader();
  r.onload=()=>loadCSV(r.result);
  r.readAsText(e.target.files[0]);
@@ -49,106 +47,117 @@ document.getElementById("csvFile").onchange=e=>{
 function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
- table=lines.map(l=>l.split(","));
+ grid=lines.map(l=>l.split(","));
  drawChart();
- buildJodiButtons();
+ buildButtons();
 }
 
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
 
- // headers
  headers.forEach((h,i)=>{
-   ctx.fillText(h,90+i*90,20);
+   ctx.fillText(h,90+i*95,20);
  });
 
- // grid + values
- table.forEach((row,r)=>{
+ grid.forEach((row,r)=>{
    row.forEach((v,c)=>{
-     let x=80+c*90;
-     let y=40+r*30;
+     let x=80+c*95;
+     let y=45+r*32;
      ctx.strokeRect(x-30,y-15,60,25);
      ctx.fillText(v,x-8,y+5);
    });
  });
 }
 
-function buildJodiButtons(){
- let box=document.getElementById("jodiBox");
- box.innerHTML="";
- let set=new Set();
- table.flat().forEach(j=>set.add(j));
+function family(j){
+ return [
+  j,
+  j[1]+j[0],
+  j[0]+j[0],
+  j[1]+j[1]
+ ];
+}
 
+function buildButtons(){
+ let box=document.getElementById("buttons");
+ box.innerHTML="";
+ let set=new Set(grid.flat());
  set.forEach(j=>{
   let b=document.createElement("button");
+  b.className="jodi";
   b.innerText=j;
-  b.className="jodiBtn";
   b.onclick=()=>{
     if(selected.includes(j)){
       selected=selected.filter(x=>x!==j);
       b.classList.remove("active");
-    }else if(selected.length<4){
+    }else{
       selected.push(j);
       b.classList.add("active");
     }
+    findOldPatterns();
   };
   box.appendChild(b);
  });
 }
 
-function analyze(){
+function findOldPatterns(){
  drawChart();
- document.getElementById("right").innerHTML="<b>Pattern Check Line</b>";
- if(selected.length<2){alert("Minimum 2 jodi select karo");return;}
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
 
- let points=[];
- table.forEach((row,r)=>{
+ if(selected.length===0) return;
+
+ let fam=[];
+ selected.forEach(j=>family(j).forEach(f=>fam.push(f)));
+
+ let matches=[];
+
+ grid.forEach((row,r)=>{
   row.forEach((v,c)=>{
-    if(selected.includes(v)){
-      let x=80+c*90;
-      let y=40+r*30;
-      points.push({x,y,val:v});
-      circle(x,y,v);
+    if(fam.includes(v)){
+      matches.push({r,c,v});
     }
   });
  });
 
- if(points.length>1){
-   line(points);
-   addCheckLine();
- }
+ if(matches.length<2) return;
+
+ drawPattern(matches);
+
+ let d=document.createElement("div");
+ d.className="check";
+ d.innerHTML=
+  `Pattern Found<br>
+   Jodi/Family: ${[...new Set(matches.map(m=>m.v))].join(" → ")}`;
+ d.onclick=exportImage;
+ document.getElementById("right").appendChild(d);
 }
 
-function circle(x,y,t){
- ctx.beginPath();
- ctx.arc(x,y,14,0,Math.PI*2);
- ctx.strokeStyle="red";
- ctx.lineWidth=2;
- ctx.stroke();
- ctx.fillText(t,x-7,y+4);
-}
+function drawPattern(arr){
+ arr.forEach(p=>{
+  let x=80+p.c*95;
+  let y=45+p.r*32;
+  ctx.beginPath();
+  ctx.arc(x,y,14,0,Math.PI*2);
+  ctx.strokeStyle="red";
+  ctx.lineWidth=2;
+  ctx.stroke();
+ });
 
-function line(p){
  ctx.beginPath();
- ctx.moveTo(p[0].x,p[0].y);
- p.forEach(n=>ctx.lineTo(n.x,n.y));
+ let first=arr[0];
+ ctx.moveTo(80+first.c*95,45+first.r*32);
+ arr.forEach(p=>{
+  ctx.lineTo(80+p.c*95,45+p.r*32);
+ });
  ctx.strokeStyle="green";
  ctx.lineWidth=2;
  ctx.stroke();
 }
 
-function addCheckLine(){
- let d=document.createElement("div");
- d.className="item";
- d.innerHTML="Pattern → "+selected.join(" - ");
- d.onclick=exportImage;
- document.getElementById("right").appendChild(d);
-}
-
 function exportImage(){
  let a=document.createElement("a");
- a.download="pattern_chart.png";
+ a.download="historical_pattern.png";
  a.href=cvs.toDataURL();
  a.click();
 }
