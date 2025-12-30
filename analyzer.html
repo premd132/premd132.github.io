@@ -1,28 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Popup Analyzer</title>
+<title>Exact Pattern Historical Analyzer</title>
 
 <style>
-body{font-family:Arial;background:#f1d18a;margin:0}
-h2{text-align:center;padding:10px}
+body{margin:0;font-family:Arial;background:#f1d18a}
+h2{text-align:center;margin:10px}
 
 #top{text-align:center;padding:10px}
 button{padding:6px 10px;margin:5px}
 
-#chartWrap{height:80vh;overflow:auto;border:3px solid #000}
+#wrap{display:flex;gap:12px;padding:10px}
+#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
 
-#wrap{display:flex;gap:15px;padding:10px}
 #right{width:35%;max-height:80vh;overflow:auto}
-
 .check{
  background:#fff;
  margin:6px;
  padding:8px;
  border-left:5px solid red;
- cursor:pointer
+ cursor:pointer;
+ font-size:14px
 }
 .check:hover{background:#ffe3b3}
 
@@ -45,54 +45,45 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact Click-Pattern Historical Finder</h2>
+<h2>📊 Exact User-Drawn Pattern Analyzer (FINAL)</h2>
 
 <div id="top">
 <input type="file" id="csv">
 <button onclick="resetAll()">Reset</button>
-<p><b>Jaise-jaise click karoge, bilkul waisa hi pattern search hoga</b></p>
+<p><b>Jaise-jaise chart me click karoge → wahi exact pattern search hoga</b></p>
 </div>
 
 <div id="wrap">
 <div id="chartWrap">
   <canvas id="chart"></canvas>
 </div>
-
-<div id="right">
-  <b>Pattern Check Lines</b>
-</div>
+<div id="right"><b>Pattern Check Lines</b></div>
 </div>
 
 <!-- popup -->
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="mini" width="300" height="200"></canvas>
+  <canvas id="mini" width="320" height="220"></canvas>
  </div>
 </div>
 
 <script>
+/* ===== GLOBAL ===== */
 let headers=[],grid=[];
 let userPath=[],foundPatterns=[];
+const cellW=80, cellH=30;
 
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
 const mini=document.getElementById("mini");
 const mctx=mini.getContext("2d");
 
-const cellW=80, cellH=30;
-
+/* ===== LOAD CSV ===== */
 document.getElementById("csv").onchange=e=>{
  const r=new FileReader();
  r.onload=()=>loadCSV(r.result);
  r.readAsText(e.target.files[0]);
 };
-
-function resetAll(){
- userPath=[];
- foundPatterns=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
-}
 
 function loadCSV(txt){
  let lines=txt.trim().split("\n");
@@ -103,10 +94,20 @@ function loadCSV(txt){
  resetAll();
 }
 
+/* ===== RESET ===== */
+function resetAll(){
+ userPath=[];
+ foundPatterns=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ drawChart();
+}
+
+/* ===== DRAW FULL CHART ===== */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
  headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
+
  grid.forEach((row,r)=>{
   row.forEach((v,c)=>{
    let x=60+c*cellW,y=40+r*cellH;
@@ -116,22 +117,58 @@ function drawChart(){
  });
 }
 
+/* ===== EXTENDED FAMILY (FINAL RULE) ===== */
 function family(j){
- return [j,j[1]+j[0],j[0]+j[0],j[1]+j[1]];
+ let a=j[0], b=j[1];
+ let s=(parseInt(a)+parseInt(b))%10;
+ return [
+  j,        // same
+  b+a,      // mirror
+  a+a,      // double
+  b+b,
+  s+""+a,   // 70 / 71 type
+  s+""+b
+ ];
 }
 
-cvs.onclick=e=>{
+/* ===== CLICK = DRAW USER PATTERN ===== */
+cvs.addEventListener("click",e=>{
  const rect=cvs.getBoundingClientRect();
  const x=e.clientX-rect.left;
  const y=e.clientY-rect.top;
  const c=Math.floor((x-60)/cellW);
  const r=Math.floor((y-40)/cellH);
- if(grid[r]&&grid[r][c]){
+
+ if(grid[r] && grid[r][c]){
   userPath.push({r,c,val:grid[r][c]});
+  drawUserPath();
   if(userPath.length>=2) searchPatterns();
  }
-};
+});
 
+/* ===== DRAW USER PATH ===== */
+function drawUserPath(){
+ drawChart();
+ userPath.forEach((p,i)=>{
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
+  ctx.beginPath();
+  ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.strokeStyle="red";
+  ctx.lineWidth=2;
+  ctx.stroke();
+  if(i){
+   let q=userPath[i-1];
+   ctx.beginPath();
+   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
+   ctx.lineTo(x,y);
+   ctx.strokeStyle="green";
+   ctx.stroke();
+  }
+ });
+}
+
+/* ===== ROW GAP CALC ===== */
 function rowGaps(){
  let g=[];
  for(let i=1;i<userPath.length;i++)
@@ -139,51 +176,57 @@ function rowGaps(){
  return g;
 }
 
+/* ===== SEARCH HISTORICAL PATTERNS ===== */
 function searchPatterns(){
  foundPatterns=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- let gaps=rowGaps();
+ const gaps=rowGaps();
 
- for(let r=0;r<grid.length;r++){
+ for(let base=0;base<grid.length;base++){
   let pts=[],ok=true;
   for(let i=0;i<userPath.length;i++){
-   let rr=i==0?r:r+gaps[i-1];
+   let rr=i===0?base:base+gaps[i-1];
    if(!grid[rr]){ok=false;break;}
    let fam=family(userPath[i].val);
    let col=grid[rr].findIndex(v=>fam.includes(v));
-   if(col==-1){ok=false;break;}
+   if(col===-1){ok=false;break;}
    pts.push({r:rr,c:col,val:grid[rr][col]});
   }
   if(ok) foundPatterns.push(pts);
  }
-
  renderCheckLines();
 }
 
+/* ===== CHECK LINES ===== */
 function renderCheckLines(){
  foundPatterns.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
-  d.innerHTML=`Pattern ${i+1}<br>${p.map(x=>x.val).join(" → ")}`;
+  d.innerHTML=
+   `Pattern ${i+1}<br>
+    ${p.map(x=>x.val).join(" → ")}`;
   d.onclick=()=>openPopup(p);
   document.getElementById("right").appendChild(d);
  });
 }
 
+/* ===== POPUP PREVIEW ===== */
 function openPopup(p){
  document.getElementById("modal").style.display="flex";
  mctx.clearRect(0,0,mini.width,mini.height);
+
  let minR=Math.min(...p.map(x=>x.r));
  p.forEach((pt,i)=>{
-  let x=50+i*70,y=50+(pt.r-minR)*30;
+  let x=50+i*70;
+  let y=50+(pt.r-minR)*30;
   mctx.beginPath();
-  mctx.arc(x,y,10,0,Math.PI*2);
+  mctx.arc(x,y,9,0,Math.PI*2);
   mctx.strokeStyle="red";
   mctx.stroke();
   if(i){
-   let prev=p[i-1];
+   let pr=p[i-1];
    mctx.beginPath();
-   mctx.moveTo(50+(i-1)*70,50+(prev.r-minR)*30);
+   mctx.moveTo(50+(i-1)*70,50+(pr.r-minR)*30);
    mctx.lineTo(x,y);
    mctx.strokeStyle="green";
    mctx.stroke();
