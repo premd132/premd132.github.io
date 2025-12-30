@@ -2,204 +2,135 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer – DRAWING VERSION</title>
+<title>Record Pattern Analyzer</title>
 
 <style>
-body{font-family:Arial;background:#fafafa;margin:10px}
-textarea{width:100%;height:150px;font-size:13px}
-button{padding:8px 14px;margin:6px 4px}
-#wrap{position:relative;display:inline-block}
-table{border-collapse:collapse;margin-top:10px}
-th,td{
- border:1px solid #ccc;
- padding:4px 6px;
- text-align:center;
- font-size:12px;
- min-width:38px;
- height:28px
-}
-th{background:#eee}
-.match{
- background:#ffeaa7;
- cursor:pointer;
- margin:4px 0;
- padding:4px
-}
-#results{margin-top:15px}
-canvas{
- position:absolute;
- top:0;left:0;
- pointer-events:none
-}
-.popup{
- position:fixed;top:0;left:0;width:100%;height:100%;
- background:rgba(0,0,0,.6);
- display:none;align-items:center;justify-content:center
-}
-.popup-box{
- background:#fff;padding:15px;
- max-width:92%;border-radius:6px
-}
+body{font-family:Arial;background:#f2d7a3}
+h2{text-align:center}
+#top{padding:10px;text-align:center}
+canvas{background:#fff;border:3px solid #000}
+#panel{display:flex;gap:20px;padding:10px}
+#right{width:35%;max-height:520px;overflow:auto}
+.item{background:#fff;padding:8px;margin:6px;border-left:5px solid red;cursor:pointer}
+.item:hover{background:#ffe0b3}
+input,button{padding:6px;margin:5px}
+.jodiBtn{background:#000;color:#fff;border:none;padding:6px 10px;margin:3px;cursor:pointer}
+.jodiBtn.active{background:red}
 </style>
 </head>
 
 <body>
 
-<h3>🔥 Jodi Line Analyzer – Photo Drawing Mode</h3>
+<h2>📊 Multi-Jodi Pattern Record Analyzer</h2>
 
-<textarea id="input"></textarea><br>
-<button onclick="analyze()">Generate Chart</button>
-
-<div id="wrap">
- <canvas id="lines"></canvas>
- <div id="chart"></div>
+<div id="top">
+<input type="file" id="csvFile">
+<br>
+<b>Select 2 / 3 / 4 Jodi</b><br>
+<div id="jodiBox"></div>
+<button onclick="runAnalysis()">Analyze Pattern</button>
 </div>
 
-<div id="results"></div>
-
-<div class="popup" id="popup" onclick="this.style.display='none'">
- <div class="popup-box" onclick="event.stopPropagation()">
-  <div id="popupData"></div>
- </div>
+<div id="panel">
+<canvas id="chart" width="620" height="520"></canvas>
+<div id="right"><b>Pattern Check Line</b></div>
 </div>
 
 <script>
-// ================= FAMILY =================
-const FAMILY={1:6,6:1,2:7,7:2,3:8,8:3,4:9,9:4,5:0,0:5};
-const isFamily=(a,b)=>FAMILY[a]===b;
+let rawData=[],records=[];
+let selected=[];
+const cvs=document.getElementById("chart");
+const ctx=cvs.getContext("2d");
 
-// ================= PARSE =================
-function parse(){
- let lines=document.getElementById("input").value.trim().split("\n");
- let days=[], cols=[];
- lines.forEach(l=>{
-  let p=l.trim().split(/\s+/);
-  if(p.length<2)return;
-  days.push(p[0]);
-  cols.push(p.slice(1).map(v=>v==="**"?null:v));
+document.getElementById("csvFile").onchange=e=>{
+ const r=new FileReader();
+ r.onload=()=>parseCSV(r.result);
+ r.readAsText(e.target.files[0]);
+};
+
+function parseCSV(txt){
+ let lines=txt.trim().split("\n");
+ let head=lines.shift().split(",");
+ records=[];
+ lines.forEach((l,i)=>{
+   let v=l.split(",");
+   v.forEach((j,idx)=>{
+     records.push({day:head[idx],jodi:j,row:i,col:idx});
+   });
  });
- return {days,cols};
+ buildJodiButtons();
 }
 
-// ================= ANALYZE =================
-function analyze(){
- const {days,cols}=parse();
- if(!cols.length)return;
-
- let rows=Math.max(...cols.map(c=>c.length));
- let table=[];
- for(let r=0;r<rows;r++){
-  table[r]=[];
-  for(let c=0;c<cols.length;c++){
-   table[r][c]=cols[c][r]||null;
-  }
- }
-
- drawTable(days,table);
- setTimeout(()=>findTrends(days,table),50);
-}
-
-// ================= DRAW TABLE =================
-function drawTable(days,table){
- let h="<table id='tbl'><tr>";
- days.forEach(d=>h+="<th>"+d+"</th>");
- h+="</tr>";
- table.forEach(r=>{
-  h+="<tr>";
-  r.forEach(v=>h+="<td>"+(v??"")+"</td>");
-  h+="</tr>";
- });
- h+="</table>";
- document.getElementById("chart").innerHTML=h;
-
- let tbl=document.getElementById("tbl");
- let c=document.getElementById("lines");
- c.width=tbl.offsetWidth;
- c.height=tbl.offsetHeight;
-}
-
-// ================= TREND LOGIC =================
-function findTrends(days,table){
- let last=table.length-1;
- let angles=[[-1,-1],[-1,1],[-2,-2],[-2,2]];
- let trends=[];
- let ctx=document.getElementById("lines").getContext("2d");
- ctx.clearRect(0,0,9999,9999);
-
- for(let c=0;c<days.length;c++){
-  let base=table[last][c];
-  if(!base)continue;
-  let a=+base[0],b=+base[1];
-
-  angles.forEach(([dr,dc])=>{
-   let pts=[];
-   for(let r=0;r<table.length;r++){
-    let r2=r+dr,c2=c+dc;
-    if(r2<0||c2<0||c2>=days.length)continue;
-    let v=table[r][c],t=table[r2]?.[c2];
-    if(!v||!t)continue;
-
-    let x=+v[0],y=+v[1];
-    if(x===a&&y===b||isFamily(x,a)&&isFamily(y,b)){
-     pts.push({r,c});
+function buildJodiButtons(){
+ let box=document.getElementById("jodiBox");
+ box.innerHTML="";
+ let set=[...new Set(records.map(r=>r.jodi))];
+ set.forEach(j=>{
+  let b=document.createElement("button");
+  b.innerText=j;
+  b.className="jodiBtn";
+  b.onclick=()=>{
+    if(selected.includes(j)){
+      selected=selected.filter(x=>x!=j);
+      b.classList.remove("active");
+    }else if(selected.length<4){
+      selected.push(j);
+      b.classList.add("active");
     }
-   }
-
-   if(pts.length>1){
-    drawLine(ctx,pts,c===c?true:false);
-    trends.push({base,day:days[c],angle:`${dr},${dc}`,count:pts.length,pts});
-   }
-  });
- }
-
- showResults(trends);
+  };
+  box.appendChild(b);
+ });
 }
 
-// ================= DRAW LINE =================
-function drawLine(ctx,pts,strong){
- ctx.beginPath();
- ctx.strokeStyle=strong?"#e74c3c":"#0984e3";
- ctx.lineWidth=strong?3:2;
+function runAnalysis(){
+ ctx.clearRect(0,0,620,520);
+ document.getElementById("right").innerHTML="<b>Pattern Check Line</b>";
+ if(selected.length<2) return alert("Minimum 2 jodi select karo");
 
- pts.forEach((p,i)=>{
-  let cell=document.getElementById("tbl").rows[p.r+1].cells[p.c];
-  let x=cell.offsetLeft+cell.offsetWidth/2;
-  let y=cell.offsetTop+cell.offsetHeight/2;
-  if(i===0)ctx.moveTo(x,y);
-  else ctx.lineTo(x,y);
+ let match=records.filter(r=>selected.includes(r.jodi));
+ let pos=[];
+ match.forEach((m,i)=>{
+  let x=80+m.col*80;
+  let y=40+m.row*30;
+  pos.push({x,y,jodi:m.jodi});
+  drawCircle(x,y,m.jodi);
  });
+
+ drawLine(pos);
+ addCheckLine(pos);
+}
+
+function drawCircle(x,y,t){
+ ctx.beginPath();
+ ctx.arc(x,y,16,0,Math.PI*2);
+ ctx.strokeStyle="red";
+ ctx.lineWidth=2;
+ ctx.stroke();
+ ctx.fillText(t,x-7,y+4);
+}
+
+function drawLine(p){
+ ctx.beginPath();
+ ctx.moveTo(p[0].x,p[0].y);
+ p.forEach(n=>ctx.lineTo(n.x,n.y));
+ ctx.strokeStyle="green";
+ ctx.lineWidth=2;
  ctx.stroke();
 }
 
-// ================= RESULTS =================
-function showResults(trends){
- let box=document.getElementById("results");
- if(!trends.length){
-  box.innerHTML="<b>No family trend found</b>";
-  return;
- }
- window._TRENDS=trends;
- let h="<h4>Trend List (Click = Photo style view)</h4>";
- trends.forEach((t,i)=>{
-  h+=`<div class="match" onclick="popup(${i})">
-   Base ${t.base} | ${t.day} | Angle ${t.angle} | Count ${t.count}
-  </div>`;
- });
- box.innerHTML=h;
+function addCheckLine(p){
+ let d=document.createElement("div");
+ d.className="item";
+ d.innerHTML=`Pattern → ${selected.join("-")}`;
+ d.onclick=exportImage;
+ document.getElementById("right").appendChild(d);
 }
 
-// ================= POPUP =================
-function popup(i){
- let t=_TRENDS[i];
- let h=`<b>Base:</b> ${t.base}<br>
-        <b>Day:</b> ${t.day}<br>
-        <b>Angle:</b> ${t.angle}<br>
-        <b>Total:</b> ${t.count}<hr>`;
- t.pts.forEach(p=>{
-  h+=`Row ${p.r+1} → ${p.c+1}<br>`;
- });
- document.getElementById("popupData").innerHTML=h;
- document.getElementById("popup").style.display="flex";
+function exportImage(){
+ let a=document.createElement("a");
+ a.download="pattern_result.png";
+ a.href=cvs.toDataURL();
+ a.click();
 }
 </script>
 
