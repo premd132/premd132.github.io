@@ -2,34 +2,54 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Historical Jodi Pattern Analyzer</title>
+<title>Full CSV Historical Pattern Analyzer</title>
+
 <style>
-body{font-family:Arial;background:#f1d18a}
-h2{text-align:center}
+body{font-family:Arial;background:#f1d18a;margin:0}
+h2{text-align:center;padding:10px}
+
 #top{text-align:center;padding:10px}
-canvas{background:#fff;border:3px solid #000}
+
+#chartWrap{
+  height:80vh;
+  overflow:auto;
+  border-top:3px solid #000;
+  border-bottom:3px solid #000;
+}
+
+canvas{background:#fff}
+
 #wrap{display:flex;gap:15px;padding:10px}
-#right{width:35%;max-height:520px;overflow:auto}
-.check{background:#fff;margin:6px;padding:8px;border-left:5px solid red;cursor:pointer}
+#right{width:35%;max-height:80vh;overflow:auto}
+
+.check{
+ background:#fff;
+ margin:6px;
+ padding:8px;
+ border-left:5px solid red;
+ cursor:pointer
+}
 .check:hover{background:#ffe3b3}
-.jodi{padding:6px 10px;margin:3px;border:none;background:#000;color:#fff;cursor:pointer}
-.jodi.active{background:red}
 </style>
 </head>
 
 <body>
 
-<h2>📊 Historical CSV Jodi Pattern Tool</h2>
+<h2>📊 Full CSV View + Historical Pattern Finder</h2>
 
 <div id="top">
-<input type="file" id="csv"><br><br>
-<b>Click Any Jodi (Auto family + old pattern search)</b><br>
-<div id="buttons"></div>
+<input type="file" id="csv">
+<p><b>Chart me jodi par click karo → system old pattern dhoondhega</b></p>
 </div>
 
 <div id="wrap">
-<canvas id="chart" width="750" height="520"></canvas>
-<div id="right"><b>Pattern Check Lines</b></div>
+<div id="chartWrap">
+  <canvas id="chart"></canvas>
+</div>
+
+<div id="right">
+  <b>Pattern Check Lines</b>
+</div>
 </div>
 
 <script>
@@ -37,6 +57,8 @@ let headers=[],grid=[];
 let selected=[];
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
+
+const cellW=80, cellH=30;
 
 document.getElementById("csv").onchange=e=>{
  const r=new FileReader();
@@ -48,8 +70,11 @@ function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
  grid=lines.map(l=>l.split(","));
+
+ cvs.width = headers.length * cellW + 100;
+ cvs.height = grid.length * cellH + 60;
+
  drawChart();
- buildButtons();
 }
 
 function drawChart(){
@@ -57,66 +82,52 @@ function drawChart(){
  ctx.font="12px Arial";
 
  headers.forEach((h,i)=>{
-   ctx.fillText(h,90+i*95,20);
+   ctx.fillText(h,80+i*cellW,20);
  });
 
  grid.forEach((row,r)=>{
-   row.forEach((v,c)=>{
-     let x=80+c*95;
-     let y=45+r*32;
-     ctx.strokeRect(x-30,y-15,60,25);
-     ctx.fillText(v,x-8,y+5);
-   });
+  row.forEach((v,c)=>{
+    let x=60+c*cellW;
+    let y=40+r*cellH;
+    ctx.strokeRect(x,y,cellW,cellH);
+    ctx.fillText(v,x+cellW/2-8,y+18);
+  });
  });
 }
+
+// cell click detect
+cvs.addEventListener("click",e=>{
+ const rect=cvs.getBoundingClientRect();
+ const x=e.clientX-rect.left;
+ const y=e.clientY-rect.top;
+
+ const c=Math.floor((x-60)/cellW);
+ const r=Math.floor((y-40)/cellH);
+
+ if(grid[r] && grid[r][c]){
+   selectJodi(grid[r][c]);
+ }
+});
 
 function family(j){
- return [
-  j,
-  j[1]+j[0],
-  j[0]+j[0],
-  j[1]+j[1]
- ];
+ return [j, j[1]+j[0], j[0]+j[0], j[1]+j[1]];
 }
 
-function buildButtons(){
- let box=document.getElementById("buttons");
- box.innerHTML="";
- let set=new Set(grid.flat());
- set.forEach(j=>{
-  let b=document.createElement("button");
-  b.className="jodi";
-  b.innerText=j;
-  b.onclick=()=>{
-    if(selected.includes(j)){
-      selected=selected.filter(x=>x!==j);
-      b.classList.remove("active");
-    }else{
-      selected.push(j);
-      b.classList.add("active");
-    }
-    findOldPatterns();
-  };
-  box.appendChild(b);
- });
+function selectJodi(j){
+ selected = family(j);
+ findOldPatterns();
 }
 
 function findOldPatterns(){
  drawChart();
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
 
- if(selected.length===0) return;
-
- let fam=[];
- selected.forEach(j=>family(j).forEach(f=>fam.push(f)));
-
  let matches=[];
-
  grid.forEach((row,r)=>{
   row.forEach((v,c)=>{
-    if(fam.includes(v)){
-      matches.push({r,c,v});
-    }
+   if(selected.includes(v)){
+    matches.push({r,c,v});
+   }
   });
  });
 
@@ -126,29 +137,27 @@ function findOldPatterns(){
 
  let d=document.createElement("div");
  d.className="check";
- d.innerHTML=
-  `Pattern Found<br>
-   Jodi/Family: ${[...new Set(matches.map(m=>m.v))].join(" → ")}`;
+ d.innerHTML=`Old Pattern Found<br>Jodi/Family: ${[...new Set(matches.map(m=>m.v))].join(" → ")}`;
  d.onclick=exportImage;
  document.getElementById("right").appendChild(d);
 }
 
 function drawPattern(arr){
  arr.forEach(p=>{
-  let x=80+p.c*95;
-  let y=45+p.r*32;
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
   ctx.beginPath();
-  ctx.arc(x,y,14,0,Math.PI*2);
+  ctx.arc(x,y,12,0,Math.PI*2);
   ctx.strokeStyle="red";
   ctx.lineWidth=2;
   ctx.stroke();
  });
 
  ctx.beginPath();
- let first=arr[0];
- ctx.moveTo(80+first.c*95,45+first.r*32);
+ let f=arr[0];
+ ctx.moveTo(60+f.c*cellW+cellW/2,40+f.r*cellH+cellH/2);
  arr.forEach(p=>{
-  ctx.lineTo(80+p.c*95,45+p.r*32);
+  ctx.lineTo(60+p.c*cellW+cellW/2,40+p.r*cellH+cellH/2);
  });
  ctx.strokeStyle="green";
  ctx.lineWidth=2;
@@ -157,7 +166,7 @@ function drawPattern(arr){
 
 function exportImage(){
  let a=document.createElement("a");
- a.download="historical_pattern.png";
+ a.download="old_pattern.png";
  a.href=cvs.toDataURL();
  a.click();
 }
