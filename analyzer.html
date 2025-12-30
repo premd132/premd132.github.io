@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – SAME ROW + SAME COLUMN</title>
+<title>Exact Pattern Analyzer – FINAL VALUE + FAMILY MATCH</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -43,7 +43,7 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact Pattern Analyzer (Same Row + Same Column)</h2>
+<h2>📊 Exact Pattern Analyzer (FINAL – Value + Family Match)</h2>
 
 <div id="top">
 <input type="file" id="csv">
@@ -112,13 +112,23 @@ function drawChart(){
  });
 }
 
+/* ===== FAMILY (STRICT) ===== */
+function family(j){
+ let a=j[0],b=j[1];
+ return [j,b+a,a+a,b+b];
+}
+
 /* ===== CLICK ===== */
 cvs.onclick=e=>{
  let r=cvs.getBoundingClientRect();
  let col=Math.floor((e.clientX-r.left-60)/cellW);
  let row=Math.floor((e.clientY-r.top-40)/cellH);
  if(grid[row] && grid[row][col]){
-  userPath.push({r:row,c:col});
+  userPath.push({
+   r:row,
+   c:col,
+   val:grid[row][col]
+  });
   drawUser();
   if(userPath.length>1) search();
  }
@@ -132,6 +142,7 @@ function drawUser(){
   let y=40+p.r*cellH+cellH/2;
   ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
   ctx.strokeStyle="red";ctx.stroke();
+  ctx.fillText(p.val,x-8,y-14);
   if(i){
    let q=userPath[i-1];
    ctx.beginPath();
@@ -142,7 +153,7 @@ function drawUser(){
  });
 }
 
-/* ===== SEARCH EXACT SAME PATTERN ===== */
+/* ===== SEARCH (EXACT PATTERN + VALUE/FAMILY) ===== */
 function search(){
  found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
@@ -155,14 +166,21 @@ function search(){
 
  for(let baseR=0;baseR<grid.length;baseR++){
   for(let baseC=0;baseC<headers.length;baseC++){
-   let pts=[{r:baseR,c:baseC}];
+   let pts=[];
    let ok=true;
 
-   for(let i=1;i<userPath.length;i++){
-    let nr=baseR+rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
-    let nc=baseC+colGaps.slice(0,i).reduce((a,b)=>a+b,0);
-    if(!grid[nr] || !grid[nr][nc]){ok=false;break;}
-    pts.push({r:nr,c:nc});
+   for(let i=0;i<userPath.length;i++){
+    let rr = baseR + rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
+    let cc = baseC + colGaps.slice(0,i).reduce((a,b)=>a+b,0);
+
+    if(!grid[rr] || !grid[rr][cc]){ok=false;break;}
+
+    let allowed = family(userPath[i].val);
+    if(!allowed.includes(grid[rr][cc])){
+      ok=false;break;
+    }
+
+    pts.push({r:rr,c:cc,val:grid[rr][cc]});
    }
 
    if(ok) found.push(pts);
@@ -172,7 +190,7 @@ function search(){
  found.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
-  d.innerText=`Pattern ${i+1}`;
+  d.innerText=`Pattern ${i+1} : ${p.map(x=>x.val).join(" → ")}`;
   d.onclick=()=>showPattern(p);
   right.appendChild(d);
  });
@@ -187,6 +205,7 @@ function showPattern(p){
   let y=40+pt.r*cellH+cellH/2;
   ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
   ctx.strokeStyle="red";ctx.stroke();
+  ctx.fillText(pt.val,x-8,y-14);
   if(i){
    let pr=p[i-1];
    ctx.beginPath();
@@ -199,7 +218,7 @@ function showPattern(p){
  showPopup(p);
 }
 
-/* ===== POPUP ORIGINAL CHART ===== */
+/* ===== POPUP (ORIGINAL CHART SNAPSHOT) ===== */
 function showPopup(p){
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
@@ -217,6 +236,7 @@ function showPopup(p){
   let y=(40+pt.r*cellH+cellH/2)-cropY;
   pctx.beginPath();pctx.arc(x,y,11,0,Math.PI*2);
   pctx.strokeStyle="red";pctx.stroke();
+  pctx.fillText(pt.val,x-8,y-14);
   if(i){
    let pr=p[i-1];
    pctx.beginPath();
