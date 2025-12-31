@@ -1,198 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>My Projects – CSV Analysis</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:#f2f2f2;
-}
-header{
-    background:#000;
-    color:#fff;
-    text-align:center;
-    padding:15px;
-    font-size:22px;
-}
-.container{
-    padding:12px;
-}
-.card{
-    background:#fff;
-    padding:12px;
-    margin-bottom:12px;
-    border-radius:6px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.1);
-}
-input[type=file]{
-    width:100%;
-    padding:8px;
-}
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:10px;
-    font-size:14px;
-}
-th,td{
-    border:1px solid #ccc;
-    padding:6px;
-    text-align:center;
-}
-th{
-    background:#222;
-    color:#fff;
-}
-canvas{
-    max-width:100%;
-}
-.result span{
-    font-weight:bold;
-    color:#d32f2f;
-}
-footer{
-    background:#000;
-    color:#ccc;
-    text-align:center;
-    padding:10px;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Visual Pattern Analyzer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<header>My Projects – CSV Analysis</header>
+<h2>Visual AI Pattern Analyzer (Safe Mode)</h2>
+<p class="subtitle">
+  Chart par click karke 2–3 touch pattern dekho.  
+  Family & Cut-Ank based auto line draw hoti hai.
+</p>
+
+<div class="top-bar">
+  <input type="file" id="csvFile" accept=".csv">
+  <button id="resetBtn">Reset</button>
+</div>
 
 <div class="container">
+  <div class="chart-wrapper">
+    <table id="chart"></table>
+    <svg id="lineLayer"></svg>
+  </div>
 
-<div class="card">
-<h3>📂 CSV Upload</h3>
-<input type="file" id="csvFile" accept=".csv">
+  <div class="side-panel">
+    <h3>Detected Patterns</h3>
+    <div id="patternList"></div>
+  </div>
 </div>
 
-<div class="card">
-<h3>📊 Record Table</h3>
-<div style="overflow:auto">
-<table id="dataTable"></table>
-</div>
-</div>
-
-<div class="card">
-<h3>📈 Trend Chart</h3>
-<canvas id="trendChart"></canvas>
+<div id="popup" class="popup hidden">
+  <div class="popup-content">
+    <h3>Pattern View</h3>
+    <canvas id="popupCanvas" width="400" height="300"></canvas>
+    <button onclick="closePopup()">Close</button>
+  </div>
 </div>
 
-<div class="card result">
-<h3>🧠 DP Boss Style Analysis</h3>
-<p>Most Repeated Number: <span id="mostNum">–</span></p>
-<p>Last Trend: <span id="trend">–</span></p>
-<p>Family Numbers: <span id="family">–</span></p>
-<p>Possible Next: <span id="next">–</span></p>
-</div>
-
-</div>
-
-<footer>© 2025 My Projects</footer>
-
-<script>
-let chart;
-
-document.getElementById("csvFile").addEventListener("change", function(e){
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(evt){
-        const rows = evt.target.result.trim().split("\n");
-        buildTable(rows);
-        analyze(rows);
-        drawChart(rows);
-    };
-    reader.readAsText(file);
-});
-
-function buildTable(rows){
-    const table = document.getElementById("dataTable");
-    table.innerHTML = "";
-    rows.forEach((row,i)=>{
-        const tr = document.createElement("tr");
-        row.split(",").forEach(cell=>{
-            const td = document.createElement(i===0?"th":"td");
-            td.innerText = cell;
-            tr.appendChild(td);
-        });
-        table.appendChild(tr);
-    });
-}
-
-function analyze(rows){
-    let numbers=[];
-    rows.slice(1).forEach(r=>{
-        r.split(",").forEach(c=>{
-            if(!isNaN(c) && c.trim()!==""){
-                numbers.push(parseInt(c));
-            }
-        });
-    });
-
-    let freq={};
-    numbers.forEach(n=>freq[n]=(freq[n]||0)+1);
-    let most=Object.keys(freq).reduce((a,b)=>freq[a]>freq[b]?a:b);
-    document.getElementById("mostNum").innerText=most;
-
-    let lastRow=rows[rows.length-1].split(",");
-    let lastNums=lastRow.filter(x=>!isNaN(x));
-    document.getElementById("trend").innerText=lastNums.join(" → ");
-
-    let base=parseInt(lastNums[lastNums.length-1]);
-    let family=[
-        base,
-        (base+1)%10,
-        (base+2)%10,
-        (base+5)%10
-    ];
-    document.getElementById("family").innerText=family.join(", ");
-    document.getElementById("next").innerText=family[Math.floor(Math.random()*family.length)];
-}
-
-function drawChart(rows){
-    let labels=[];
-    let data=[];
-
-    rows.slice(1).forEach((r,i)=>{
-        let nums=r.split(",").filter(x=>!isNaN(x));
-        if(nums.length){
-            labels.push("R"+(i+1));
-            data.push(parseInt(nums[nums.length-1]));
-        }
-    });
-
-    if(chart) chart.destroy();
-
-    chart=new Chart(document.getElementById("trendChart"),{
-        type:"line",
-        data:{
-            labels:labels,
-            datasets:[{
-                label:"Trend Line",
-                data:data,
-                borderWidth:2,
-                tension:0.3
-            }]
-        },
-        options:{
-            responsive:true,
-            plugins:{legend:{display:true}}
-        }
-    });
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
