@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pattern Analyzer – FULL FINAL (Nothing Removed)</title>
+<title>Pattern Analyzer – FINAL (Correct Family Match)</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -59,7 +59,7 @@ td[contenteditable]{background:#fff7cc}
 
 <body>
 
-<h2>📊 Pattern Analyzer – FULL FINAL VERSION</h2>
+<h2>📊 Pattern Analyzer – FINAL (Family Match Fixed)</h2>
 
 <div id="top">
 <input type="file" id="csv">
@@ -82,7 +82,6 @@ td[contenteditable]{background:#fff7cc}
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
   <canvas id="popup"></canvas>
-  <div id="forward"></div>
  </div>
 </div>
 
@@ -98,13 +97,26 @@ const ctx=cvs.getContext("2d");
 const pop=document.getElementById("popup");
 const pctx=pop.getContext("2d");
 
+/* ================= FAMILY MATCH (FIXED) ================= */
+function family(j){
+ let a=parseInt(j[0]), b=parseInt(j[1]);
+ const mod=n=>(n+10)%10;
+
+ return [
+  `${a}${b}`,
+  `${b}${a}`,
+  `${mod(a+1)}${mod(b+3)}`,
+  `${mod(b+3)}${mod(a+1)}`,
+  `${mod(a-5)}${mod(b-5)}`
+ ];
+}
+
 /* ================= LOAD SAVED CSV ================= */
 window.onload=()=>{
  let saved=localStorage.getItem("savedCSV");
  if(saved) loadCSV(saved);
 };
 
-/* ================= CSV UPLOAD ================= */
 csv.onchange=e=>{
  let r=new FileReader();
  r.onload=()=>{
@@ -114,7 +126,6 @@ csv.onchange=e=>{
  r.readAsText(e.target.files[0]);
 };
 
-/* ================= LOAD CSV ================= */
 function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
@@ -123,14 +134,12 @@ function loadCSV(txt){
  renderEditor();
 }
 
-/* ================= DRAW ALL ================= */
 function drawAll(){
  cvs.width=headers.length*cellW+100;
  cvs.height=grid.length*cellH+60;
  drawChart();
 }
 
-/* ================= DRAW CHART ================= */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
@@ -144,21 +153,13 @@ function drawChart(){
  });
 }
 
-/* ================= FAMILY LOGIC ================= */
-function family(j){
- let a=j[0],b=j[1];
- return [j,b+a,a+a,b+b,"68","86"];
-}
-
-/* ================= MODE TOGGLE ================= */
 function toggleDrawMode(){
  drawMode=!drawMode;
- event.target.innerText = drawMode?"✏️ Drawing Mode":"👆 Click Mode";
+ event.target.innerText=drawMode?"✏️ Drawing Mode":"👆 Click Mode";
  userPath=[];
  drawChart();
 }
 
-/* ================= CHART CLICK ================= */
 cvs.onclick=e=>{
  if(!drawMode) return;
  let r=cvs.getBoundingClientRect();
@@ -171,7 +172,6 @@ cvs.onclick=e=>{
  }
 };
 
-/* ================= DRAW USER PATH ================= */
 function drawUser(){
  drawChart();
  userPath.forEach((p,i)=>{
@@ -190,7 +190,6 @@ function drawUser(){
  });
 }
 
-/* ================= SEARCH ================= */
 function search(){
  found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
@@ -219,18 +218,16 @@ function search(){
  renderCheckLines();
 }
 
-/* ================= CHECK LINES (RESTORED) ================= */
 function renderCheckLines(){
  found.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
   d.innerHTML=`<b>Pattern ${i+1}</b><br>${p.map(x=>x.val).join(" → ")}`;
   d.onclick=()=>showPattern(p);
-  document.getElementById("right").appendChild(d);
+  right.appendChild(d);
  });
 }
 
-/* ================= SHOW PATTERN ================= */
 function showPattern(p){
  drawChart();
  p.forEach((pt,i)=>{
@@ -250,7 +247,6 @@ function showPattern(p){
  showPopup(p);
 }
 
-/* ================= POPUP ================= */
 function showPopup(p){
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
@@ -262,10 +258,9 @@ function showPopup(p){
  modal.style.display="flex";
 }
 
-/* ================= EDITOR ================= */
+/* ===== EDITOR ===== */
 function toggleEditor(){
- let e=document.getElementById("editor");
- e.style.display=e.style.display==="none"?"block":"none";
+ editor.style.display=editor.style.display==="none"?"block":"none";
 }
 function addRow(){
  grid.push(headers.map(()=>"--"));
