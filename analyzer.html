@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Pattern Analyzer – Persistent & Editable Data</title>
+<title>Pattern Analyzer – Clean View + Edit Mode</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -23,6 +23,7 @@ canvas{background:#fff}
  background:#fff;
  border:3px solid #000;
  padding:6px;
+ display:none; /* 🔴 hidden by default */
 }
 
 table{border-collapse:collapse;width:100%}
@@ -43,12 +44,14 @@ td[contenteditable]{background:#fff7cc}
 
 <body>
 
-<h2>📊 Pattern Analyzer (Saved + Editable Records)</h2>
+<h2>📊 Pattern Analyzer (Clean View + Edit on Demand)</h2>
 
 <div id="top">
 <input type="file" id="csv">
+<button onclick="toggleEditor()">✏️ Edit Record</button>
+<button onclick="addRow()">➕ Add Row</button>
+<button onclick="toggleDelete()">🗑️ Delete Mode</button>
 <button onclick="clearAll()">Clear Data</button>
-<button onclick="addRow()">+ Add Row</button>
 </div>
 
 <div id="wrap">
@@ -69,21 +72,22 @@ td[contenteditable]{background:#fff7cc}
 </div>
 
 <script>
-/* ===== GLOBAL ===== */
+/* ================= GLOBAL ================= */
 let headers=[],grid=[];
 let userPath=[],found=[];
-const cellW=80,cellH=30;
+let deleteMode=false;
 
+const cellW=80,cellH=30;
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
 
-/* ===== LOAD SAVED DATA ===== */
+/* ========== LOAD SAVED DATA ========== */
 window.onload=()=>{
  let saved=localStorage.getItem("savedCSV");
  if(saved) loadCSV(saved);
 };
 
-/* ===== CSV UPLOAD ===== */
+/* ========== CSV UPLOAD ========== */
 csv.onchange=e=>{
  let r=new FileReader();
  r.onload=()=>{
@@ -93,7 +97,7 @@ csv.onchange=e=>{
  r.readAsText(e.target.files[0]);
 };
 
-/* ===== LOAD CSV ===== */
+/* ========== LOAD CSV ========== */
 function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
@@ -102,41 +106,14 @@ function loadCSV(txt){
  renderEditor();
 }
 
-/* ===== CLEAR ALL ===== */
-function clearAll(){
- if(!confirm("Pura record delete karna hai?")) return;
- localStorage.removeItem("savedCSV");
- grid=[];
- headers=[];
- ctx.clearRect(0,0,cvs.width,cvs.height);
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- document.getElementById("tableBox").innerHTML="";
-}
-
-/* ===== ADD ROW ===== */
-function addRow(){
- if(!headers.length) return alert("Pehle CSV load karo");
- let row=headers.map(()=>"--");
- grid.push(row);
- saveGrid();
- drawAll();
- renderEditor();
-}
-
-/* ===== SAVE GRID ===== */
-function saveGrid(){
- let txt=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
- localStorage.setItem("savedCSV",txt);
-}
-
-/* ===== DRAW ALL ===== */
+/* ========== DRAW ALL ========== */
 function drawAll(){
  cvs.width=headers.length*cellW+100;
  cvs.height=grid.length*cellH+60;
  drawChart();
 }
 
-/* ===== DRAW CHART ===== */
+/* ========== DRAW CHART (UNCHANGED) ========== */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="12px Arial";
@@ -150,7 +127,43 @@ function drawChart(){
  });
 }
 
-/* ===== EDITOR ===== */
+/* ========== EDIT MODE CONTROLS ========== */
+function toggleEditor(){
+ let ed=document.getElementById("editor");
+ ed.style.display = ed.style.display==="none" ? "block" : "none";
+}
+
+function toggleDelete(){
+ deleteMode=!deleteMode;
+ alert(deleteMode?"Delete mode ON":"Delete mode OFF");
+}
+
+/* ========== ADD ROW ========== */
+function addRow(){
+ if(!headers.length) return alert("Pehle CSV load karo");
+ grid.push(headers.map(()=>"--"));
+ saveGrid();
+ drawAll();
+ renderEditor();
+}
+
+/* ========== CLEAR DATA ========== */
+function clearAll(){
+ if(!confirm("Pura record delete karna hai?")) return;
+ localStorage.removeItem("savedCSV");
+ headers=[]; grid=[];
+ ctx.clearRect(0,0,cvs.width,cvs.height);
+ document.getElementById("tableBox").innerHTML="";
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+}
+
+/* ========== SAVE GRID ========== */
+function saveGrid(){
+ let txt=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
+ localStorage.setItem("savedCSV",txt);
+}
+
+/* ========== EDITOR TABLE ========== */
 function renderEditor(){
  let html="<table><tr>";
  headers.forEach(h=>html+=`<th>${h}</th>`);
@@ -161,22 +174,23 @@ function renderEditor(){
   r.forEach((v,ci)=>{
    html+=`<td contenteditable onblur="editCell(${ri},${ci},this.innerText)">${v}</td>`;
   });
-  html+=`<td class="del" onclick="deleteRow(${ri})">X</td></tr>`;
+  html+=`<td class="del" onclick="rowDelete(${ri})">X</td></tr>`;
  });
 
  html+="</table>";
  document.getElementById("tableBox").innerHTML=html;
 }
 
-/* ===== EDIT CELL ===== */
+/* ========== EDIT CELL ========== */
 function editCell(r,c,val){
  grid[r][c]=val.trim();
  saveGrid();
  drawAll();
 }
 
-/* ===== DELETE ROW ===== */
-function deleteRow(r){
+/* ========== DELETE ROW (ONLY IN DELETE MODE) ========== */
+function rowDelete(r){
+ if(!deleteMode) return;
  if(!confirm("Is row ko delete kare?")) return;
  grid.splice(r,1);
  saveGrid();
