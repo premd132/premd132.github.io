@@ -15,6 +15,7 @@ const cutMap = {
   4:9, 9:4
 };
 
+/* ================= CSV LOAD ================= */
 document.getElementById("csvFile").addEventListener("change", e=>{
   const file = e.target.files[0];
   if(!file) return;
@@ -31,12 +32,14 @@ document.getElementById("resetBtn").onclick = ()=>{
   document.querySelectorAll("td").forEach(td=>td.classList.remove("selected"));
 };
 
-/* ---------- CSV ---------- */
+/* ================= CSV PARSE ================= */
 function parseCSV(text){
   data = text.trim().split("\n").map(r=>r.split(","));
   renderChart();
+  autoDetect(); // 🔥 NEW
 }
 
+/* ================= CHART ================= */
 function renderChart(){
   chart.innerHTML = "";
   data.forEach((row,r)=>{
@@ -57,18 +60,18 @@ function resizeSVG(){
   svg.setAttribute("height", chart.offsetHeight);
 }
 
-/* ---------- CLICK ---------- */
+/* ================= CLICK ================= */
 function cellClick(td,r,c,val){
   td.classList.add("selected");
   clicks.push({ r, c, val, td });
 
   if(clicks.length >= 2){
-    drawUserLine();     // REAL chart par line
-    detectPattern();   // pattern find
+    drawUserLine(clicks, getLineColor(clicks.length));
+    detectPattern(clicks.map(x=>x.val));
   }
 }
 
-/* ---------- FAMILY + CUT-ANK ---------- */
+/* ================= FAMILY + CUT ================= */
 function family(j){
   const a = Math.floor(j/10);
   const b = j % 10;
@@ -80,42 +83,19 @@ function family(j){
   ];
 }
 
-/* ---------- AUTO PATTERN ---------- */
-function detectPattern(){
-  const fam = family(Number(clicks[0].val));
-  const seq = clicks.map(x=>Number(x.val));
-
-  const matches = [];
-  data.forEach((row,r)=>{
-    row.forEach((v,c)=>{
-      if(fam.includes(v)){
-        matches.push({ r, c, val:v });
-      }
-    });
-  });
-
-  if(matches.length >= 2){
-    const id = patterns.length + 1;
-    patterns.push({ id, seq, points: matches });
-    addPatternUI(id, seq, matches);
-  }
+/* ================= COLOR LOGIC ================= */
+function getLineColor(touches){
+  if(touches >= 3) return "#1e7f2d"; // strong
+  if(touches === 2) return "#1e5cff"; // medium
+  return "#888"; // weak
 }
 
-/* ---------- UI LIST ---------- */
-function addPatternUI(id, seq, points){
-  const div = document.createElement("div");
-  div.className = "pattern-item";
-  div.textContent = `Pattern ${id}: ${seq.join(" → ")}`;
-  div.onclick = ()=>showPattern(points);
-  patternList.appendChild(div);
-}
+/* ================= DRAW REAL CHART ================= */
+function drawUserLine(points, color){
+  if(points.length < 2) return;
 
-/* ---------- DRAW ON REAL CHART ---------- */
-function drawUserLine(){
-  if(clicks.length < 2) return;
-
-  const p1 = clicks[clicks.length-2];
-  const p2 = clicks[clicks.length-1];
+  const p1 = points[points.length-2];
+  const p2 = points[points.length-1];
 
   const x1 = p1.td.offsetLeft + p1.td.offsetWidth/2;
   const y1 = p1.td.offsetTop  + p1.td.offsetHeight/2;
@@ -127,35 +107,91 @@ function drawUserLine(){
   l.setAttribute("y1", y1);
   l.setAttribute("x2", x2);
   l.setAttribute("y2", y2);
-  l.setAttribute("stroke", "#1e7f2d");
+  l.setAttribute("stroke", color);
   l.setAttribute("stroke-width", "3");
   svg.appendChild(l);
 }
 
-/* ---------- POPUP (PATTERN + 1 EXTRA ROW) ---------- */
+/* ================= PATTERN DETECT (MANUAL) ================= */
+function detectPattern(seq){
+  const fam = family(Number(seq[0]));
+  const matches = [];
+
+  data.forEach((row,r)=>{
+    row.forEach((v,c)=>{
+      if(fam.includes(v)){
+        matches.push({ r, c, val:v });
+      }
+    });
+  });
+
+  if(matches.length >= 2){
+    const id = patterns.length + 1;
+    patterns.push({ id, seq, points: matches });
+    addPatternUI(id, seq, matches.length);
+  }
+}
+
+/* ================= AUTO DETECT (NEW) ================= */
+function autoDetect(){
+  patterns = [];
+  patternList.innerHTML = "";
+
+  for(let c=0;c<data[0].length;c++){
+    for(let r=0;r<data.length-2;r++){
+      const v1 = data[r][c];
+      const fam = family(Number(v1));
+
+      const pts = [{r,c,val:v1}];
+      for(let k=1;k<=3;k++){
+        if(data[r+k] && fam.includes(data[r+k][c])){
+          pts.push({r:r+k,c,val:data[r+k][c]});
+        }
+      }
+
+      if(pts.length >= 2){
+        const id = patterns.length + 1;
+        patterns.push({id, seq:pts.map(p=>p.val), points:pts});
+        addPatternUI(id, pts.map(p=>p.val), pts.length);
+      }
+    }
+  }
+}
+
+/* ================= UI LIST ================= */
+function addPatternUI(id, seq, strength){
+  const div = document.createElement("div");
+  div.className = "pattern-item";
+
+  let color = strength>=3 ? "green" : strength===2 ? "blue" : "gray";
+  div.style.borderLeft = `6px solid ${color}`;
+
+  div.textContent = `Pattern ${id}: ${seq.join(" → ")}`;
+  div.onclick = ()=>showPattern(patterns.find(p=>p.id===id).points);
+  patternList.appendChild(div);
+}
+
+/* ================= POPUP ( +2 ROWS ) ================= */
 function showPattern(points){
   const popup = document.getElementById("popup");
   const canvas = document.getElementById("popupCanvas");
   const ctx = canvas.getContext("2d");
 
-  // rows to show = pattern rows + 1 niche wali
   const rows = new Set();
   points.forEach(p=>{
     rows.add(p.r);
-    if(p.r + 1 < data.length) rows.add(p.r + 1);
+    if(p.r+1 < data.length) rows.add(p.r+1);
+    if(p.r+2 < data.length) rows.add(p.r+2); // 🔥 extra row
   });
   const rowArr = Array.from(rows).sort((a,b)=>a-b);
 
-  // layout
-  const rowH = 40;
-  const colW = 70;
+  const rowH = 40, colW = 70;
   canvas.width  = data[0].length * colW + 40;
   canvas.height = rowArr.length * rowH + 40;
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.font = "12px Arial";
 
-  // draw table cells
   rowArr.forEach((r,ri)=>{
     data[r].forEach((v,c)=>{
       const x = 20 + c*colW;
@@ -165,9 +201,9 @@ function showPattern(points){
     });
   });
 
-  // draw same pattern line (mini version)
-  ctx.strokeStyle = "#1e7f2d";
+  ctx.strokeStyle = getLineColor(points.length);
   ctx.lineWidth = 3;
+
   points.forEach((p,i)=>{
     const ri = rowArr.indexOf(p.r);
     const cx = 20 + p.c*colW + colW/2;
@@ -192,7 +228,7 @@ function showPattern(points){
   popup.classList.remove("hidden");
 }
 
-/* ---------- CLOSE POPUP ---------- */
+/* ================= CLOSE POPUP ================= */
 function closePopup(){
   document.getElementById("popup").classList.add("hidden");
-}
+               }
