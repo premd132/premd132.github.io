@@ -19,9 +19,7 @@ document.getElementById("csvFile").addEventListener("change", e=>{
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = ev=>{
-    parseCSV(ev.target.result);
-  };
+  reader.onload = ev => parseCSV(ev.target.result);
   reader.readAsText(file);
 });
 
@@ -33,6 +31,7 @@ document.getElementById("resetBtn").onclick = ()=>{
   document.querySelectorAll("td").forEach(td=>td.classList.remove("selected"));
 };
 
+/* ---------- CSV ---------- */
 function parseCSV(text){
   data = text.trim().split("\n").map(r=>r.split(","));
   renderChart();
@@ -58,19 +57,21 @@ function resizeSVG(){
   svg.setAttribute("height", chart.offsetHeight);
 }
 
+/* ---------- CLICK ---------- */
 function cellClick(td,r,c,val){
   td.classList.add("selected");
-  clicks.push({r,c,val,td});
+  clicks.push({ r, c, val, td });
 
-  if(clicks.length>=2){
-    detectPattern();
-    drawUserLine();
+  if(clicks.length >= 2){
+    drawUserLine();     // REAL chart par line
+    detectPattern();   // pattern find
   }
 }
 
+/* ---------- FAMILY + CUT-ANK ---------- */
 function family(j){
   const a = Math.floor(j/10);
-  const b = j%10;
+  const b = j % 10;
   return [
     `${a}${b}`,
     `${b}${a}`,
@@ -79,6 +80,7 @@ function family(j){
   ];
 }
 
+/* ---------- AUTO PATTERN ---------- */
 function detectPattern(){
   const fam = family(Number(clicks[0].val));
   const seq = clicks.map(x=>Number(x.val));
@@ -87,68 +89,110 @@ function detectPattern(){
   data.forEach((row,r)=>{
     row.forEach((v,c)=>{
       if(fam.includes(v)){
-        matches.push({r,c,val:v});
+        matches.push({ r, c, val:v });
       }
     });
   });
 
-  if(matches.length>=2){
-    const id = patterns.length+1;
-    patterns.push({id, seq, matches});
-    addPatternUI(id,seq);
+  if(matches.length >= 2){
+    const id = patterns.length + 1;
+    patterns.push({ id, seq, points: matches });
+    addPatternUI(id, seq, matches);
   }
 }
 
-function addPatternUI(id,seq){
+/* ---------- UI LIST ---------- */
+function addPatternUI(id, seq, points){
   const div = document.createElement("div");
-  div.className="pattern-item";
-  div.textContent=`Pattern ${id}: ${seq.join(" → ")}`;
-  div.onclick = ()=>showPattern(id);
+  div.className = "pattern-item";
+  div.textContent = `Pattern ${id}: ${seq.join(" → ")}`;
+  div.onclick = ()=>showPattern(points);
   patternList.appendChild(div);
 }
 
+/* ---------- DRAW ON REAL CHART ---------- */
 function drawUserLine(){
-  if(clicks.length<2) return;
+  if(clicks.length < 2) return;
+
   const p1 = clicks[clicks.length-2];
   const p2 = clicks[clicks.length-1];
 
+  const x1 = p1.td.offsetLeft + p1.td.offsetWidth/2;
+  const y1 = p1.td.offsetTop  + p1.td.offsetHeight/2;
+  const x2 = p2.td.offsetLeft + p2.td.offsetWidth/2;
+  const y2 = p2.td.offsetTop  + p2.td.offsetHeight/2;
+
   const l = document.createElementNS("http://www.w3.org/2000/svg","line");
-  l.setAttribute("x1",p1.td.offsetLeft+30);
-  l.setAttribute("y1",p1.td.offsetTop+20);
-  l.setAttribute("x2",p2.td.offsetLeft+30);
-  l.setAttribute("y2",p2.td.offsetTop+20);
-  l.setAttribute("stroke","green");
-  l.setAttribute("stroke-width","3");
+  l.setAttribute("x1", x1);
+  l.setAttribute("y1", y1);
+  l.setAttribute("x2", x2);
+  l.setAttribute("y2", y2);
+  l.setAttribute("stroke", "#1e7f2d");
+  l.setAttribute("stroke-width", "3");
   svg.appendChild(l);
 }
 
-function showPattern(id){
-  const pat = patterns.find(p=>p.id===id);
+/* ---------- POPUP (PATTERN + 1 EXTRA ROW) ---------- */
+function showPattern(points){
+  const popup = document.getElementById("popup");
   const canvas = document.getElementById("popupCanvas");
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0,0,400,300);
 
-  ctx.strokeStyle="green";
-  ctx.lineWidth=3;
+  // rows to show = pattern rows + 1 niche wali
+  const rows = new Set();
+  points.forEach(p=>{
+    rows.add(p.r);
+    if(p.r + 1 < data.length) rows.add(p.r + 1);
+  });
+  const rowArr = Array.from(rows).sort((a,b)=>a-b);
 
-  pat.seq.forEach((v,i)=>{
-    const x = 60+i*100;
-    const y = 150-i*30;
+  // layout
+  const rowH = 40;
+  const colW = 70;
+  canvas.width  = data[0].length * colW + 40;
+  canvas.height = rowArr.length * rowH + 40;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.font = "12px Arial";
+
+  // draw table cells
+  rowArr.forEach((r,ri)=>{
+    data[r].forEach((v,c)=>{
+      const x = 20 + c*colW;
+      const y = 20 + ri*rowH;
+      ctx.strokeRect(x,y,colW,rowH);
+      ctx.fillText(v, x+colW/2-8, y+rowH/2+4);
+    });
+  });
+
+  // draw same pattern line (mini version)
+  ctx.strokeStyle = "#1e7f2d";
+  ctx.lineWidth = 3;
+  points.forEach((p,i)=>{
+    const ri = rowArr.indexOf(p.r);
+    const cx = 20 + p.c*colW + colW/2;
+    const cy = 20 + ri*rowH + rowH/2;
+
     ctx.beginPath();
-    ctx.arc(x,y,10,0,Math.PI*2);
+    ctx.arc(cx,cy,8,0,Math.PI*2);
     ctx.stroke();
-    ctx.fillText(v,x-6,y-15);
+
     if(i>0){
+      const prev = points[i-1];
+      const pri = rowArr.indexOf(prev.r);
+      const px = 20 + prev.c*colW + colW/2;
+      const py = 20 + pri*rowH + rowH/2;
       ctx.beginPath();
-      ctx.moveTo(60+(i-1)*100,150-(i-1)*30);
-      ctx.lineTo(x,y);
+      ctx.moveTo(px,py);
+      ctx.lineTo(cx,cy);
       ctx.stroke();
     }
   });
 
-  document.getElementById("popup").classList.remove("hidden");
+  popup.classList.remove("hidden");
 }
 
+/* ---------- CLOSE POPUP ---------- */
 function closePopup(){
   document.getElementById("popup").classList.add("hidden");
 }
