@@ -1,0 +1,93 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4e4b5;
+  margin: 0;
+  padding: 10px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.top-bar {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.container {
+  display: flex;
+  gap: 10px;
+}
+
+.chart-wrapper {
+  position: relative;
+  overflow: auto;
+  border: 2px solid #333;
+  background: #ddd;
+}
+
+#chart {
+  border-collapse: collapse;
+}
+
+#chart td {
+  width: 60px;
+  height: 40px;
+  border: 1px solid #2f5f2f;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  background: #cfcfcf;
+}
+
+#chart td.selected {
+  outline: 3px solid red;
+  border-radius: 50%;
+}
+
+#lineLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.side-panel {
+  width: 200px;
+  background: #fff;
+  border: 2px solid #333;
+  padding: 5px;
+}
+
+.pattern-item {
+  background: #eee;
+  margin-bottom: 5px;
+  padding: 5px;
+  cursor: pointer;
+  border-left: 6px solid green;
+}
+
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+.popup.hidden {
+  display: none;
+}
+
+.popup-content {
+  background: #fff;
+  width: 420px;
+  margin: 60px auto;
+  padding: 10px;
+  text-align: center;
+}
