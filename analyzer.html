@@ -2,67 +2,70 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – FINAL with SCORE + FORWARD</title>
+<title>Pattern Analyzer – Persistent & Editable Data</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
 h2{text-align:center;margin:10px}
 #top{text-align:center;padding:10px}
-button{padding:6px 12px}
+button{padding:6px 10px;margin:4px}
 
 #wrap{display:flex;gap:10px;padding:10px}
 #chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
 
-#right{width:38%;max-height:80vh;overflow:auto}
+#right{width:30%;max-height:80vh;overflow:auto}
+
+#editor{
+ width:40%;
+ max-height:80vh;
+ overflow:auto;
+ background:#fff;
+ border:3px solid #000;
+ padding:6px;
+}
+
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #999;padding:4px;text-align:center;font-size:12px}
+td[contenteditable]{background:#fff7cc}
+.del{color:red;cursor:pointer;font-weight:bold}
+
 .check{
  background:#fff;
  margin:6px;
- padding:8px;
+ padding:6px;
  border-left:5px solid red;
  cursor:pointer;
  font-size:13px
-}
-
-#modal{
- display:none;
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.7);
- align-items:center;
- justify-content:center;
-}
-#modalBox{
- background:#fff;
- padding:8px;
- max-width:95vw;
- max-height:95vh;
- overflow:auto;
 }
 </style>
 </head>
 
 <body>
 
-<h2>📊 Exact Pattern Analyzer (Score + Forward Mapping)</h2>
+<h2>📊 Pattern Analyzer (Saved + Editable Records)</h2>
 
 <div id="top">
 <input type="file" id="csv">
-<button onclick="resetAll()">Reset</button>
+<button onclick="clearAll()">Clear Data</button>
+<button onclick="addRow()">+ Add Row</button>
 </div>
 
 <div id="wrap">
+
  <div id="chartWrap">
   <canvas id="chart"></canvas>
  </div>
- <div id="right"><b>Pattern Check Lines</b></div>
-</div>
 
-<div id="modal" onclick="this.style.display='none'">
- <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="popup"></canvas>
-  <div id="forward"></div>
+ <div id="right">
+  <b>Pattern Check Lines</b>
  </div>
+
+ <div id="editor">
+  <b>Editable Record Table</b>
+  <div id="tableBox"></div>
+ </div>
+
 </div>
 
 <script>
@@ -73,30 +76,63 @@ const cellW=80,cellH=30;
 
 const cvs=document.getElementById("chart");
 const ctx=cvs.getContext("2d");
-const pop=document.getElementById("popup");
-const pctx=pop.getContext("2d");
 
-/* ===== LOAD CSV ===== */
+/* ===== LOAD SAVED DATA ===== */
+window.onload=()=>{
+ let saved=localStorage.getItem("savedCSV");
+ if(saved) loadCSV(saved);
+};
+
+/* ===== CSV UPLOAD ===== */
 csv.onchange=e=>{
  let r=new FileReader();
- r.onload=()=>loadCSV(r.result);
+ r.onload=()=>{
+  localStorage.setItem("savedCSV",r.result);
+  loadCSV(r.result);
+ };
  r.readAsText(e.target.files[0]);
 };
 
-function loadCSV(t){
- let l=t.trim().split("\n");
- headers=l.shift().split(",");
- grid=l.map(r=>r.split(","));
- cvs.width=headers.length*cellW+100;
- cvs.height=grid.length*cellH+60;
- resetAll();
+/* ===== LOAD CSV ===== */
+function loadCSV(txt){
+ let lines=txt.trim().split("\n");
+ headers=lines.shift().split(",");
+ grid=lines.map(l=>l.split(","));
+ drawAll();
+ renderEditor();
 }
 
-/* ===== RESET ===== */
-function resetAll(){
- userPath=[];
- found=[];
+/* ===== CLEAR ALL ===== */
+function clearAll(){
+ if(!confirm("Pura record delete karna hai?")) return;
+ localStorage.removeItem("savedCSV");
+ grid=[];
+ headers=[];
+ ctx.clearRect(0,0,cvs.width,cvs.height);
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ document.getElementById("tableBox").innerHTML="";
+}
+
+/* ===== ADD ROW ===== */
+function addRow(){
+ if(!headers.length) return alert("Pehle CSV load karo");
+ let row=headers.map(()=>"--");
+ grid.push(row);
+ saveGrid();
+ drawAll();
+ renderEditor();
+}
+
+/* ===== SAVE GRID ===== */
+function saveGrid(){
+ let txt=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
+ localStorage.setItem("savedCSV",txt);
+}
+
+/* ===== DRAW ALL ===== */
+function drawAll(){
+ cvs.width=headers.length*cellW+100;
+ cvs.height=grid.length*cellH+60;
  drawChart();
 }
 
@@ -114,147 +150,38 @@ function drawChart(){
  });
 }
 
-/* ===== FAMILY (STRICT – CURRENT) ===== */
-function family(j){
- let a=j[0],b=j[1];
- return [j,b+a,a+a,b+b];
-}
+/* ===== EDITOR ===== */
+function renderEditor(){
+ let html="<table><tr>";
+ headers.forEach(h=>html+=`<th>${h}</th>`);
+ html+="<th>❌</th></tr>";
 
-/* ===== CLICK ===== */
-cvs.onclick=e=>{
- let r=cvs.getBoundingClientRect();
- let col=Math.floor((e.clientX-r.left-60)/cellW);
- let row=Math.floor((e.clientY-r.top-40)/cellH);
- if(grid[row] && grid[row][col]){
-  userPath.push({r:row,c:col,val:grid[row][col]});
-  drawUser();
-  if(userPath.length>1) search();
- }
-};
-
-/* ===== DRAW USER ===== */
-function drawUser(){
- drawChart();
- userPath.forEach((p,i)=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  ctx.fillText(p.val,x-8,y-14);
-  if(i){
-   let q=userPath[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
-   ctx.lineTo(x,y);
-   ctx.strokeStyle="green";ctx.stroke();
-  }
- });
-}
-
-/* ===== SEARCH ===== */
-function search(){
- found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
-
- let rowGaps=[],colGaps=[];
- for(let i=1;i<userPath.length;i++){
-  rowGaps.push(userPath[i].r-userPath[i-1].r);
-  colGaps.push(userPath[i].c-userPath[i-1].c);
- }
-
- for(let baseR=0;baseR<grid.length;baseR++){
-  for(let baseC=0;baseC<headers.length;baseC++){
-   let pts=[],ok=true;
-   for(let i=0;i<userPath.length;i++){
-    let rr=baseR+rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
-    let cc=baseC+colGaps.slice(0,i).reduce((a,b)=>a+b,0);
-    if(!grid[rr]||!grid[rr][cc]){ok=false;break;}
-    if(!family(userPath[i].val).includes(grid[rr][cc])){
-      ok=false;break;
-    }
-    pts.push({r:rr,c:cc,val:grid[rr][cc]});
-   }
-   if(ok) found.push(pts);
-  }
- }
-
- renderCheckLines();
-}
-
-/* ===== SCORE + FORWARD ===== */
-function patternScore(idx){
- let freq = found.filter(p=>p[0].r===found[idx][0].r).length;
- let lastRow = found[idx][found[idx].length-1].r;
- let recentBonus = Math.max(0, (grid.length-lastRow)/5);
- return Math.min(100, Math.round(freq*10 + recentBonus));
-}
-
-function forwardMap(p){
- let map={};
- let last=p[p.length-1].r+1;
- if(!grid[last]) return map;
- grid[last].forEach(v=>{
-  map[v]=(map[v]||0)+1;
- });
- return map;
-}
-
-/* ===== RENDER CHECK ===== */
-function renderCheckLines(){
- found.forEach((p,i)=>{
-  let score=patternScore(i);
-  let d=document.createElement("div");
-  d.className="check";
-  d.innerHTML=
-   `<b>Pattern ${i+1}</b> | Score: <b>${score}</b><br>
-    ${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>showPattern(p,i);
-  right.appendChild(d);
- });
-}
-
-/* ===== SHOW PATTERN ===== */
-function showPattern(p,idx){
- drawChart();
-
- p.forEach((pt,i)=>{
-  let x=60+pt.c*cellW+cellW/2;
-  let y=40+pt.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  ctx.fillText(pt.val,x-8,y-14);
-  if(i){
-   let pr=p[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
-   ctx.lineTo(x,y);
-   ctx.strokeStyle="green";ctx.stroke();
-  }
+ grid.forEach((r,ri)=>{
+  html+="<tr>";
+  r.forEach((v,ci)=>{
+   html+=`<td contenteditable onblur="editCell(${ri},${ci},this.innerText)">${v}</td>`;
+  });
+  html+=`<td class="del" onclick="deleteRow(${ri})">X</td></tr>`;
  });
 
- showPopup(p,idx);
+ html+="</table>";
+ document.getElementById("tableBox").innerHTML=html;
 }
 
-/* ===== POPUP ===== */
-function showPopup(p,idx){
- let minR=Math.min(...p.map(x=>x.r));
- let maxR=Math.max(...p.map(x=>x.r))+1;
- let cropY=40+minR*cellH;
- let h=(maxR-minR)*cellH+40;
- let w=cvs.width;
+/* ===== EDIT CELL ===== */
+function editCell(r,c,val){
+ grid[r][c]=val.trim();
+ saveGrid();
+ drawAll();
+}
 
- pop.width=w;
- pop.height=h;
- pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
-
- let fmap=forwardMap(p);
- let html="<h4>After this pattern:</h4>";
- Object.keys(fmap).forEach(k=>{
-  html+=`${k} → ${fmap[k]} times<br>`;
- });
- document.getElementById("forward").innerHTML=html;
-
- modal.style.display="flex";
+/* ===== DELETE ROW ===== */
+function deleteRow(r){
+ if(!confirm("Is row ko delete kare?")) return;
+ grid.splice(r,1);
+ saveGrid();
+ drawAll();
+ renderEditor();
 }
 </script>
 
