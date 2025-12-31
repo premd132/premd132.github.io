@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Exact Pattern Analyzer – FINAL VALUE + FAMILY MATCH</title>
+<title>Exact Pattern Analyzer – FINAL with SCORE + FORWARD</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
@@ -14,13 +14,14 @@ button{padding:6px 12px}
 #chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
 
-#right{width:35%;max-height:80vh;overflow:auto}
+#right{width:38%;max-height:80vh;overflow:auto}
 .check{
  background:#fff;
  margin:6px;
  padding:8px;
  border-left:5px solid red;
- cursor:pointer
+ cursor:pointer;
+ font-size:13px
 }
 
 #modal{
@@ -43,7 +44,7 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Exact Pattern Analyzer (FINAL – Value + Family Match)</h2>
+<h2>📊 Exact Pattern Analyzer (Score + Forward Mapping)</h2>
 
 <div id="top">
 <input type="file" id="csv">
@@ -60,6 +61,7 @@ canvas{background:#fff}
 <div id="modal" onclick="this.style.display='none'">
  <div id="modalBox" onclick="event.stopPropagation()">
   <canvas id="popup"></canvas>
+  <div id="forward"></div>
  </div>
 </div>
 
@@ -112,7 +114,7 @@ function drawChart(){
  });
 }
 
-/* ===== FAMILY (STRICT) ===== */
+/* ===== FAMILY (STRICT – CURRENT) ===== */
 function family(j){
  let a=j[0],b=j[1];
  return [j,b+a,a+a,b+b];
@@ -124,11 +126,7 @@ cvs.onclick=e=>{
  let col=Math.floor((e.clientX-r.left-60)/cellW);
  let row=Math.floor((e.clientY-r.top-40)/cellH);
  if(grid[row] && grid[row][col]){
-  userPath.push({
-   r:row,
-   c:col,
-   val:grid[row][col]
-  });
+  userPath.push({r:row,c:col,val:grid[row][col]});
   drawUser();
   if(userPath.length>1) search();
  }
@@ -153,7 +151,7 @@ function drawUser(){
  });
 }
 
-/* ===== SEARCH (EXACT PATTERN + VALUE/FAMILY) ===== */
+/* ===== SEARCH ===== */
 function search(){
  found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
@@ -166,38 +164,57 @@ function search(){
 
  for(let baseR=0;baseR<grid.length;baseR++){
   for(let baseC=0;baseC<headers.length;baseC++){
-   let pts=[];
-   let ok=true;
-
+   let pts=[],ok=true;
    for(let i=0;i<userPath.length;i++){
-    let rr = baseR + rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
-    let cc = baseC + colGaps.slice(0,i).reduce((a,b)=>a+b,0);
-
-    if(!grid[rr] || !grid[rr][cc]){ok=false;break;}
-
-    let allowed = family(userPath[i].val);
-    if(!allowed.includes(grid[rr][cc])){
+    let rr=baseR+rowGaps.slice(0,i).reduce((a,b)=>a+b,0);
+    let cc=baseC+colGaps.slice(0,i).reduce((a,b)=>a+b,0);
+    if(!grid[rr]||!grid[rr][cc]){ok=false;break;}
+    if(!family(userPath[i].val).includes(grid[rr][cc])){
       ok=false;break;
     }
-
     pts.push({r:rr,c:cc,val:grid[rr][cc]});
    }
-
    if(ok) found.push(pts);
   }
  }
 
+ renderCheckLines();
+}
+
+/* ===== SCORE + FORWARD ===== */
+function patternScore(idx){
+ let freq = found.filter(p=>p[0].r===found[idx][0].r).length;
+ let lastRow = found[idx][found[idx].length-1].r;
+ let recentBonus = Math.max(0, (grid.length-lastRow)/5);
+ return Math.min(100, Math.round(freq*10 + recentBonus));
+}
+
+function forwardMap(p){
+ let map={};
+ let last=p[p.length-1].r+1;
+ if(!grid[last]) return map;
+ grid[last].forEach(v=>{
+  map[v]=(map[v]||0)+1;
+ });
+ return map;
+}
+
+/* ===== RENDER CHECK ===== */
+function renderCheckLines(){
  found.forEach((p,i)=>{
+  let score=patternScore(i);
   let d=document.createElement("div");
   d.className="check";
-  d.innerText=`Pattern ${i+1} : ${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>showPattern(p);
+  d.innerHTML=
+   `<b>Pattern ${i+1}</b> | Score: <b>${score}</b><br>
+    ${p.map(x=>x.val).join(" → ")}`;
+  d.onclick=()=>showPattern(p,i);
   right.appendChild(d);
  });
 }
 
 /* ===== SHOW PATTERN ===== */
-function showPattern(p){
+function showPattern(p,idx){
  drawChart();
 
  p.forEach((pt,i)=>{
@@ -215,11 +232,11 @@ function showPattern(p){
   }
  });
 
- showPopup(p);
+ showPopup(p,idx);
 }
 
-/* ===== POPUP (ORIGINAL CHART SNAPSHOT) ===== */
-function showPopup(p){
+/* ===== POPUP ===== */
+function showPopup(p,idx){
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
  let cropY=40+minR*cellH;
@@ -228,26 +245,14 @@ function showPopup(p){
 
  pop.width=w;
  pop.height=h;
-
  pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
 
- p.forEach((pt,i)=>{
-  let x=60+pt.c*cellW+cellW/2;
-  let y=(40+pt.r*cellH+cellH/2)-cropY;
-  pctx.beginPath();pctx.arc(x,y,11,0,Math.PI*2);
-  pctx.strokeStyle="red";pctx.stroke();
-  pctx.fillText(pt.val,x-8,y-14);
-  if(i){
-   let pr=p[i-1];
-   pctx.beginPath();
-   pctx.moveTo(
-    60+pr.c*cellW+cellW/2,
-    (40+pr.r*cellH+cellH/2)-cropY
-   );
-   pctx.lineTo(x,y);
-   pctx.strokeStyle="green";pctx.stroke();
-  }
+ let fmap=forwardMap(p);
+ let html="<h4>After this pattern:</h4>";
+ Object.keys(fmap).forEach(k=>{
+  html+=`${k} → ${fmap[k]} times<br>`;
  });
+ document.getElementById("forward").innerHTML=html;
 
  modal.style.display="flex";
 }
