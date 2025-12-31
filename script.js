@@ -1,8 +1,10 @@
 const chart = document.getElementById("chart");
 const svg = document.getElementById("lineLayer");
+const patternList = document.getElementById("patternList");
 
 let data = [];
 let clicks = [];
+let results = [];
 
 /* CUT-ANK MAP */
 const cutMap = {
@@ -20,7 +22,9 @@ document.getElementById("csvFile").addEventListener("change", e=>{
 
 document.getElementById("resetBtn").onclick=()=>{
   clicks=[];
+  results=[];
   svg.innerHTML="";
+  patternList.innerHTML="";
   document.querySelectorAll("td").forEach(td=>td.classList.remove("selected"));
 };
 
@@ -64,7 +68,7 @@ function cellClick(td,r,c,val){
 
   if(clicks.length>=2){
     drawLine(clicks);
-    searchAndOpen();   // 🔥 DIRECT OPEN
+    searchPattern(); // 🔥 SEARCH ENABLED
   }
 }
 
@@ -83,11 +87,15 @@ function drawLine(arr){
   svg.appendChild(l);
 }
 
-/* EXACT SEARCH → DIRECT POPUP */
-function searchAndOpen(){
+/* SEARCH USER PATTERN IN RECORD */
+function searchPattern(){
+  results=[];
+  patternList.innerHTML="";
+
   if(clicks.length<2) return;
 
-  let rg=[],cg=[];
+  // user gaps
+  let rg=[], cg=[];
   for(let i=1;i<clicks.length;i++){
     rg.push(clicks[i].r-clicks[i-1].r);
     cg.push(clicks[i].c-clicks[i-1].c);
@@ -95,7 +103,7 @@ function searchAndOpen(){
 
   for(let br=0;br<data.length;br++){
     for(let bc=0;bc<data[0].length;bc++){
-      let pts=[],ok=true;
+      let pts=[], ok=true;
 
       for(let i=0;i<clicks.length;i++){
         const rr=br+rg.slice(0,i).reduce((a,b)=>a+b,0);
@@ -109,11 +117,23 @@ function searchAndOpen(){
       }
 
       if(ok){
-        showPopup(pts);   // 🔥 FIRST MATCH ONLY
-        return;
+        results.push(pts);
       }
     }
   }
+
+  renderCheckLines();
+}
+
+/* CHECK LINES (HISTORY LIST) */
+function renderCheckLines(){
+  results.forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="pattern-item";
+    d.textContent=`Pattern ${i+1}: ${p.map(x=>x.val).join(" → ")}`;
+    d.onclick=()=>showPopup(p);
+    patternList.appendChild(d);
+  });
 }
 
 /* POPUP (BOLD + SAME SHAPE + NICHÉ ROWS) */
@@ -171,7 +191,7 @@ function showPopup(points){
   popup.classList.remove("hidden");
 }
 
-/* CLOSE */
+/* CLOSE POPUP */
 function closePopup(){
   document.getElementById("popup").classList.add("hidden");
 }
