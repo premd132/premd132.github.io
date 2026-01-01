@@ -1,180 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Visual Pattern Search</title>
+<meta charset="UTF-8">
+<title>Jodi Trend Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   font-family: Arial, sans-serif;
-  background:#c9b27c;
+  background:#f4f4f4;
+  margin:0;
+  padding:10px;
+}
+h1{
+  text-align:center;
+  color:#d60000;
+}
+button{
+  padding:6px 10px;
+  margin:2px;
+  cursor:pointer;
 }
 table{
   border-collapse:collapse;
-}
-td{
-  border:1px solid #2f4f2f;
-  width:48px;
-  height:38px;
-  text-align:center;
-  cursor:pointer;
-  position:relative;
-}
-td.selected{
-  outline:3px solid red;
-  border-radius:50%;
-}
-#lineCanvas{
-  position:absolute;
-  top:0;
-  left:0;
-  pointer-events:none;
-}
-#rightPanel{
-  position:fixed;
-  right:0;
-  top:0;
-  width:220px;
-  height:100%;
-  background:#eee;
-  overflow:auto;
-  padding:10px;
-}
-.checkLine{
-  background:#d9534f;
-  color:#fff;
-  padding:6px;
-  margin-bottom:6px;
-  cursor:pointer;
-}
-#popup{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
+  width:100%;
   background:#fff;
-  padding:12px;
-  display:none;
-  box-shadow:0 0 15px #000;
 }
-#popup table td{
-  font-weight:bold;
-  font-size:18px;
+th,td{
+  border:1px solid #999;
+  text-align:center;
+  padding:4px;
+  font-size:14px;
+}
+th{
+  background:#eee;
+}
+td.jodi{
+  cursor:pointer;
+}
+td.highlight{
+  background:#ffeb3b;
+}
+td.family{
+  background:#c8e6c9;
+}
+.line{
+  outline:3px solid red;
+}
+.popup{
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+.popup-content{
+  background:#fff;
+  padding:15px;
+  width:90%;
+  max-height:80%;
+  overflow:auto;
+}
+textarea{
+  width:100%;
+  height:120px;
 }
 </style>
 </head>
 
 <body>
 
-<h3>Jaise chart me drawing karo → wahi pattern record me search hoga</h3>
+<h1>🔥 Jodi Trend Analyzer (Manual)</h1>
 
-<input type="file" id="csvFile">
+<p><b>Manual Data (Day Row on Top):</b><br>
+Format example:<br>
+Mon 12 34 56 78 90<br>
+Tue 23 45 67 89 01
+</p>
 
-<div style="position:relative; display:inline-block;">
-  <table id="chart"></table>
-  <canvas id="lineCanvas"></canvas>
-</div>
+<textarea id="inputData" placeholder="Enter manual record here..."></textarea>
+<br>
+<button onclick="generate()">Generate Chart</button>
+<button onclick="clearData()">Clear</button>
 
-<div id="rightPanel">
-  <h4>Pattern Check Lines</h4>
-  <div id="checks"></div>
-</div>
+<hr>
 
-<div id="popup">
-  <h4>Matched Pattern</h4>
-  <div id="popupContent"></div>
-  <button onclick="popup.style.display='none'">Close</button>
+<div id="chart"></div>
+
+<div class="popup" id="popup">
+  <div class="popup-content">
+    <h3>📌 Trend Details</h3>
+    <div id="popupData"></div>
+    <button onclick="closePopup()">Close</button>
+  </div>
 </div>
 
 <script>
-let data=[], clicks=[], matches=[];
-const chart=document.getElementById('chart');
-const canvas=document.getElementById('lineCanvas');
-const ctx=canvas.getContext('2d');
-
-document.getElementById('csvFile').onchange=e=>{
-  const r=new FileReader();
-  r.onload=()=>{
-    data=r.result.trim().split('\n').map(r=>r.split(','));
-    drawChart();
-  };
-  r.readAsText(e.target.files[0]);
+// ===== FAMILY SET =====
+const familyMap = {
+  "0":["0","5"],
+  "1":["1","6"],
+  "2":["2","7"],
+  "3":["3","8"],
+  "4":["4","9"],
+  "5":["5","0"],
+  "6":["6","1"],
+  "7":["7","2"],
+  "8":["8","3"],
+  "9":["9","4"]
 };
 
-function drawChart(){
-  chart.innerHTML='';
-  data.forEach((row,i)=>{
-    const tr=document.createElement('tr');
-    row.forEach((v,j)=>{
-      const td=document.createElement('td');
-      td.textContent=v;
-      td.onclick=()=>cellClick(td,i,j);
-      tr.appendChild(td);
-    });
-    chart.appendChild(tr);
-  });
-  canvas.width=chart.offsetWidth;
-  canvas.height=chart.offsetHeight;
-}
-
-function cellClick(td,r,c){
-  td.classList.add('selected');
-  clicks.push({r,c});
-  redrawLine();
-  if(clicks.length>=2) searchPattern();
-}
-
-function redrawLine(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='green';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  clicks.forEach((p,i)=>{
-    const cell=chart.rows[p.r].cells[p.c];
-    const x=cell.offsetLeft+cell.offsetWidth/2;
-    const y=cell.offsetTop+cell.offsetHeight/2;
-    if(i===0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-}
-
-function searchPattern(){
-  document.getElementById('checks').innerHTML='';
-  matches=[];
-  const gaps=[];
-  for(let i=1;i<clicks.length;i++)
-    gaps.push(clicks[i].r-clicks[i-1].r);
-
-  for(let r=0;r<data.length;r++){
-    let ok=true;
-    for(let i=1;i<gaps.length;i++){
-      if(!data[r+gaps[i]] || !data[r]){ ok=false; break;}
-    }
-    if(ok) matches.push(r);
+// ===== LOAD SAVED =====
+window.onload=()=>{
+  if(localStorage.getItem("jodiData")){
+    document.getElementById("inputData").value =
+      localStorage.getItem("jodiData");
+    generate();
   }
+};
 
-  matches.forEach((r,i)=>{
-    const d=document.createElement('div');
-    d.className='checkLine';
-    d.textContent='Pattern '+(i+1)+' (Row '+r+')';
-    d.onclick=()=>showPopup(r);
-    checks.appendChild(d);
+function clearData(){
+  localStorage.removeItem("jodiData");
+  location.reload();
+}
+
+function generate(){
+  const raw=document.getElementById("inputData").value.trim();
+  if(!raw) return alert("Data enter karo");
+  localStorage.setItem("jodiData",raw);
+
+  const lines=raw.split("\n");
+  let days=[];
+  let rows=[];
+
+  lines.forEach(l=>{
+    let p=l.trim().split(/\s+/);
+    days.push(p[0]);
+    rows.push(p.slice(1));
+  });
+
+  let html="<table><tr><th>Day</th>";
+  rows[0].forEach((_,i)=>html+=`<th>C${i+1}</th>`);
+  html+="</tr>";
+
+  rows.forEach((r,i)=>{
+    html+=`<tr><th>${days[i]}</th>`;
+    r.forEach((j,ci)=>{
+      html+=`<td class="jodi" data-r="${i}" data-c="${ci}" onclick="analyze(${i},${ci})">${j}</td>`;
+    });
+    html+="</tr>";
+  });
+  html+="</table>";
+
+  document.getElementById("chart").innerHTML=html;
+}
+
+// ===== ANALYSIS =====
+function analyze(r,c){
+  clearMarks();
+  const cell=document.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+  const val=cell.innerText;
+  cell.classList.add("highlight");
+
+  let d1=val[0], d2=val[1];
+  let fam=[...familyMap[d1],...familyMap[d2]];
+
+  let matches=[];
+  document.querySelectorAll(".jodi").forEach(td=>{
+    let v=td.innerText;
+    if(fam.includes(v[0]) && fam.includes(v[1])){
+      td.classList.add("family");
+      matches.push(`Row ${td.dataset.r+1}, Col ${+td.dataset.c+1} → ${v}`);
+    }
+  });
+
+  showPopup(val,fam,matches);
+}
+
+function clearMarks(){
+  document.querySelectorAll("td").forEach(td=>{
+    td.classList.remove("highlight","family","line");
   });
 }
 
-function showPopup(baseRow){
-  popup.style.display='block';
-  let html='<table>';
-  clicks.forEach(p=>{
-    html+='<tr>';
-    data[baseRow+p.r-clicks[0].r].forEach(v=>{
-      html+='<td>'+v+'</td>';
-    });
-    html+='</tr>';
-  });
-  html+='</table>';
-  popupContent.innerHTML=html;
+function showPopup(val,fam,matches){
+  let html=`<b>Selected Jodi:</b> ${val}<br>`;
+  html+=`<b>Family Digits:</b> ${fam.join(", ")}<br><br>`;
+  html+=`<b>Matches (${matches.length}):</b><br>`;
+  matches.forEach(m=>html+=m+"<br>");
+  document.getElementById("popupData").innerHTML=html;
+  document.getElementById("popup").style.display="flex";
+}
+function closePopup(){
+  document.getElementById("popup").style.display="none";
 }
 </script>
 
