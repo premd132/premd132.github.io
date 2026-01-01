@@ -1,106 +1,96 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f4e4b5;
-  margin: 0;
-  padding: 10px;
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f4f4f4;
 }
 
-h2 {
-  text-align: center;
-  margin-bottom: 4px;
+.home{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
 }
 
-.subtitle {
-  text-align: center;
-  font-size: 13px;
-  margin-bottom: 10px;
+.btn{
+  background:#222;
+  color:#fff;
+  padding:12px 20px;
+  text-decoration:none;
+  font-size:18px;
+  margin-top:15px;
 }
 
-.top-bar {
-  text-align: center;
-  margin-bottom: 10px;
+/* ===== ANALYZER ===== */
+
+textarea{
+  width:100%;
+  height:140px;
+  font-family:monospace;
 }
 
-.container {
-  display: flex;
-  gap: 10px;
+button{
+  padding:10px 14px;
+  margin:5px;
+  cursor:pointer;
 }
 
-.chart-wrapper {
-  position: relative;
-  overflow: auto;
-  border: 2px solid #333;
-  background: #ddd;
+.table-wrap{
+  position:relative;
 }
 
-#chart {
-  border-collapse: collapse;
+table{
+  border-collapse:collapse;
+  width:100%;
+  background:#fff;
+  position:relative;
+  z-index:5;          /* 🔥 CLICK FIX */
 }
 
-#chart td {
-  width: 60px;
-  height: 40px;
-  border: 1px solid #2f5f2f;
-  text-align: center;
-  font-weight: bold;
-  cursor: pointer;
-  background: #cfcfcf;
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  min-width:42px;
+  cursor:pointer;
 }
 
-#chart td.selected {
-  outline: 3px solid red;
-  border-radius: 50%;
+th{
+  background:#222;
+  color:#fff;
 }
 
-#lineLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
+td.blank{
+  background:#eee;
 }
 
-.side-panel {
-  width: 200px;
-  background: #fff;
-  border: 2px solid #333;
-  padding: 5px;
-}
-
-.pattern-item {
-  background: #eee;
-  margin-bottom: 5px;
-  padding: 5px;
-  cursor: pointer;
-  border-left: 6px solid green;
-}
-
-.popup {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-}
-
-.popup.hidden {
-  display: none;
-}
-
-.popup-content {
-  background: #fff;
-  width: 420px;
-  margin: 60px auto;
-  padding: 10px;
-  text-align: center;
-}
-/* ==== FIX CLICK ISSUE (Canvas vs Table) ==== */
 canvas{
   position:absolute;
   top:0;
   left:0;
   z-index:0;
-  pointer-events:none;
+  pointer-events:none;   /* 🔥 CLICK FIX */
 }
 
-table{
-  position:relative;
-  z-index:5;
+/* ===== POPUP ===== */
+
+.popup{
+  position:fixed;
+  inset:5%;
+  background:#fff;
+  border:4px solid #000;
+  display:none;
+  z-index:9999;
+  overflow:auto;
+}
+
+.popup-close{
+  position:fixed;
+  top:6%;
+  right:6%;
+  background:red;
+  color:white;
+  padding:6px 10px;
+  cursor:pointer;
 }
