@@ -66,6 +66,29 @@ function searchPattern(){
     checks.appendChild(d);
   });
 }
+function buildSignature(baseRow, col) {
+  let sig = [];
+  for (let i = 1; i <= 10; i++) {
+    let r = baseRow - i;
+    if (r < 0) break;
+    if (grid[r][col] !== "**") {
+      sig.push({
+        offset: i,
+        value: grid[r][col]
+      });
+    }
+  }
+  return sig;
+}
+
+function matchSignature(atRow, col, sig) {
+  for (let s of sig) {
+    let r = atRow - s.offset;
+    if (r < 0) return false;
+    if (!match(s.value, grid[r][col])) return false;
+  }
+  return true;
+}
 // ==== SAFE VALUE PARSER ====
 function cleanVal(v){
   if(!v) return "**";
