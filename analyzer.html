@@ -2,144 +2,175 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 Jodi Line Analyzer</title>
+<title>Advanced Trend Check Analyzer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f7f7f7;
-  padding:10px;
-}
-h2{
-  text-align:center;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-}
-th,td{
-  border:1px solid #ccc;
-  text-align:center;
-  padding:6px;
-  font-size:14px;
-}
-th{
-  background:#222;
-  color:#fff;
-}
-td{
-  cursor:pointer;
-}
-td.blank-cell{
-  background:#f0f0f0;
-  color:#999;
-  font-weight:bold;
-}
-td.blank-cell:hover{
-  background:#ffeeba;
-}
-#popup{
-  display:none;
-  position:fixed;
-  left:0;
-  top:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-}
-#popupBox{
-  background:#fff;
-  width:90%;
-  max-width:400px;
-  margin:15% auto;
-  padding:15px;
-  border-radius:8px;
-}
-#popupBox h3{
-  margin-top:0;
-}
-button{
-  padding:6px 10px;
-  margin-top:10px;
-}
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+h2{text-align:center}
+textarea{width:100%;height:140px}
+button{padding:6px 10px;margin:4px}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #aaa;text-align:center;padding:6px}
+th{background:#222;color:#fff}
+td.blank{background:#eee;color:#999;font-weight:bold;cursor:pointer}
+td.mark{background:#ffeb3b}
+td.line{outline:3px solid red}
+td.family{background:#c8e6c9}
+
+.popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6)}
+.popupBox{background:#fff;width:92%;max-height:85%;overflow:auto;
+margin:5% auto;padding:15px}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Jodi Line Analyzer</h2>
+<h2>🔥 Trend Check + Check Line Analyzer</h2>
 
-<table>
+<textarea id="dataBox" placeholder="Paste record here (rows only)"></textarea>
+<br>
+<button onclick="generate()">Generate</button>
+<button onclick="clearAll()">Clear</button>
+
+<table id="grid">
 <thead>
 <tr>
-  <th>Mon</th>
-  <th>Tue</th>
-  <th>Wed</th>
-  <th>Thu</th>
-  <th>Fri</th>
-  <th>Sat</th>
+  <th>Mon</th><th>Tue</th><th>Wed</th>
+  <th>Thu</th><th>Fri</th><th>Sat</th>
 </tr>
 </thead>
-
-<tbody>
-<tr>
-  <td>52</td><td>96</td><td>53</td><td>11</td><td>70</td><td class="blank-cell" onclick="aiSuggest()">**</td>
-</tr>
-<tr>
-  <td>91</td><td>97</td><td>67</td><td>79</td><td class="blank-cell" onclick="aiSuggest()">**</td><td>87</td>
-</tr>
-<tr>
-  <td>78</td><td>52</td><td>12</td><td class="blank-cell" onclick="aiSuggest()">**</td><td>64</td><td>17</td>
-</tr>
-<tr>
-  <td class="blank-cell" onclick="aiSuggest()">**</td><td>43</td><td>78</td><td>91</td><td>27</td><td>30</td>
-</tr>
-<tr>
-  <td>64</td><td>30</td><td>97</td><td>55</td><td>97</td><td class="blank-cell" onclick="aiSuggest()">**</td>
-</tr>
-</tbody>
+<tbody></tbody>
 </table>
 
-<!-- POPUP -->
-<div id="popup">
-  <div id="popupBox">
-    <h3>🔍 AI Strong Jodi Suggestion</h3>
-    <div id="popupData"></div>
-    <button onclick="closePopup()">Close</button>
-  </div>
+<div class="popup" id="popup">
+ <div class="popupBox">
+  <h3>📸 Pattern Line (Real Record)</h3>
+  <div id="popupData"></div>
+  <button onclick="closePopup()">Close</button>
+ </div>
 </div>
 
 <script>
-function aiSuggest(){
-  const strongFamilies = [
-    ["16","61"],
-    ["27","72"],
-    ["38","83"],
-    ["49","94"],
-    ["05","50"],
-    ["12","21"],
-    ["33","38"],
-    ["55","50"]
-  ];
+const familyMap={
+0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
+5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
+};
 
-  strongFamilies.sort(() => 0.5 - Math.random());
-  let pickCount = Math.random() > 0.5 ? 2 : 4;
-  let pick = strongFamilies.slice(0, pickCount);
+let matrix=[];
 
-  let html = "<ul>";
-  pick.forEach(j => {
-    html += "<li><b>"+j[0]+" - "+j[1]+"</b></li>";
-  });
-  html += "</ul>";
+/* ===== GENERATE GRID ===== */
+function generate(){
+ const raw=dataBox.value.trim();
+ if(!raw) return alert("Data daalo");
+ localStorage.setItem("trendData",raw);
 
-  document.getElementById("popupData").innerHTML = html;
-  document.getElementById("popup").style.display = "block";
+ matrix=raw.split("\n").map(r=>r.trim().split(/\s+/));
+ const tb=document.querySelector("#grid tbody");
+ tb.innerHTML="";
+
+ matrix.forEach((row,r)=>{
+  let tr=document.createElement("tr");
+  for(let c=0;c<6;c++){
+   let td=document.createElement("td");
+   let v=row[c]||"**";
+   td.textContent=v;
+   if(v==="**"){
+     td.className="blank";
+     td.onclick=()=>trendCheck(r,c);
+   }
+   tr.appendChild(td);
+  }
+  tb.appendChild(tr);
+ });
 }
 
-function closePopup(){
-  document.getElementById("popup").style.display = "none";
+/* ===== TREND CHECK LOGIC ===== */
+function trendCheck(r,c){
+ clearMarks();
+ let baseWindow=[];
+ for(let i=Math.max(0,r-8);i<r;i++){
+   if(matrix[i] && matrix[i][c] && matrix[i][c]!=="**"){
+     baseWindow.push(matrix[i][c]);
+   }
+ }
+
+ if(baseWindow.length<3){
+   alert("Pattern samajhne ke liye data kam hai");
+   return;
+ }
+
+ let signature = baseWindow.map(v=>{
+   let a=v[0],b=v[1];
+   return familyMap[a].join("")+familyMap[b].join("");
+ }).join("|");
+
+ let matches=[];
+
+ matrix.forEach((row,i)=>{
+   if(i<8) return;
+   let win=[];
+   for(let k=i-8;k<i;k++){
+     if(matrix[k][c] && matrix[k][c]!=="**"){
+       win.push(matrix[k][c]);
+     }
+   }
+   if(win.length<3) return;
+
+   let sig=win.map(v=>{
+     let a=v[0],b=v[1];
+     return familyMap[a].join("")+familyMap[b].join("");
+   }).join("|");
+
+   if(sig===signature){
+     matches.push(i);
+   }
+ });
+
+ drawCheckLines(matches,c,signature);
+}
+
+/* ===== DRAW CHECK LINE ===== */
+function drawCheckLines(rows,col,signature){
+ const tb=document.querySelector("#grid tbody").children;
+ rows.forEach(r=>{
+   for(let i=r;i<tb.length;i++){
+     tb[i].children[col].classList.add("line");
+   }
+ });
+
+ popupView(rows,col,signature);
+}
+
+/* ===== POPUP VIEW ===== */
+function popupView(rows,col,signature){
+ let html="<b>Pattern Signature:</b><br>"+signature+"<hr>";
+ rows.forEach(r=>{
+   html+="<b>Match at row "+(r+1)+"</b><br>";
+   for(let i=r-3;i<=r;i++){
+     if(matrix[i]){
+       html+=matrix[i].join(" ")+"<br>";
+     }
+   }
+   html+="<hr>";
+ });
+ popupData.innerHTML=html;
+ popup.style.display="block";
+}
+
+/* ===== HELPERS ===== */
+function clearMarks(){
+ document.querySelectorAll("td").forEach(td=>{
+   td.classList.remove("mark","line","family");
+ });
+}
+function closePopup(){popup.style.display="none"}
+function clearAll(){localStorage.clear();location.reload()}
+
+/* ===== LOAD SAVED ===== */
+if(localStorage.getItem("trendData")){
+ dataBox.value=localStorage.getItem("trendData");
+ generate();
 }
 </script>
 
