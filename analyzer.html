@@ -2,265 +2,176 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Analyzer – Ultimate (Button UI)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 iSmart Real Chart Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
-h1{font-size:20px;margin:5px 0}
-textarea{width:100%;height:140px;font-family:monospace;font-size:14px}
-button,select{padding:8px 12px;margin:4px;font-size:14px;cursor:pointer}
+body{font-family:Arial;background:#f5f5f5;margin:0;padding:10px}
+h1{text-align:center}
+textarea{width:100%;height:120px;font-size:14px}
+button{padding:10px 14px;margin:5px;font-size:14px;cursor:pointer}
 table{border-collapse:collapse;width:100%;background:#fff;margin-top:10px}
-th,td{border:1px solid #999;padding:6px;text-align:center}
+th,td{border:1px solid #ccc;padding:6px;text-align:center;position:relative}
 th{background:#222;color:#fff}
-td.blank{background:#eee;color:#888}
-.panel{background:#fff;border:1px solid #ccc;padding:8px;margin-top:10px}
-#canvasWrap{background:#fff;border:1px solid #ccc;margin-top:10px;padding:6px}
-canvas{display:block;margin:auto;border:1px solid #000}
-#popup{display:none;position:fixed;inset:5%;background:#fff;border:2px solid #000;z-index:9999;overflow:auto}
-#popup .close{float:right;color:red;font-size:18px;cursor:pointer}
-.badge{display:inline-block;padding:3px 6px;border:1px solid #333;margin:2px}
+td.jodi{cursor:pointer;font-weight:bold}
+td.blank{background:#eee;cursor:pointer}
+td.active{background:#ffe082}
+svg{position:absolute;top:0;left:0;pointer-events:none}
+#popup{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);display:none;z-index:999
+}
+#popupContent{
+  background:#fff;margin:5%;padding:10px;position:relative
+}
+.close{position:absolute;top:5px;right:10px;cursor:pointer;font-size:18px}
+.line{stroke:blue;stroke-width:3}
+.circle{fill:none;stroke:red;stroke-width:3}
 </style>
 </head>
 
 <body>
 
-<h1>🔥 iSmart Analyzer – Ultimate</h1>
+<h1>🔥 iSmart REAL Chart Analyzer</h1>
 
-<textarea id="rawData" placeholder="Mon Tue Wed Thu Fri Sat
+<textarea id="input">
+Mon Tue Wed Thu Fri Sat
 51 29 50 18 84 17
 99 96 33 96 67 26
-** 17 88 99 28 96"></textarea>
-<br>
-<button id="genBtn">Generate</button>
-<button id="saveBtn">Save</button>
-<button id="clearBtn">Clear</button>
+** 17 88 99 28 96
+86 16 63 94 53 **
+</textarea>
 
-<div class="panel">
-<b>Analyze by Button (Desktop-Safe)</b><br>
-Row:
-<select id="rowSel"></select>
-Days (multi-select):
-<select id="daySel" multiple size="2">
-  <option value="0">Mon</option>
-  <option value="1">Tue</option>
-  <option value="2">Wed</option>
-  <option value="3">Thu</option>
-  <option value="4">Fri</option>
-  <option value="5">Sat</option>
-</select>
-<button id="analyzeBtn">CHECK TREND</button>
-<span id="angleInfo" class="badge"></span>
-</div>
+<button onclick="generate()">Generate</button>
+<button onclick="saveData()">Save</button>
+<button onclick="addRow()">Add Blank Row</button>
 
-<table id="tbl"></table>
-
-<div id="canvasWrap">
-  <b>Trend Canvas</b>
-  <button id="exportBtn">Export Image (PNG)</button>
-  <canvas id="cv" width="1100" height="380"></canvas>
-</div>
+<div id="tableWrap"></div>
 
 <div id="popup">
-  <span class="close" onclick="closePopup()">✖</span>
-  <div id="popupBody"></div>
+  <div id="popupContent">
+    <span class="close" onclick="closePopup()">✖</span>
+    <h3>Trend Preview</h3>
+    <div id="popupChart"></div>
+  </div>
 </div>
 
 <script>
-/* ========= CONFIG ========= */
-const MIN_ROWS = 6;
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
-const FAMILY = { // cut / family
-  0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
-  5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
-};
+const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+const family={1:6,2:7,3:8,4:9,5:0,6:1,7:2,8:3,9:4,0:5};
 
-let data=[];
+let grid=[];
 
-/* ========= UTIL ========= */
-const $=id=>document.getElementById(id);
-function clean(t){return t.replace(/\t+/g," ").replace(/\r/g,"").trim();}
-function families(j){
-  if(!j||j==="**") return [];
-  const a=j[0],b=j[1];
-  const fa=FAMILY[a]||[a], fb=FAMILY[b]||[b];
-  const out=[];
-  fa.forEach(x=>fb.forEach(y=>out.push(x+y)));
-  return out;
+function generate(){
+  grid=[];
+  const lines=document.getElementById("input").value.trim().split("\n");
+  for(let i=1;i<lines.length;i++){
+    grid.push(lines[i].split(/\s+/));
+  }
+  render();
 }
 
-/* ========= TABLE ========= */
-function generate(){
-  const raw=clean($("rawData").value);
-  if(!raw) return;
-  const rows=raw.split(/\n+/);
-  data=rows.map(r=>r.split(/\s+/));
-  data.push(["**","**","**","**","**","**"]); // auto blank row
+function render(){
+  let html='<table><tr>';
+  days.forEach(d=>html+=`<th>${d}</th>`);
+  html+='</tr>';
 
-  // build table
-  let html="<tr>"+DAYS.map(d=>`<th>${d}</th>`).join("")+"</tr>";
-  data.forEach(r=>{
-    html+="<tr>";
-    for(let i=0;i<6;i++){
-      const v=r[i]||"**";
-      html+=`<td class="${v==="**"?"blank":""}">${v}</td>`;
-    }
-    html+="</tr>";
+  grid.forEach((row,r)=>{
+    html+='<tr>';
+    row.forEach((v,c)=>{
+      const cls=(v==="**"?"blank":"jodi");
+      html+=`<td class="${cls}" onclick="cellClick(${r},${c})">${v}</td>`;
+    });
+    html+='</tr>';
   });
-  $("tbl").innerHTML=html;
+  html+='</table>';
+  document.getElementById("tableWrap").innerHTML=html;
+}
 
-  // row selector
-  $("rowSel").innerHTML="";
-  for(let i=0;i<data.length;i++){
-    const o=document.createElement("option");
-    o.value=i; o.textContent="Row "+(i+1);
-    $("rowSel").appendChild(o);
+function cellClick(r,c){
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("active"));
+  const td=document.querySelectorAll("tr")[r+1].children[c];
+  td.classList.add("active");
+
+  if(grid[r][c]==="**"){
+    showSuggestions(r,c);
+  }else{
+    drawTrend(r,c);
   }
 }
 
-function saveData(){
-  localStorage.setItem("ismart_data",$("rawData").value);
-  alert("Saved");
-}
-function clearAll(){
-  localStorage.removeItem("ismart_data");
-  location.reload();
-}
-
-/* ========= ANALYSIS (BUTTON) ========= */
-function getSelectedDays(){
-  return [...$("daySel").selectedOptions].map(o=>parseInt(o.value));
-}
-
-function checkTrend(){
-  const r=parseInt($("rowSel").value);
-  const days=getSelectedDays();
-  if(days.length===0){alert("Select at least 1 day");return;}
-  if(r<MIN_ROWS){alert("Minimum "+MIN_ROWS+" rows required");return;}
-
-  // collect base window (multi-day combined)
-  let base=[];
-  days.forEach(d=>{
-    let seq=[];
-    for(let i=r;i>r-MIN_ROWS;i--){
-      const v=(data[i]||[])[d];
-      if(v && v!=="**") seq.push(v);
+function drawTrend(r,c){
+  let pts=[];
+  let val=grid[r][c];
+  for(let i=r-1;i>=0;i--){
+    if(grid[i][c]===val || grid[i][c]==family[val[0]]+family[val[1]]){
+      pts.push([i,c]);
     }
-    if(seq.length>=3) base.push({day:d,seq});
-  });
-  if(base.length===0){alert("Not enough data");return;}
-
-  // find matches across record
-  let matches=[];
-  data.forEach((row,i)=>{
-    if(i<MIN_ROWS) return;
-    let ok=true;
-    base.forEach(b=>{
-      let seq=[];
-      for(let k=0;k<b.seq.length;k++){
-        const v=(data[i-k]||[])[b.day];
-        if(v && v!=="**") seq.push(v);
-      }
-      if(seq.join()!==b.seq.join()) ok=false;
-    });
-    if(ok) matches.push(i);
-  });
-
-  drawZigZag(r, base, matches);
-  showPopup(r, base, matches);
+  }
+  openPopup(pts);
 }
 
-/* ========= CANVAS: ZIG-ZAG + ANGLES ========= */
-function drawZigZag(row, base, matches){
-  const cv=$("cv"), ctx=cv.getContext("2d");
-  ctx.clearRect(0,0,cv.width,cv.height);
-
-  const padX=80, padY=40, colW=150, rowH=26;
-
-  // axes
-  ctx.strokeStyle="#000"; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(padX,10); ctx.lineTo(padX,cv.height-10); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(10,cv.height-padY); ctx.lineTo(cv.width-10,cv.height-padY); ctx.stroke();
-
-  // draw zig-zag per day
-  let angles=[];
-  base.forEach((b,bi)=>{
-    ctx.strokeStyle=["#1976d2","#d32f2f","#388e3c","#f57c00","#7b1fa2","#00838f"][bi%6];
-    ctx.lineWidth=3; ctx.beginPath();
-    b.seq.slice().reverse().forEach((v,idx)=>{
-      const x=padX + b.day*colW + bi*6;
-      const y=cv.height-padY - (row-idx)*rowH;
-      if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      if(idx>0){
-        const dy=rowH; const dx=0;
-        const ang = Math.abs(Math.atan2(dy,dx)*180/Math.PI)||90;
-        angles.push(Math.round(ang));
-      }
-    });
-    ctx.stroke();
-  });
-
-  // highlight matches (photo-style)
-  ctx.strokeStyle="#000"; ctx.setLineDash([6,6]); ctx.lineWidth=2;
-  matches.forEach(m=>{
-    ctx.beginPath();
-    ctx.moveTo(10, cv.height-padY - m*rowH);
-    ctx.lineTo(cv.width-10, cv.height-padY - m*rowH);
-    ctx.stroke();
-  });
-  ctx.setLineDash([]);
-
-  // angle badge
-  const uniq=[...new Set(angles)];
-  $("angleInfo").textContent = "Angles: " + (uniq.includes(90)?"90° ":"") + (uniq.includes(45)?"45° ":"");
+function showSuggestions(r,c){
+  let base=[];
+  for(let i=r-1;i>=0 && base.length<4;i--){
+    let v=grid[i][c];
+    if(v!=="**") base.push(v);
+  }
+  alert("Strong Jodi Suggestion:\n"+base.join(", "));
 }
 
-/* ========= POPUP + AI ========= */
-function showPopup(r, base, matches){
-  let html="<h3>Trend Details</h3>";
-  base.forEach(b=>{
-    html+=`<b>${DAYS[b.day]}</b> seq: ${b.seq.join(", ")}<br>`;
-  });
-  html+=`<hr><b>Matches:</b> ${matches.length}<br>`;
-  matches.slice(0,10).forEach(m=>html+=`Row ${m+1}<br>`);
+function openPopup(points){
+  const wrap=document.getElementById("popupChart");
+  wrap.innerHTML=document.getElementById("tableWrap").innerHTML;
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("width","100%");
+  svg.setAttribute("height","100%");
+  svg.style.position="absolute";
 
-  // Blank-box AI suggestion (2–4)
-  let freq={};
-  base.forEach(b=>{
-    data.forEach(row=>{
-      const v=row[b.day];
-      if(v && v!=="**") freq[v]=(freq[v]||0)+1;
-    });
+  const cells=wrap.querySelectorAll("td");
+  let prev=null;
+  points.forEach(p=>{
+    const cell=cells[(p[0])*6+p[1]];
+    const r=cell.getBoundingClientRect();
+    if(prev){
+      const line=document.createElementNS(svg.namespaceURI,"line");
+      line.setAttribute("x1",prev.x);
+      line.setAttribute("y1",prev.y);
+      line.setAttribute("x2",r.left+r.width/2);
+      line.setAttribute("y2",r.top+r.height/2);
+      line.setAttribute("class","line");
+      svg.appendChild(line);
+    }
+    prev={x:r.left+r.width/2,y:r.top+r.height/2};
+    const cir=document.createElementNS(svg.namespaceURI,"circle");
+    cir.setAttribute("cx",prev.x);
+    cir.setAttribute("cy",prev.y);
+    cir.setAttribute("r",12);
+    cir.setAttribute("class","circle");
+    svg.appendChild(cir);
   });
-  const top=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,4);
-  html+="<hr><b>AI Strong Jodi</b><br>";
-  top.forEach(j=>{
-    html+=`${j} (family: ${families(j).join(", ")})<br>`;
-  });
-
-  $("popupBody").innerHTML=html;
-  $("popup").style.display="block";
-}
-function closePopup(){ $("popup").style.display="none"; }
-
-/* ========= EXPORT ========= */
-function exportImg(){
-  const a=document.createElement("a");
-  a.href=$("cv").toDataURL("image/png");
-  a.download="trend.png";
-  a.click();
+  wrap.appendChild(svg);
+  document.getElementById("popup").style.display="block";
 }
 
-/* ========= EVENTS ========= */
-$("genBtn").onclick=generate;
-$("saveBtn").onclick=saveData;
-$("clearBtn").onclick=clearAll;
-$("analyzeBtn").onclick=checkTrend;
-$("exportBtn").onclick=exportImg;
+function closePopup(){
+  document.getElementById("popup").style.display="none";
+}
 
-/* ========= LOAD ========= */
-const saved=localStorage.getItem("ismart_data");
-if(saved){ $("rawData").value=saved; generate(); }
+function saveData(){
+  localStorage.setItem("chart",JSON.stringify(grid));
+  alert("Data Saved");
+}
+
+function addRow(){
+  grid.push(["**","**","**","**","**","**"]);
+  render();
+}
+
+window.onload=()=>{
+  const s=localStorage.getItem("chart");
+  if(s){grid=JSON.parse(s);render();}
+};
 </script>
 
 </body>
