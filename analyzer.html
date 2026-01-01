@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Ultimate Analyzer</title>
+<title>iSmart Analyzer – FINAL STABLE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f1f1f1;padding:10px}
+body{font-family:Arial;background:#f0f0f0;padding:10px}
 h2{text-align:center}
 
 textarea{width:100%;height:140px;font-size:14px}
@@ -18,12 +18,11 @@ th,td{
   padding:6px;
   text-align:center;
   font-size:14px;
-  user-select:none;
 }
 th{background:#222;color:#fff}
 
 td.blank{background:#eee;color:#777;font-weight:bold}
-td.line{background:#fff3cd;outline:3px solid red}
+td.line{outline:3px solid red;background:#fff3cd}
 td.edit{background:#fff9c4}
 
 #nextLabel{
@@ -54,15 +53,14 @@ td.edit{background:#fff9c4}
 
 <body>
 
-<h2>🔥 iSmart Ultimate Analyzer</h2>
+<h2>🔥 iSmart Analyzer (FINAL)</h2>
 
 <textarea id="dataBox" placeholder="Excel se copy-paste yaha karo"></textarea><br>
 
 <button id="gen">Generate</button>
-<button id="add">Add Row</button>
 <button id="edit">Edit Mode</button>
 <button id="save">Save</button>
-<button id="clr">Clear</button>
+<button id="clear">Clear</button>
 
 <div id="nextLabel"></div>
 
@@ -94,8 +92,8 @@ let matrix=[],editMode=false;
 const tbody=document.querySelector("#grid tbody");
 const nextLabel=document.getElementById("nextLabel");
 
-/* ================= NORMALIZE (EXCEL FIX) ================= */
-function clean(t){
+/* ================= CLEAN EXCEL TEXT ================= */
+function cleanText(t){
   return t.replace(/\t+/g," ")
           .replace(/ +/g," ")
           .replace(/\r/g,"")
@@ -104,11 +102,15 @@ function clean(t){
 
 /* ================= GENERATE ================= */
 function generate(){
-  let raw=clean(dataBox.value);
-  if(!raw) return;
+  let raw=cleanText(dataBox.value);
+  if(!raw){alert("Data daalo");return;}
 
-  localStorage.setItem("trendData",raw);
   matrix=raw.split("\n").map(r=>r.split(" "));
+  
+  /* 🔥 ALWAYS ADD ONE BLANK ROW */
+  matrix.push(["**","**","**","**","**","**"]);
+
+  localStorage.setItem("trendData",matrix.map(r=>r.join(" ")).join("\n"));
 
   tbody.innerHTML="";
   matrix.forEach(r=>{
@@ -128,8 +130,8 @@ function generate(){
   });
 }
 
-/* ================= EVENT DELEGATION (FINAL CLICK FIX) ================= */
-tbody.addEventListener("pointerdown",function(e){
+/* ================= CLICK – EVENT DELEGATION (100% SAFE) ================= */
+tbody.addEventListener("click",function(e){
   if(editMode) return;
   const td=e.target.closest("td");
   if(!td) return;
@@ -141,7 +143,7 @@ tbody.addEventListener("pointerdown",function(e){
   runTrend(r,c);
 });
 
-/* ================= TREND CORE ================= */
+/* ================= CORE TREND ================= */
 function runTrend(r,c){
   document.querySelectorAll("td").forEach(td=>td.classList.remove("line"));
   nextLabel.style.display="none";
@@ -205,12 +207,6 @@ function runTrend(r,c){
 /* ================= BUTTONS ================= */
 gen.onclick=generate;
 
-add.onclick=()=>{
-  matrix.push(["**","**","**","**","**","**"]);
-  dataBox.value=matrix.map(r=>r.join(" ")).join("\n");
-  generate();
-};
-
 edit.onclick=()=>{
   editMode=!editMode;
   generate();
@@ -231,7 +227,7 @@ save.onclick=()=>{
   generate();
 };
 
-clr.onclick=()=>{
+clear.onclick=()=>{
   localStorage.clear();
   location.reload();
 };
