@@ -2,20 +2,21 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – Jodi Marking</title>
+<title>iSmart Analyzer – Pattern Search</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>🔥 Photo-Style Jodi Marking</h2>
+<h2>🔥 Blank Box Pattern Search</h2>
 
-<textarea id="dataInput" rows="6" style="width:100%" 
-placeholder="Excel se copy-paste yahan karo"></textarea><br><br>
+<textarea id="dataInput"
+placeholder="Excel se copy-paste data yahan karo"></textarea><br><br>
 
 <button onclick="generate()">Generate</button>
 <button onclick="saveData()">Save</button>
+<button onclick="clearMarks()">Clear Marks</button>
 
 <br><br>
 
@@ -31,6 +32,9 @@ placeholder="Excel se copy-paste yahan karo"></textarea><br><br>
 const days = ["Mon","Tue","Wed","Thu","Fri","Sat"];
 let grid = [];
 
+/* ======================
+   GENERATE TABLE
+====================== */
 function generate(){
   let raw = dataInput.value.trim().split("\n");
   grid = [];
@@ -58,58 +62,132 @@ function drawTable(){
     r.forEach((v,j)=>{
       let td = document.createElement("td");
       td.textContent = v;
-
       if(v==="**") td.classList.add("blank");
-
-      td.onclick = ()=>cellClick(td,v);
+      td.onclick = ()=>cellClick(i,j,td);
       tr.appendChild(td);
     });
     chart.appendChild(tr);
   });
 }
 
-/* 👉 JODI CLICK LOGIC */
-function cellClick(td,value){
-  if(value==="**"){
-    alert("Blank box clicked\n(next step: pattern search yahin lagega)");
+/* ======================
+   FAMILY / CUT LOGIC
+====================== */
+function familySet(jodi){
+  let a=parseInt(jodi[0]);
+  let b=parseInt(jodi[1]);
+  return new Set([
+    jodi,
+    ""+((a+9)%10)+b,
+    ""+a+((b+9)%10),
+    ""+((a+1)%10)+b,
+    ""+a+((b+1)%10)
+  ]);
+}
+
+/* ======================
+   CELL CLICK
+====================== */
+function cellClick(r,c,td){
+  clearMarks();
+
+  if(grid[r][c]==="**"){
+    blankBoxSearch(r,c);
+  }else{
+    markCell(td);
+    showPopup("Jodi clicked: "+grid[r][c]);
+  }
+}
+
+/* ======================
+   MARK STYLE
+====================== */
+function markCell(td){
+  td.classList.add("mark-circle");
+  td.classList.add("mark-underline");
+}
+
+/* ======================
+   BLANK BOX PATTERN SEARCH
+====================== */
+function blankBoxSearch(r,c){
+  let pattern = [];
+
+  for(let i=r-1;i>=0 && pattern.length<10;i--){
+    if(grid[i][c]!=="**"){
+      pattern.push(grid[i][c]);
+    }
+  }
+
+  if(pattern.length<4){
+    alert("Pattern ke liye data kam hai");
     return;
   }
 
-  // toggle marking
-  if(td.classList.contains("mark-circle")){
-    td.classList.remove("mark-circle");
-    td.classList.add("mark-underline");
-  }
-  else if(td.classList.contains("mark-underline")){
-    td.classList.remove("mark-underline");
-  }
-  else{
-    td.classList.add("mark-circle");
-  }
-
-  // popup
-  openPopup(value);
+  searchWholeRecord(pattern,c);
 }
 
-function openPopup(val){
-  popupContent.innerHTML = `
-    <h3 style="text-align:center">Jodi Selected: ${val}</h3>
-    <p style="text-align:center">Photo-style view (next step me full record yahan dikhega)</p>
-  `;
+/* ======================
+   SEARCH IN FULL RECORD
+====================== */
+function searchWholeRecord(pattern,col){
+  for(let r=0;r<=grid.length-pattern.length;r++){
+    let match=true;
+
+    for(let k=0;k<pattern.length;k++){
+      if(grid[r+k][col]==="**"){
+        match=false; break;
+      }
+
+      let f1=familySet(pattern[k]);
+      let f2=familySet(grid[r+k][col]);
+
+      let common=[...f1].some(x=>f2.has(x));
+      if(!common){
+        match=false; break;
+      }
+    }
+
+    if(match){
+      for(let k=0;k<pattern.length;k++){
+        let cell = chart.rows[r+k+1].cells[col];
+        markCell(cell);
+      }
+    }
+  }
+
+  showPopup("Pattern matched & marked (photo style)");
+}
+
+/* ======================
+   POPUP
+====================== */
+function showPopup(msg){
+  popupContent.innerHTML="<h3>"+msg+"</h3>";
   popup.style.display="block";
 }
-
 function closePopup(){
   popup.style.display="none";
 }
 
+/* ======================
+   UTILS
+====================== */
+function clearMarks(){
+  document.querySelectorAll(".mark-circle,.mark-underline")
+    .forEach(td=>{
+      td.classList.remove("mark-circle");
+      td.classList.remove("mark-underline");
+    });
+}
+
 function saveData(){
   localStorage.setItem("ismartData",dataInput.value);
-  alert("Data Saved");
+  alert("Saved");
 }
 
 window.onload=()=>{
-  let d = localStorage.getItem("ismartData");
+  let d=localStorage.getItem("ismartData");
   if(d){
     dataInput.value=d;
     generate();
