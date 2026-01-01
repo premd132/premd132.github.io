@@ -2,305 +2,144 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pattern Analyzer – FINAL (Correct Family Match)</title>
+<title>🔥 Jodi Line Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{margin:0;font-family:Arial;background:#f1d18a}
-h2{text-align:center;margin:10px}
-#top{text-align:center;padding:10px}
-button{padding:6px 10px;margin:4px}
-
-#wrap{display:flex;gap:10px;padding:10px}
-#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
-canvas{background:#fff}
-
-#right{width:28%;max-height:80vh;overflow:auto}
-#editor{
- width:32%;
- max-height:80vh;
- overflow:auto;
- background:#fff;
- border:3px solid #000;
- padding:6px;
- display:none;
+body{
+  font-family: Arial, sans-serif;
+  background:#f7f7f7;
+  padding:10px;
 }
-
-.check{
- background:#fff;
- margin:6px;
- padding:6px;
- border-left:5px solid red;
- cursor:pointer;
- font-size:13px
+h2{
+  text-align:center;
 }
-
-table{border-collapse:collapse;width:100%}
-td,th{border:1px solid #999;padding:4px;text-align:center;font-size:12px}
-td[contenteditable]{background:#fff7cc}
-.del{color:red;cursor:pointer;font-weight:bold}
-
-#modal{
- display:none;
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.7);
- align-items:center;
- justify-content:center;
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
 }
-#modalBox{
- background:#fff;
- padding:8px;
- max-width:95vw;
- max-height:95vh;
- overflow:auto;
+th,td{
+  border:1px solid #ccc;
+  text-align:center;
+  padding:6px;
+  font-size:14px;
+}
+th{
+  background:#222;
+  color:#fff;
+}
+td{
+  cursor:pointer;
+}
+td.blank-cell{
+  background:#f0f0f0;
+  color:#999;
+  font-weight:bold;
+}
+td.blank-cell:hover{
+  background:#ffeeba;
+}
+#popup{
+  display:none;
+  position:fixed;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+}
+#popupBox{
+  background:#fff;
+  width:90%;
+  max-width:400px;
+  margin:15% auto;
+  padding:15px;
+  border-radius:8px;
+}
+#popupBox h3{
+  margin-top:0;
+}
+button{
+  padding:6px 10px;
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>📊 Pattern Analyzer – FINAL (Family Match Fixed)</h2>
+<h2>🔥 Jodi Line Analyzer</h2>
 
-<div id="top">
-<input type="file" id="csv">
-<button onclick="toggleDrawMode()">✏️ Drawing Mode</button>
-<button onclick="toggleEditor()">✏️ Edit Record</button>
-<button onclick="addRow()">➕ Add Row</button>
-<button onclick="toggleDelete()">🗑️ Delete Mode</button>
-<button onclick="clearAll()">Clear Data</button>
-</div>
+<table>
+<thead>
+<tr>
+  <th>Mon</th>
+  <th>Tue</th>
+  <th>Wed</th>
+  <th>Thu</th>
+  <th>Fri</th>
+  <th>Sat</th>
+</tr>
+</thead>
 
-<div id="wrap">
- <div id="chartWrap"><canvas id="chart"></canvas></div>
- <div id="right"><b>Pattern Check Lines</b></div>
- <div id="editor">
-  <b>Editable Record Table</b>
-  <div id="tableBox"></div>
- </div>
-</div>
+<tbody>
+<tr>
+  <td>52</td><td>96</td><td>53</td><td>11</td><td>70</td><td class="blank-cell" onclick="aiSuggest()">**</td>
+</tr>
+<tr>
+  <td>91</td><td>97</td><td>67</td><td>79</td><td class="blank-cell" onclick="aiSuggest()">**</td><td>87</td>
+</tr>
+<tr>
+  <td>78</td><td>52</td><td>12</td><td class="blank-cell" onclick="aiSuggest()">**</td><td>64</td><td>17</td>
+</tr>
+<tr>
+  <td class="blank-cell" onclick="aiSuggest()">**</td><td>43</td><td>78</td><td>91</td><td>27</td><td>30</td>
+</tr>
+<tr>
+  <td>64</td><td>30</td><td>97</td><td>55</td><td>97</td><td class="blank-cell" onclick="aiSuggest()">**</td>
+</tr>
+</tbody>
+</table>
 
-<div id="modal" onclick="this.style.display='none'">
- <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="popup"></canvas>
- </div>
+<!-- POPUP -->
+<div id="popup">
+  <div id="popupBox">
+    <h3>🔍 AI Strong Jodi Suggestion</h3>
+    <div id="popupData"></div>
+    <button onclick="closePopup()">Close</button>
+  </div>
 </div>
 
 <script>
-/* ================= GLOBAL ================= */
-let headers=[],grid=[];
-let userPath=[],found=[];
-let drawMode=true,deleteMode=false;
+function aiSuggest(){
+  const strongFamilies = [
+    ["16","61"],
+    ["27","72"],
+    ["38","83"],
+    ["49","94"],
+    ["05","50"],
+    ["12","21"],
+    ["33","38"],
+    ["55","50"]
+  ];
 
-const cellW=80,cellH=30;
-const cvs=document.getElementById("chart");
-const ctx=cvs.getContext("2d");
-const pop=document.getElementById("popup");
-const pctx=pop.getContext("2d");
+  strongFamilies.sort(() => 0.5 - Math.random());
+  let pickCount = Math.random() > 0.5 ? 2 : 4;
+  let pick = strongFamilies.slice(0, pickCount);
 
-/* ================= FAMILY MATCH (FIXED) ================= */
-function family(j){
- let a=parseInt(j[0]), b=parseInt(j[1]);
- const mod=n=>(n+10)%10;
-
- return [
-  `${a}${b}`,
-  `${b}${a}`,
-  `${mod(a+1)}${mod(b+3)}`,
-  `${mod(b+3)}${mod(a+1)}`,
-  `${mod(a-5)}${mod(b-5)}`
- ];
-}
-
-/* ================= LOAD SAVED CSV ================= */
-window.onload=()=>{
- let saved=localStorage.getItem("savedCSV");
- if(saved) loadCSV(saved);
-};
-
-csv.onchange=e=>{
- let r=new FileReader();
- r.onload=()=>{
-  localStorage.setItem("savedCSV",r.result);
-  loadCSV(r.result);
- };
- r.readAsText(e.target.files[0]);
-};
-
-function loadCSV(txt){
- let lines=txt.trim().split("\n");
- headers=lines.shift().split(",");
- grid=lines.map(l=>l.split(","));
- drawAll();
- renderEditor();
-}
-
-function drawAll(){
- cvs.width=headers.length*cellW+100;
- cvs.height=grid.length*cellH+60;
- drawChart();
-}
-
-function drawChart(){
- ctx.clearRect(0,0,cvs.width,cvs.height);
- ctx.font="12px Arial";
- headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
- grid.forEach((r,ri)=>{
-  r.forEach((v,ci)=>{
-   let x=60+ci*cellW,y=40+ri*cellH;
-   ctx.strokeRect(x,y,cellW,cellH);
-   ctx.fillText(v,x+cellW/2-8,y+18);
+  let html = "<ul>";
+  pick.forEach(j => {
+    html += "<li><b>"+j[0]+" - "+j[1]+"</b></li>";
   });
- });
+  html += "</ul>";
+
+  document.getElementById("popupData").innerHTML = html;
+  document.getElementById("popup").style.display = "block";
 }
 
-function toggleDrawMode(){
- drawMode=!drawMode;
- event.target.innerText=drawMode?"✏️ Drawing Mode":"👆 Click Mode";
- userPath=[];
- drawChart();
-}
-
-cvs.onclick=e=>{
- if(!drawMode) return;
- let r=cvs.getBoundingClientRect();
- let col=Math.floor((e.clientX-r.left-60)/cellW);
- let row=Math.floor((e.clientY-r.top-40)/cellH);
- if(grid[row]&&grid[row][col]){
-  userPath.push({r:row,c:col,val:grid[row][col]});
-  drawUser();
-  if(userPath.length>1) search();
- }
-};
-
-function drawUser(){
- drawChart();
- userPath.forEach((p,i)=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  ctx.fillText(p.val,x-8,y-14);
-  if(i){
-   let q=userPath[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
-   ctx.lineTo(x,y);
-   ctx.strokeStyle="green";ctx.stroke();
-  }
- });
-}
-
-function search(){
- found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
-
- let rg=[],cg=[];
- for(let i=1;i<userPath.length;i++){
-  rg.push(userPath[i].r-userPath[i-1].r);
-  cg.push(userPath[i].c-userPath[i-1].c);
- }
-
- for(let br=0;br<grid.length;br++){
-  for(let bc=0;bc<headers.length;bc++){
-   let pts=[],ok=true;
-   for(let i=0;i<userPath.length;i++){
-    let rr=br+rg.slice(0,i).reduce((a,b)=>a+b,0);
-    let cc=bc+cg.slice(0,i).reduce((a,b)=>a+b,0);
-    if(!grid[rr]||!grid[rr][cc]||
-       !family(userPath[i].val).includes(grid[rr][cc])){
-        ok=false;break;
-    }
-    pts.push({r:rr,c:cc,val:grid[rr][cc]});
-   }
-   if(ok) found.push(pts);
-  }
- }
- renderCheckLines();
-}
-
-function renderCheckLines(){
- found.forEach((p,i)=>{
-  let d=document.createElement("div");
-  d.className="check";
-  d.innerHTML=`<b>Pattern ${i+1}</b><br>${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>showPattern(p);
-  right.appendChild(d);
- });
-}
-
-function showPattern(p){
- drawChart();
- p.forEach((pt,i)=>{
-  let x=60+pt.c*cellW+cellW/2;
-  let y=40+pt.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  ctx.fillText(pt.val,x-8,y-14);
-  if(i){
-   let pr=p[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
-   ctx.lineTo(x,y);
-   ctx.strokeStyle="green";ctx.stroke();
-  }
- });
- showPopup(p);
-}
-
-function showPopup(p){
- let minR=Math.min(...p.map(x=>x.r));
- let maxR=Math.max(...p.map(x=>x.r))+1;
- let cropY=40+minR*cellH;
- let h=(maxR-minR)*cellH+40;
- let w=cvs.width;
- pop.width=w;pop.height=h;
- pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
- modal.style.display="flex";
-}
-
-/* ===== EDITOR ===== */
-function toggleEditor(){
- editor.style.display=editor.style.display==="none"?"block":"none";
-}
-function addRow(){
- grid.push(headers.map(()=>"--"));
- saveGrid();drawAll();renderEditor();
-}
-function toggleDelete(){
- deleteMode=!deleteMode;
- alert(deleteMode?"Delete ON":"Delete OFF");
-}
-function renderEditor(){
- let html="<table><tr>";
- headers.forEach(h=>html+=`<th>${h}</th>`);html+="<th>X</th></tr>";
- grid.forEach((r,i)=>{
-  html+="<tr>";
-  r.forEach((v,j)=>{
-   html+=`<td contenteditable onblur="editCell(${i},${j},this.innerText)">${v}</td>`;
-  });
-  html+=`<td class='del' onclick='rowDelete(${i})'>X</td></tr>`;
- });
- html+="</table>";
- tableBox.innerHTML=html;
-}
-function editCell(r,c,v){
- grid[r][c]=v.trim();saveGrid();drawAll();
-}
-function rowDelete(r){
- if(!deleteMode)return;
- grid.splice(r,1);saveGrid();drawAll();renderEditor();
-}
-function clearAll(){
- if(!confirm("Clear all data?"))return;
- localStorage.removeItem("savedCSV");
- headers=[];grid=[];
- ctx.clearRect(0,0,cvs.width,cvs.height);
- right.innerHTML="<b>Pattern Check Lines</b>";
- tableBox.innerHTML="";
-}
-function saveGrid(){
- let t=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
- localStorage.setItem("savedCSV",t);
+function closePopup(){
+  document.getElementById("popup").style.display = "none";
 }
 </script>
 
