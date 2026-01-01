@@ -2,32 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Trend Analyzer – CLICK FIX FINAL</title>
+<title>iSmart Trend Analyzer – Excel Paste FIX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{font-family:Arial;background:#f2f2f2;padding:10px}
 h2{text-align:center}
-
-textarea{width:100%;height:120px}
+textarea{width:100%;height:140px}
 button{padding:6px 10px;margin:4px}
-
 table{width:100%;border-collapse:collapse;background:#fff}
 th,td{
   border:1px solid #999;
-  text-align:center;
   padding:6px;
+  text-align:center;
   font-size:14px;
-  cursor:pointer;
 }
 th{background:#222;color:#fff}
-
 td.blank{background:#eee;color:#777;font-weight:bold}
-td.line{
-  outline:3px solid red;
-  background:#fff3cd;
-}
-
+td.line{outline:3px solid red;background:#fff3cd}
 td.edit{background:#fff9c4}
 
 #nextLabel{
@@ -57,15 +49,15 @@ td.edit{background:#fff9c4}
 
 <body>
 
-<h2>🔥 iSmart Trend Analyzer (CLICK WORKING)</h2>
+<h2>🔥 iSmart Trend Analyzer (Excel Paste FIX)</h2>
 
-<textarea id="dataBox" placeholder="Paste record here (rows only)"></textarea><br>
+<textarea id="dataBox" placeholder="Excel se copy-paste karo yaha"></textarea><br>
 
-<button id="btnGenerate">Generate</button>
-<button id="btnAddRow">Add New Row</button>
-<button id="btnEdit">Edit Mode</button>
-<button id="btnSave">Save Data</button>
-<button id="btnClear">Clear</button>
+<button onclick="generate()">Generate</button>
+<button onclick="addRow()">Add New Row</button>
+<button onclick="toggleEdit()">Edit Mode</button>
+<button onclick="saveEdit()">Save Data</button>
+<button onclick="clearAll()">Clear</button>
 
 <div id="nextLabel"></div>
 
@@ -83,116 +75,97 @@ td.edit{background:#fff9c4}
  <div class="popupBox">
   <h3>📸 Check Line – Real Record</h3>
   <div id="popupData"></div>
-  <button id="btnClosePopup">Close</button>
+  <button onclick="popup.style.display='none'">Close</button>
  </div>
 </div>
 
 <script>
-/* ================= FAMILY MAP ================= */
+/* ========= FAMILY ========= */
 const familyMap={
 0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
 5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
 };
 
-let matrix=[];
-let editMode=false;
+let matrix=[],editMode=false;
 
-/* ================= DOM ================= */
-const dataBox=document.getElementById("dataBox");
-const tbody=document.querySelector("#grid tbody");
-const nextLabel=document.getElementById("nextLabel");
-const popup=document.getElementById("popup");
-const popupData=document.getElementById("popupData");
-
-/* ================= HELPERS ================= */
-function rebuildMatrixFromTable(){
-  matrix=[];
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    let row=[];
-    tr.querySelectorAll("td").forEach(td=>{
-      row.push(td.textContent.trim()||"**");
-    });
-    matrix.push(row);
-  });
+/* ========= NORMALIZE EXCEL TEXT ========= */
+function normalize(text){
+  return text
+    .replace(/\t+/g," ")     // Excel tabs
+    .replace(/ +/g," ")
+    .replace(/\r/g,"")
+    .trim();
 }
 
-function clearMarks(){
-  document.querySelectorAll("td").forEach(td=>{
-    td.classList.remove("line");
-  });
-}
-
-/* ================= GENERATE ================= */
+/* ========= GENERATE ========= */
 function generate(){
-  const raw=dataBox.value.trim();
+  let raw=normalize(dataBox.value);
   if(!raw){ alert("Data daalo"); return; }
 
   localStorage.setItem("trendData",raw);
-  matrix=raw.split("\n").map(r=>r.trim().split(/\s+/));
+  matrix=raw.split("\n").map(r=>r.trim().split(" "));
 
+  const tbody=document.querySelector("#grid tbody");
   tbody.innerHTML="";
 
-  matrix.forEach((row,r)=>{
+  matrix.forEach(row=>{
     const tr=document.createElement("tr");
     for(let c=0;c<6;c++){
       const td=document.createElement("td");
-      const val=row[c]||"**";
-      td.textContent=val;
-
-      if(val==="**") td.classList.add("blank");
+      let v=row[c]||"**";
+      td.textContent=v;
+      if(v==="**") td.classList.add("blank");
       if(editMode){
         td.classList.add("edit");
         td.contentEditable=true;
       }
-
-      // ✅ ONE SINGLE CLICK HANDLER (FIX)
-      td.addEventListener("click",()=>{
-        if(editMode) return;
-        rebuildMatrixFromTable();
-        runTrendCheck(r,c);
-      });
-
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
   });
 }
 
-/* ================= BUTTONS ================= */
-document.getElementById("btnGenerate").onclick=generate;
+/* ========= EVENT DELEGATION (CLICK FIX) ========= */
+document.querySelector("#grid tbody").addEventListener("click",function(e){
+  if(editMode) return;
+  const td=e.target.closest("td");
+  if(!td) return;
 
-document.getElementById("btnAddRow").onclick=()=>{
-  rebuildMatrixFromTable();
+  const tr=td.parentElement;
+  const r=[...tr.parentElement.children].indexOf(tr);
+  const c=[...tr.children].indexOf(td);
+
+  runTrendCheck(r,c);
+});
+
+/* ========= ADD ROW ========= */
+function addRow(){
   matrix.push(["**","**","**","**","**","**"]);
   dataBox.value=matrix.map(r=>r.join(" ")).join("\n");
   generate();
-};
+}
 
-document.getElementById("btnEdit").onclick=()=>{
-  editMode=!editMode;
-  generate();
-};
-
-document.getElementById("btnSave").onclick=()=>{
-  rebuildMatrixFromTable();
-  dataBox.value=matrix.map(r=>r.join(" ")).join("\n");
+/* ========= EDIT ========= */
+function toggleEdit(){ editMode=!editMode; generate(); }
+function saveEdit(){
+  const rows=[];
+  document.querySelectorAll("#grid tbody tr").forEach(tr=>{
+    let r=[];
+    tr.querySelectorAll("td").forEach(td=>{
+      r.push(td.textContent.trim()||"**");
+    });
+    rows.push(r.join(" "));
+  });
+  dataBox.value=rows.join("\n");
   localStorage.setItem("trendData",dataBox.value);
-  alert("Data saved");
+  editMode=false;
   generate();
-};
+}
+function clearAll(){localStorage.clear();location.reload();}
 
-document.getElementById("btnClear").onclick=()=>{
-  localStorage.clear();
-  location.reload();
-};
-
-document.getElementById("btnClosePopup").onclick=()=>{
-  popup.style.display="none";
-};
-
-/* ================= CORE TREND LOGIC ================= */
+/* ========= TREND CHECK ========= */
 function runTrendCheck(r,c){
-  clearMarks();
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("line"));
   nextLabel.style.display="none";
 
   let window=[];
@@ -201,13 +174,12 @@ function runTrendCheck(r,c){
       window.push(matrix[i][c]);
     }
   }
-
   if(window.length<3){
     alert("Pattern ke liye data kam hai");
     return;
   }
 
-  let signature = window.map(v=>{
+  let signature=window.map(v=>{
     let a=v[0],b=v[1];
     return familyMap[a].join("")+familyMap[b].join("");
   }).join("|");
@@ -233,58 +205,23 @@ function runTrendCheck(r,c){
     }
   });
 
-  drawCheckLines(matches,c,signature);
-  showNextLabel(c,window);
+  drawLines(matches,c,signature);
 }
 
-/* ================= DRAW CHECK LINE ================= */
-function drawCheckLines(rows,col,signature){
-  const trs=tbody.children;
+/* ========= DRAW & POPUP ========= */
+function drawLines(rows,col,signature){
+  const trs=document.querySelectorAll("#grid tbody tr");
   rows.forEach(r=>{
     for(let i=r;i<trs.length;i++){
-      const cell=trs[i].children[col];
-      cell.classList.add("line");
-      cell.onclick=()=>{
-        popupView(rows,col,signature);
-      };
+      trs[i].children[col].classList.add("line");
     }
   });
-}
 
-/* ================= NEXT LABEL ================= */
-function showNextLabel(col,window){
-  let strong=new Set();
-  window.slice(-4).forEach(v=>{
-    let a=v[0],b=v[1];
-    familyMap[a].forEach(x=>{
-      familyMap[b].forEach(y=>{
-        strong.add(x+y);
-      });
-    });
-  });
-  nextLabel.style.display="block";
-  nextLabel.innerHTML=
-    `<b>NEXT LABEL (${["Mon","Tue","Wed","Thu","Fri","Sat"][col]}):</b><br>
-     Strong Jodi → ${[...strong].slice(0,4).join(", ")}`;
-}
-
-/* ================= POPUP ================= */
-function popupView(rows,col,signature){
-  let html="<b>Pattern Signature:</b><br>"+signature+"<hr>";
-  rows.forEach(r=>{
-    html+=`<b>Match at row ${r+1}</b><br>`;
-    for(let i=r-4;i<=r;i++){
-      if(matrix[i]){
-        html+=matrix[i].join(" ")+"<br>";
-      }
-    }
-    html+="<hr>";
-  });
-  popupData.innerHTML=html;
+  popupData.innerHTML="<b>Pattern Signature:</b><br>"+signature;
   popup.style.display="block";
 }
 
-/* ================= LOAD SAVED ================= */
+/* ========= LOAD ========= */
 if(localStorage.getItem("trendData")){
   dataBox.value=localStorage.getItem("trendData");
   generate();
