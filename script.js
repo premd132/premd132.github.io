@@ -66,3 +66,11 @@ function searchPattern(){
     checks.appendChild(d);
   });
 }
+// ==== SAFE VALUE PARSER ====
+function cleanVal(v){
+  if(!v) return "**";
+  v = v.toString().trim();
+  if(v.includes("*")) return "**";
+  if(isNaN(v)) return "**";
+  return v.padStart(2,"0");
+}
