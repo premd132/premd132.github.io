@@ -2,21 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Trend Analyzer – Final</title>
+<title>iSmart Trend Analyzer – FIXED</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f3f3f3;padding:10px}
+body{font-family:Arial;background:#f2f2f2;padding:10px}
 h2{text-align:center}
+
 textarea{width:100%;height:120px}
 button{padding:6px 10px;margin:4px}
+
 table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #aaa;text-align:center;padding:6px;font-size:14px}
+th,td{
+  border:1px solid #999;
+  text-align:center;
+  padding:6px;
+  font-size:14px;
+  cursor:pointer;
+}
 th{background:#222;color:#fff}
 
-td{cursor:pointer}
-td.blank{background:#eee;color:#999;font-weight:bold}
-td.line{outline:3px solid red}
+td.blank{background:#eee;color:#777;font-weight:bold}
+td.line{
+  outline:3px solid red;
+  background:#fff3cd;
+}
+
 td.edit{background:#fff9c4}
 
 #nextLabel{
@@ -31,7 +42,7 @@ td.edit{background:#fff9c4}
   display:none;
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6)
+  background:rgba(0,0,0,.6);
 }
 .popupBox{
   background:#fff;
@@ -39,16 +50,16 @@ td.edit{background:#fff9c4}
   max-height:85%;
   overflow:auto;
   margin:5% auto;
-  padding:15px
+  padding:15px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Trend Analyzer (FINAL)</h2>
+<h2>🔥 iSmart Trend Analyzer (CLICK FIXED)</h2>
 
-<textarea id="dataBox" placeholder="Paste record here (rows only)"></textarea><br>
+<textarea id="dataBox" placeholder="Paste record here"></textarea><br>
 
 <button onclick="generate()">Generate</button>
 <button onclick="addRow()">Add New Row</button>
@@ -70,28 +81,42 @@ td.edit{background:#fff9c4}
 
 <div class="popup" id="popup">
  <div class="popupBox">
-  <h3>📸 Pattern Line (Real Record)</h3>
+  <h3>📸 Check Line – Real Record</h3>
   <div id="popupData"></div>
   <button onclick="closePopup()">Close</button>
  </div>
 </div>
 
 <script>
-/* ===== FAMILY MAP ===== */
+/* ========= FAMILY ========= */
 const familyMap={
 0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
 5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
 };
 
-let matrix=[],editMode=false;
+let matrix=[];
+let editMode=false;
 
-/* ===== GENERATE TABLE ===== */
+/* ========= BUILD MATRIX FROM TABLE ========= */
+function rebuildMatrix(){
+ matrix=[];
+ document.querySelectorAll("#grid tbody tr").forEach(tr=>{
+  let row=[];
+  tr.querySelectorAll("td").forEach(td=>{
+    row.push(td.textContent.trim()||"**");
+  });
+  matrix.push(row);
+ });
+}
+
+/* ========= GENERATE ========= */
 function generate(){
  const raw=dataBox.value.trim();
  if(!raw) return alert("Data daalo");
- localStorage.setItem("trendData",raw);
 
+ localStorage.setItem("trendData",raw);
  matrix=raw.split("\n").map(r=>r.trim().split(/\s+/));
+
  const tb=document.querySelector("#grid tbody");
  tb.innerHTML="";
 
@@ -104,93 +129,78 @@ function generate(){
 
    if(v==="**") td.classList.add("blank");
 
-   td.onclick=()=>cellClick(r,c);
-
    if(editMode){
      td.classList.add("edit");
      td.contentEditable=true;
    }
+
+   td.addEventListener("click",()=>{
+     if(editMode) return;
+     rebuildMatrix();
+     runTrendCheck(r,c);
+   });
+
    tr.appendChild(td);
   }
   tb.appendChild(tr);
  });
 }
 
-/* ===== CELL CLICK (ALL JODI + BLANK) ===== */
-function cellClick(r,c){
- if(editMode) return;
-
- let v=matrix[r][c]||"**";
- if(v==="**"){
-   trendCheck(r,c);
- }else{
-   trendCheck(r,c);
- }
-}
-
-/* ===== ADD NEW ROW ===== */
+/* ========= ADD ROW ========= */
 function addRow(){
+ rebuildMatrix();
  matrix.push(["**","**","**","**","**","**"]);
- dataBox.value = matrix.map(r=>r.join(" ")).join("\n");
+ dataBox.value=matrix.map(r=>r.join(" ")).join("\n");
  generate();
 }
 
-/* ===== EDIT MODE ===== */
+/* ========= EDIT ========= */
 function toggleEdit(){
  editMode=!editMode;
  generate();
 }
-
-/* ===== SAVE EDIT ===== */
 function saveEdit(){
- let rows=[];
- document.querySelectorAll("#grid tbody tr").forEach(tr=>{
-  let r=[];
-  tr.querySelectorAll("td").forEach(td=>{
-    r.push(td.textContent.trim()||"**");
-  });
-  rows.push(r.join(" "));
- });
- dataBox.value=rows.join("\n");
+ rebuildMatrix();
+ dataBox.value=matrix.map(r=>r.join(" ")).join("\n");
  localStorage.setItem("trendData",dataBox.value);
  alert("Data saved");
  generate();
 }
 
-/* ===== TREND CHECK ===== */
-function trendCheck(r,c){
+/* ========= CORE TREND CHECK ========= */
+function runTrendCheck(r,c){
  clearMarks();
  nextLabel.style.display="none";
 
- let baseWindow=[];
- for(let i=Math.max(0,r-8);i<r;i++){
+ let window=[];
+ for(let i=Math.max(0,r-10);i<r;i++){
    if(matrix[i] && matrix[i][c] && matrix[i][c]!=="**"){
-     baseWindow.push(matrix[i][c]);
+     window.push(matrix[i][c]);
    }
  }
-
- if(baseWindow.length<3){
-   alert("Pattern samajhne ke liye data kam hai");
+ if(window.length<3){
+   alert("Pattern ke liye data kam hai");
    return;
  }
 
- let signature = baseWindow.map(v=>{
+ let signature = window.map(v=>{
    let a=v[0],b=v[1];
    return familyMap[a].join("")+familyMap[b].join("");
  }).join("|");
 
  let matches=[];
+
  matrix.forEach((row,i)=>{
-   if(i<8) return;
+   if(i<10) return;
    let win=[];
-   for(let k=i-8;k<i;k++){
+   for(let k=i-10;k<i;k++){
      if(matrix[k][c] && matrix[k][c]!=="**"){
        win.push(matrix[k][c]);
      }
    }
    if(win.length<3) return;
 
-   let sig=win.map(v=>{
+   let sig = win.map(v=>{
      let a=v[0],b=v[1];
      return familyMap[a].join("")+familyMap[b].join("");
    }).join("|");
@@ -200,22 +210,26 @@ function trendCheck(r,c){
    }
  });
 
- drawCheckLines(matches,c);
- showNextLabel(c,baseWindow);
- popupView(matches,c,signature);
+ drawCheckLines(matches,c,signature);
+ showNextLabel(c,window);
 }
 
-/* ===== DRAW CHECK LINE ===== */
-function drawCheckLines(rows,col){
+/* ========= DRAW CHECK LINE ========= */
+function drawCheckLines(rows,col,signature){
  const trs=document.querySelector("#grid tbody").children;
+
  rows.forEach(r=>{
    for(let i=r;i<trs.length;i++){
-     trs[i].children[col].classList.add("line");
+     let cell=trs[i].children[col];
+     cell.classList.add("line");
+     cell.onclick=()=>{
+       popupView(rows,col,signature);
+     };
    }
  });
 }
 
-/* ===== NEXT LABEL ===== */
+/* ========= NEXT LABEL ========= */
 function showNextLabel(col,window){
  let strong=new Set();
  window.slice(-4).forEach(v=>{
@@ -232,12 +246,12 @@ function showNextLabel(col,window){
   Strong Jodi → ${[...strong].slice(0,4).join(", ")}`;
 }
 
-/* ===== POPUP ===== */
+/* ========= POPUP ========= */
 function popupView(rows,col,signature){
  let html="<b>Pattern Signature:</b><br>"+signature+"<hr>";
  rows.forEach(r=>{
    html+="<b>Match at row "+(r+1)+"</b><br>";
-   for(let i=r-3;i<=r;i++){
+   for(let i=r-4;i<=r;i++){
      if(matrix[i]){
        html+=matrix[i].join(" ")+"<br>";
      }
@@ -248,7 +262,7 @@ function popupView(rows,col,signature){
  popup.style.display="block";
 }
 
-/* ===== HELPERS ===== */
+/* ========= HELPERS ========= */
 function clearMarks(){
  document.querySelectorAll("td").forEach(td=>{
    td.classList.remove("line");
@@ -257,7 +271,7 @@ function clearMarks(){
 function closePopup(){popup.style.display="none"}
 function clearAll(){localStorage.clear();location.reload()}
 
-/* ===== LOAD SAVED ===== */
+/* ========= LOAD SAVED ========= */
 if(localStorage.getItem("trendData")){
  dataBox.value=localStorage.getItem("trendData");
  generate();
