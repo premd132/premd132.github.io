@@ -2,224 +2,265 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Analyzer – Full Version</title>
+<title>🔥 iSmart Analyzer – Ultimate (Button UI)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  padding:10px;
-}
-h1{ text-align:center; }
-
-textarea{
-  width:100%;
-  height:140px;
-  font-family:monospace;
-  font-size:14px;
-}
-
-button{
-  padding:10px 14px;
-  margin:5px;
-  cursor:pointer;
-  font-size:14px;
-}
-
-table{
-  border-collapse:collapse;
-  width:100%;
-  background:#fff;
-  margin-top:10px;
-}
-th,td{
-  border:1px solid #999;
-  padding:6px;
-  text-align:center;
-  cursor:pointer;
-  user-select:none;
-}
-th{ background:#222; color:#fff; }
-td.blank{ background:#eee; color:#999; }
-
-td.highlight{ background:#ffe066; }
-td.trend{ background:#90caf9; }
-
-#popup{
-  display:none;
-  position:fixed;
-  top:5%;
-  left:5%;
-  right:5%;
-  bottom:5%;
-  background:#fff;
-  border:2px solid #000;
-  z-index:9999;
-  overflow:auto;
-  padding:10px;
-}
-#popupClose{
-  float:right;
-  font-size:18px;
-  cursor:pointer;
-  color:red;
-}
-
-canvas{
-  border:1px solid #000;
-  margin-top:10px;
-}
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+h1{font-size:20px;margin:5px 0}
+textarea{width:100%;height:140px;font-family:monospace;font-size:14px}
+button,select{padding:8px 12px;margin:4px;font-size:14px;cursor:pointer}
+table{border-collapse:collapse;width:100%;background:#fff;margin-top:10px}
+th,td{border:1px solid #999;padding:6px;text-align:center}
+th{background:#222;color:#fff}
+td.blank{background:#eee;color:#888}
+.panel{background:#fff;border:1px solid #ccc;padding:8px;margin-top:10px}
+#canvasWrap{background:#fff;border:1px solid #ccc;margin-top:10px;padding:6px}
+canvas{display:block;margin:auto;border:1px solid #000}
+#popup{display:none;position:fixed;inset:5%;background:#fff;border:2px solid #000;z-index:9999;overflow:auto}
+#popup .close{float:right;color:red;font-size:18px;cursor:pointer}
+.badge{display:inline-block;padding:3px 6px;border:1px solid #333;margin:2px}
 </style>
 </head>
 
 <body>
 
-<h1>🔥 iSmart Analyzer (AI + Trend)</h1>
+<h1>🔥 iSmart Analyzer – Ultimate</h1>
 
-<textarea id="dataInput" placeholder="Mon Tue Wed Thu Fri Sat
+<textarea id="rawData" placeholder="Mon Tue Wed Thu Fri Sat
 51 29 50 18 84 17
 99 96 33 96 67 26
 ** 17 88 99 28 96"></textarea>
-
 <br>
-<button onclick="generate()">Generate</button>
-<button onclick="saveData()">Save</button>
-<button onclick="clearData()">Clear</button>
+<button id="genBtn">Generate</button>
+<button id="saveBtn">Save</button>
+<button id="clearBtn">Clear</button>
 
-<div id="tableArea"></div>
+<div class="panel">
+<b>Analyze by Button (Desktop-Safe)</b><br>
+Row:
+<select id="rowSel"></select>
+Days (multi-select):
+<select id="daySel" multiple size="2">
+  <option value="0">Mon</option>
+  <option value="1">Tue</option>
+  <option value="2">Wed</option>
+  <option value="3">Thu</option>
+  <option value="4">Fri</option>
+  <option value="5">Sat</option>
+</select>
+<button id="analyzeBtn">CHECK TREND</button>
+<span id="angleInfo" class="badge"></span>
+</div>
 
-<canvas id="trendCanvas" width="1200" height="400"></canvas>
+<table id="tbl"></table>
 
-<!-- POPUP -->
+<div id="canvasWrap">
+  <b>Trend Canvas</b>
+  <button id="exportBtn">Export Image (PNG)</button>
+  <canvas id="cv" width="1100" height="380"></canvas>
+</div>
+
 <div id="popup">
-  <span id="popupClose" onclick="closePopup()">✖</span>
-  <h3>Trend / Check-Line View</h3>
-  <div id="popupContent"></div>
+  <span class="close" onclick="closePopup()">✖</span>
+  <div id="popupBody"></div>
 </div>
 
 <script>
-let tableData=[];
+/* ========= CONFIG ========= */
+const MIN_ROWS = 6;
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
+const FAMILY = { // cut / family
+  0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
+  5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
+};
 
-function generate(){
-  const raw=document.getElementById("dataInput").value.trim();
-  if(!raw){ alert("Data paste karo"); return; }
+let data=[];
 
-  const lines=raw.split(/\n+/);
-  tableData=[];
-  for(let i=1;i<lines.length;i++){
-    tableData.push(lines[i].trim().split(/\s+/));
-  }
-  drawTable();
-}
-
-function drawTable(){
-  let html='<table><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>';
-  tableData.forEach((row,r)=>{
-    html+='<tr>';
-    for(let c=0;c<6;c++){
-      let val=row[c] || "**";
-      let cls=(val==="**")?'blank':'';
-      html+=`<td class="${cls}" onclick="cellClick(${r},${c})">${val}</td>`;
-    }
-    html+='</tr>';
-  });
-  html+='</table>';
-  document.getElementById("tableArea").innerHTML=html;
-}
-
-function cellClick(r,c){
-  const val=tableData[r][c];
-  if(val==="**" || !val){
-    blankBoxAI(r,c);
-  }else{
-    showTrend(r,c);
-  }
-}
-
-function family(j){
-  if(j==="**") return [];
+/* ========= UTIL ========= */
+const $=id=>document.getElementById(id);
+function clean(t){return t.replace(/\t+/g," ").replace(/\r/g,"").trim();}
+function families(j){
+  if(!j||j==="**") return [];
   const a=j[0],b=j[1];
-  return [a+b,b+a];
+  const fa=FAMILY[a]||[a], fb=FAMILY[b]||[b];
+  const out=[];
+  fa.forEach(x=>fb.forEach(y=>out.push(x+y)));
+  return out;
 }
 
-function showTrend(r,c){
-  const base=tableData[r][c];
-  const fam=family(base);
-  let matches=[];
-  tableData.forEach((row,i)=>{
-    if(i===r) return;
-    if(fam.includes(row[c])) matches.push({row:i,val:row[c]});
-  });
+/* ========= TABLE ========= */
+function generate(){
+  const raw=clean($("rawData").value);
+  if(!raw) return;
+  const rows=raw.split(/\n+/);
+  data=rows.map(r=>r.split(/\s+/));
+  data.push(["**","**","**","**","**","**"]); // auto blank row
 
-  if(matches.length===0){
-    alert("Pattern ke liye data kam hai");
-    return;
-  }
-
-  drawTrendLine(r,c,matches);
-  popupTrend(base,matches);
-}
-
-function drawTrendLine(r,c,matches){
-  const canvas=document.getElementById("trendCanvas");
-  const ctx=canvas.getContext("2d");
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.strokeStyle="blue";
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.moveTo(50+c*180,50+r*30);
-  matches.forEach(m=>{
-    ctx.lineTo(50+c*180,50+m.row*30);
-  });
-  ctx.stroke();
-}
-
-function popupTrend(base,matches){
-  let html=`<b>Base Jodi:</b> ${base}<br><br>`;
-  matches.forEach(m=>{
-    html+=`Row ${m.row+1} → ${m.val}<br>`;
-  });
-  document.getElementById("popupContent").innerHTML=html;
-  document.getElementById("popup").style.display="block";
-}
-
-function blankBoxAI(r,c){
-  // AI logic (rule-based)
-  let freq={};
-  tableData.forEach(row=>{
-    const v=row[c];
-    if(v && v!=="**"){
-      freq[v]=(freq[v]||0)+1;
+  // build table
+  let html="<tr>"+DAYS.map(d=>`<th>${d}</th>`).join("")+"</tr>";
+  data.forEach(r=>{
+    html+="<tr>";
+    for(let i=0;i<6;i++){
+      const v=r[i]||"**";
+      html+=`<td class="${v==="**"?"blank":""}">${v}</td>`;
     }
+    html+="</tr>";
   });
-  let sorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,4);
-  let html="<b>AI Strong Jodi Suggestion:</b><br>";
-  sorted.forEach(j=>{
-    html+=j+" (family: "+family(j).join(", ")+")<br>";
-  });
-  document.getElementById("popupContent").innerHTML=html;
-  document.getElementById("popup").style.display="block";
-}
+  $("tbl").innerHTML=html;
 
-function closePopup(){
-  document.getElementById("popup").style.display="none";
+  // row selector
+  $("rowSel").innerHTML="";
+  for(let i=0;i<data.length;i++){
+    const o=document.createElement("option");
+    o.value=i; o.textContent="Row "+(i+1);
+    $("rowSel").appendChild(o);
+  }
 }
 
 function saveData(){
-  localStorage.setItem("ismartData",document.getElementById("dataInput").value);
-  alert("Data Saved");
+  localStorage.setItem("ismart_data",$("rawData").value);
+  alert("Saved");
 }
-function clearData(){
-  localStorage.removeItem("ismartData");
+function clearAll(){
+  localStorage.removeItem("ismart_data");
   location.reload();
 }
 
-window.onload=function(){
-  const d=localStorage.getItem("ismartData");
-  if(d) document.getElementById("dataInput").value=d;
-};
+/* ========= ANALYSIS (BUTTON) ========= */
+function getSelectedDays(){
+  return [...$("daySel").selectedOptions].map(o=>parseInt(o.value));
+}
+
+function checkTrend(){
+  const r=parseInt($("rowSel").value);
+  const days=getSelectedDays();
+  if(days.length===0){alert("Select at least 1 day");return;}
+  if(r<MIN_ROWS){alert("Minimum "+MIN_ROWS+" rows required");return;}
+
+  // collect base window (multi-day combined)
+  let base=[];
+  days.forEach(d=>{
+    let seq=[];
+    for(let i=r;i>r-MIN_ROWS;i--){
+      const v=(data[i]||[])[d];
+      if(v && v!=="**") seq.push(v);
+    }
+    if(seq.length>=3) base.push({day:d,seq});
+  });
+  if(base.length===0){alert("Not enough data");return;}
+
+  // find matches across record
+  let matches=[];
+  data.forEach((row,i)=>{
+    if(i<MIN_ROWS) return;
+    let ok=true;
+    base.forEach(b=>{
+      let seq=[];
+      for(let k=0;k<b.seq.length;k++){
+        const v=(data[i-k]||[])[b.day];
+        if(v && v!=="**") seq.push(v);
+      }
+      if(seq.join()!==b.seq.join()) ok=false;
+    });
+    if(ok) matches.push(i);
+  });
+
+  drawZigZag(r, base, matches);
+  showPopup(r, base, matches);
+}
+
+/* ========= CANVAS: ZIG-ZAG + ANGLES ========= */
+function drawZigZag(row, base, matches){
+  const cv=$("cv"), ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,cv.width,cv.height);
+
+  const padX=80, padY=40, colW=150, rowH=26;
+
+  // axes
+  ctx.strokeStyle="#000"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(padX,10); ctx.lineTo(padX,cv.height-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(10,cv.height-padY); ctx.lineTo(cv.width-10,cv.height-padY); ctx.stroke();
+
+  // draw zig-zag per day
+  let angles=[];
+  base.forEach((b,bi)=>{
+    ctx.strokeStyle=["#1976d2","#d32f2f","#388e3c","#f57c00","#7b1fa2","#00838f"][bi%6];
+    ctx.lineWidth=3; ctx.beginPath();
+    b.seq.slice().reverse().forEach((v,idx)=>{
+      const x=padX + b.day*colW + bi*6;
+      const y=cv.height-padY - (row-idx)*rowH;
+      if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      if(idx>0){
+        const dy=rowH; const dx=0;
+        const ang = Math.abs(Math.atan2(dy,dx)*180/Math.PI)||90;
+        angles.push(Math.round(ang));
+      }
+    });
+    ctx.stroke();
+  });
+
+  // highlight matches (photo-style)
+  ctx.strokeStyle="#000"; ctx.setLineDash([6,6]); ctx.lineWidth=2;
+  matches.forEach(m=>{
+    ctx.beginPath();
+    ctx.moveTo(10, cv.height-padY - m*rowH);
+    ctx.lineTo(cv.width-10, cv.height-padY - m*rowH);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // angle badge
+  const uniq=[...new Set(angles)];
+  $("angleInfo").textContent = "Angles: " + (uniq.includes(90)?"90° ":"") + (uniq.includes(45)?"45° ":"");
+}
+
+/* ========= POPUP + AI ========= */
+function showPopup(r, base, matches){
+  let html="<h3>Trend Details</h3>";
+  base.forEach(b=>{
+    html+=`<b>${DAYS[b.day]}</b> seq: ${b.seq.join(", ")}<br>`;
+  });
+  html+=`<hr><b>Matches:</b> ${matches.length}<br>`;
+  matches.slice(0,10).forEach(m=>html+=`Row ${m+1}<br>`);
+
+  // Blank-box AI suggestion (2–4)
+  let freq={};
+  base.forEach(b=>{
+    data.forEach(row=>{
+      const v=row[b.day];
+      if(v && v!=="**") freq[v]=(freq[v]||0)+1;
+    });
+  });
+  const top=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,4);
+  html+="<hr><b>AI Strong Jodi</b><br>";
+  top.forEach(j=>{
+    html+=`${j} (family: ${families(j).join(", ")})<br>`;
+  });
+
+  $("popupBody").innerHTML=html;
+  $("popup").style.display="block";
+}
+function closePopup(){ $("popup").style.display="none"; }
+
+/* ========= EXPORT ========= */
+function exportImg(){
+  const a=document.createElement("a");
+  a.href=$("cv").toDataURL("image/png");
+  a.download="trend.png";
+  a.click();
+}
+
+/* ========= EVENTS ========= */
+$("genBtn").onclick=generate;
+$("saveBtn").onclick=saveData;
+$("clearBtn").onclick=clearAll;
+$("analyzeBtn").onclick=checkTrend;
+$("exportBtn").onclick=exportImg;
+
+/* ========= LOAD ========= */
+const saved=localStorage.getItem("ismart_data");
+if(saved){ $("rawData").value=saved; generate(); }
 </script>
 
 </body>
