@@ -2,17 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer</title>
+<title>iSmart Analyzer – Full Final</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
+
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0;padding:10px}
+h2{text-align:center}
+
+textarea{
+  width:100%;
+  height:140px;
+  font-family:monospace;
+}
+
+button{
+  padding:10px 14px;
+  margin:5px;
+  cursor:pointer;
+}
+
+.table-wrap{position:relative}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+  background:#fff;
+  position:relative;
+  z-index:5;
+}
+
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  min-width:42px;
+  cursor:pointer;
+  user-select:none;
+}
+
+th{background:#222;color:#fff}
+td.blank{background:#eee}
+
+canvas{
+  position:absolute;
+  top:0;left:0;
+  z-index:0;
+  pointer-events:none;
+}
+
+.popup{
+  position:fixed;
+  inset:5%;
+  background:#fff;
+  border:4px solid #000;
+  display:none;
+  z-index:9999;
+  overflow:auto;
+}
+
+.popup-close{
+  position:fixed;
+  top:6%;
+  right:6%;
+  background:red;
+  color:white;
+  padding:6px 10px;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
-<h2 style="text-align:center">🔥 iSmart Analyzer (Photo Style)</h2>
+<h2>🔥 iSmart Analyzer (FINAL)</h2>
 
-<textarea id="dataInput" placeholder="Excel se copy-paste karo (Mon Tue Wed Thu Fri Sat)"></textarea>
-<br>
+<textarea id="dataInput" placeholder="Excel se copy-paste karo (Mon Tue Wed Thu Fri Sat)"></textarea><br>
+
 <button onclick="generate()">Generate</button>
 <button onclick="saveData()">Save</button>
 <button onclick="addRow()">Add Blank Row</button>
@@ -28,32 +93,47 @@
 </div>
 
 <script>
-/* ===== CONFIG ===== */
+/* ================= CONFIG ================= */
 const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
 const familyMap={0:5,1:6,2:7,3:8,4:9,5:0,6:1,7:2,8:3,9:4};
 
 let grid=[];
+let checkLines=[];
 
-/* ===== UTIL ===== */
+/* ================= HELPERS ================= */
 function clean(v){
   if(!v) return "**";
   v=v.toString().trim();
-  if(v.includes("*") || isNaN(v)) return "**";
+  if(v.includes("*")||isNaN(v)) return "**";
   return v.padStart(2,"0");
 }
+
 function family(n){
-  return [
-    n,
-    familyMap[n[0]]+n[1],
-    n[0]+familyMap[n[1]]
-  ];
-}
-function match(a,b){
-  if(a==="**"||b==="**") return false;
-  return family(a).includes(b) || family(b).includes(a);
+  let a=+n[0],b=+n[1];
+  return [n, familyMap[a]+""+b, a+""+familyMap[b]];
 }
 
-/* ===== GENERATE ===== */
+function match(a,b){
+  if(a==="**"||b==="**") return false;
+  return family(a).some(x=>family(b).includes(x));
+}
+
+function center(r,c){
+  let cell=chart.rows[r+1].cells[c];
+  let cr=cell.getBoundingClientRect();
+  let tr=chart.getBoundingClientRect();
+  return{
+    x:cr.left-tr.left+cr.width/2,
+    y:cr.top-tr.top+cr.height/2
+  };
+}
+
+function clearCanvas(){
+  canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+  checkLines=[];
+}
+
+/* ================= GENERATE ================= */
 function generate(){
   grid=[];
   let rows=dataInput.value.trim().split("\n");
@@ -66,6 +146,7 @@ function generate(){
   resizeCanvas();
 }
 
+/* ================= TABLE ================= */
 function drawTable(){
   chart.innerHTML="";
   let tr=document.createElement("tr");
@@ -81,7 +162,7 @@ function drawTable(){
     r.forEach((v,j)=>{
       let td=document.createElement("td");
       td.textContent=v;
-      td.className=(v==="**")?"blank":"";
+      if(v==="**") td.classList.add("blank");
       td.onclick=()=>cellClick(i,j);
       tr.appendChild(td);
     });
@@ -89,91 +170,123 @@ function drawTable(){
   });
 }
 
-/* ===== CLICK HANDLER ===== */
+/* ================= CLICK ================= */
 function cellClick(r,c){
   clearCanvas();
-  if(grid[r][c]==="**") blankTrend(r,c);
-  else jodiPopup();
+  if(grid[r][c]==="**") blankClick(r,c);
+  else jodiClick(r,c);
 }
 
-/* ===== BLANK TREND ===== */
-function blankTrend(r,c){
-  let pattern=[];
-  for(let i=r-1;i>=0 && pattern.length<10;i--){
-    if(grid[i][c]!=="**") pattern.push(grid[i][c]);
+/* ================= PATTERN SIGNATURE ================= */
+function buildSignature(baseRow,col){
+  let sig=[];
+  for(let i=1;i<=10;i++){
+    let r=baseRow-i;
+    if(r<0) break;
+    if(grid[r][col]!=="**"){
+      sig.push({off:i,val:grid[r][col]});
+    }
   }
-  if(pattern.length<4){
+  return sig;
+}
+
+function matchSignature(atRow,col,sig){
+  for(let s of sig){
+    let r=atRow-s.off;
+    if(r<0) return false;
+    if(!match(s.val,grid[r][col])) return false;
+  }
+  return true;
+}
+
+/* ================= BLANK BOX ================= */
+function blankClick(r,c){
+  let sig=buildSignature(r,c);
+  if(sig.length<4){
     alert("Pattern ke liye data kam hai");
     return;
   }
-  searchPattern(pattern,c);
-}
 
-/* ===== SEARCH + DRAW ===== */
-function searchPattern(pat,col){
-  for(let r=0;r<grid.length-pat.length;r++){
-    let ok=true;
-    for(let k=0;k<pat.length;k++){
-      if(!grid[r+k] || !match(pat[k],grid[r+k][col])){
-        ok=false;break;
-      }
+  let hits=[];
+  for(let row=r+1;row<grid.length;row++){
+    if(matchSignature(row,c,sig)){
+      hits.push(row);
     }
-    if(ok) drawLine(r,col,pat.length);
   }
+
+  drawCheckLines(hits,c);
+  showStrongJodi(sig);
 }
 
-function drawLine(r,c,len){
+/* ================= DRAW CHECK LINES ================= */
+function drawCheckLines(rows,col){
   let ctx=canvas.getContext("2d");
   ctx.strokeStyle="blue";
   ctx.lineWidth=3;
-  ctx.beginPath();
-  for(let i=0;i<=len;i++){
-    let p=center(r+i,c);
-    if(i==0) ctx.moveTo(p.x,p.y);
-    else ctx.lineTo(p.x,p.y);
-  }
-  ctx.stroke();
+
+  rows.forEach(r=>{
+    let s=center(r,col);
+    let e=center(grid.length-1,col);
+
+    ctx.beginPath();
+    ctx.moveTo(s.x,s.y);
+    ctx.lineTo(e.x,e.y);
+    ctx.stroke();
+
+    checkLines.push({row:r,col});
+  });
 }
 
-/* ===== HELPERS ===== */
-function center(r,c){
-  let cell=chart.rows[r+1].cells[c];
-  let cr=cell.getBoundingClientRect();
-  let tr=chart.getBoundingClientRect();
-  return{
-    x:cr.left-tr.left+cr.width/2,
-    y:cr.top-tr.top+cr.height/2
-  };
-}
-function resizeCanvas(){
-  canvas.width=chart.offsetWidth;
-  canvas.height=chart.offsetHeight;
-}
-function clearCanvas(){
-  canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+/* ================= STRONG JODI AI ================= */
+function showStrongJodi(sig){
+  let set=new Set();
+  sig.forEach(s=>{
+    family(s.val).forEach(v=>set.add(v));
+  });
+  let arr=[...set].slice(0,4);
+  alert("Strong Jodi:\n"+arr.join(", "));
 }
 
-/* ===== POPUP ===== */
-function jodiPopup(){
+/* ================= JODI CLICK ================= */
+function jodiClick(){
   popupContent.innerHTML=chart.outerHTML;
   popup.style.display="block";
 }
+
+/* ================= POPUP ================= */
 function closePopup(){ popup.style.display="none"; }
 
-/* ===== DATA ===== */
+/* ================= CANVAS CLICK ================= */
+canvas.addEventListener("click",()=>{
+  if(checkLines.length>0){
+    popupContent.innerHTML=chart.outerHTML;
+    popup.style.display="block";
+  }
+});
+
+/* ================= DATA ================= */
 function saveData(){
   localStorage.setItem("ismartData",dataInput.value);
   alert("Saved");
 }
+
 function addRow(){
   grid.push(["**","**","**","**","**","**"]);
   drawTable();
 }
 
-/* ===== LOAD ===== */
+function resizeCanvas(){
+  canvas.width=chart.offsetWidth;
+  canvas.height=chart.offsetHeight;
+}
+
+/* ================= LOAD ================= */
 window.onload=()=>{
   let d=localStorage.getItem("ismartData");
-  if(d){ dataInput.value=d; generate(); }
+  if(d){
+    dataInput.value=d;
+    generate();
+  }
 };
 </script>
 
