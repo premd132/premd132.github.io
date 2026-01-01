@@ -2,25 +2,26 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – Pattern Search</title>
+<title>🔥 iSmart Analyzer – Photo Line</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>🔥 Blank Box Pattern Search</h2>
+<h2>🔥 iSmart Analyzer (Blue Line + Popup)</h2>
 
 <textarea id="dataInput"
 placeholder="Excel se copy-paste data yahan karo"></textarea><br><br>
 
 <button onclick="generate()">Generate</button>
 <button onclick="saveData()">Save</button>
-<button onclick="clearMarks()">Clear Marks</button>
+<button onclick="clearAll()">Clear</button>
 
-<br><br>
-
-<table id="chart"></table>
+<div style="position:relative">
+  <table id="chart"></table>
+  <canvas id="lineCanvas"></canvas>
+</div>
 
 <!-- POPUP -->
 <div id="popup">
@@ -29,55 +30,58 @@ placeholder="Excel se copy-paste data yahan karo"></textarea><br><br>
 </div>
 
 <script>
-const days = ["Mon","Tue","Wed","Thu","Fri","Sat"];
-let grid = [];
+const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+let grid=[];
+let activeLines=[];
 
-/* ======================
-   GENERATE TABLE
-====================== */
+/* =====================
+   GENERATE
+===================== */
 function generate(){
-  let raw = dataInput.value.trim().split("\n");
-  grid = [];
+  let raw=dataInput.value.trim().split("\n");
+  grid=[];
   raw.forEach(r=>{
-    let row = r.trim().split(/\s+/);
+    let row=r.trim().split(/\s+/);
     while(row.length<6) row.push("**");
     grid.push(row);
   });
   drawTable();
+  resizeCanvas();
 }
 
+/* =====================
+   TABLE
+===================== */
 function drawTable(){
-  chart.innerHTML = "";
-
-  let head = document.createElement("tr");
+  chart.innerHTML="";
+  let tr=document.createElement("tr");
   days.forEach(d=>{
-    let th = document.createElement("th");
-    th.textContent = d;
-    head.appendChild(th);
+    let th=document.createElement("th");
+    th.textContent=d;
+    tr.appendChild(th);
   });
-  chart.appendChild(head);
+  chart.appendChild(tr);
 
   grid.forEach((r,i)=>{
-    let tr = document.createElement("tr");
+    let tr=document.createElement("tr");
     r.forEach((v,j)=>{
-      let td = document.createElement("td");
-      td.textContent = v;
+      let td=document.createElement("td");
+      td.textContent=v;
       if(v==="**") td.classList.add("blank");
-      td.onclick = ()=>cellClick(i,j,td);
+      td.onclick=()=>cellClick(i,j);
       tr.appendChild(td);
     });
     chart.appendChild(tr);
   });
 }
 
-/* ======================
+/* =====================
    FAMILY / CUT LOGIC
-====================== */
-function familySet(jodi){
-  let a=parseInt(jodi[0]);
-  let b=parseInt(jodi[1]);
+===================== */
+function familySet(j){
+  let a=parseInt(j[0]), b=parseInt(j[1]);
   return new Set([
-    jodi,
+    j,
     ""+((a+9)%10)+b,
     ""+a+((b+9)%10),
     ""+((a+1)%10)+b,
@@ -85,38 +89,36 @@ function familySet(jodi){
   ]);
 }
 
-/* ======================
+/* =====================
    CELL CLICK
-====================== */
-function cellClick(r,c,td){
+===================== */
+function cellClick(r,c){
   clearMarks();
+  clearCanvas();
 
   if(grid[r][c]==="**"){
-    blankBoxSearch(r,c);
+    blankPatternSearch(r,c);
   }else{
-    markCell(td);
+    markCell(r,c);
     showPopup("Jodi clicked: "+grid[r][c]);
   }
 }
 
-/* ======================
-   MARK STYLE
-====================== */
-function markCell(td){
-  td.classList.add("mark-circle");
-  td.classList.add("mark-underline");
+/* =====================
+   MARK CELL (PHOTO STYLE)
+===================== */
+function markCell(r,c){
+  let td=chart.rows[r+1].cells[c];
+  td.classList.add("mark-circle","mark-underline");
 }
 
-/* ======================
-   BLANK BOX PATTERN SEARCH
-====================== */
-function blankBoxSearch(r,c){
-  let pattern = [];
-
+/* =====================
+   BLANK BOX SEARCH
+===================== */
+function blankPatternSearch(r,c){
+  let pattern=[];
   for(let i=r-1;i>=0 && pattern.length<10;i--){
-    if(grid[i][c]!=="**"){
-      pattern.push(grid[i][c]);
-    }
+    if(grid[i][c]!=="**") pattern.push(grid[i][c]);
   }
 
   if(pattern.length<4){
@@ -124,66 +126,112 @@ function blankBoxSearch(r,c){
     return;
   }
 
-  searchWholeRecord(pattern,c);
+  searchWholeRecord(pattern,c,r);
 }
 
-/* ======================
-   SEARCH IN FULL RECORD
-====================== */
-function searchWholeRecord(pattern,col){
+/* =====================
+   SEARCH & LINE DRAW
+===================== */
+function searchWholeRecord(pattern,col,clickedRow){
+  activeLines=[];
   for(let r=0;r<=grid.length-pattern.length;r++){
-    let match=true;
+    let ok=true;
 
     for(let k=0;k<pattern.length;k++){
-      if(grid[r+k][col]==="**"){
-        match=false; break;
-      }
-
+      if(grid[r+k][col]==="**"){ ok=false; break; }
       let f1=familySet(pattern[k]);
       let f2=familySet(grid[r+k][col]);
-
-      let common=[...f1].some(x=>f2.has(x));
-      if(!common){
-        match=false; break;
+      if(![...f1].some(x=>f2.has(x))){
+        ok=false; break;
       }
     }
 
-    if(match){
+    if(ok){
       for(let k=0;k<pattern.length;k++){
-        let cell = chart.rows[r+k+1].cells[col];
-        markCell(cell);
+        markCell(r+k,col);
       }
+      drawBlueLine(r,col,r+pattern.length-1,col);
     }
   }
 
-  showPopup("Pattern matched & marked (photo style)");
+  showPopup("Pattern found & BLUE LINE drawn");
 }
 
-/* ======================
-   POPUP
-====================== */
+/* =====================
+   CANVAS LINE
+===================== */
+function resizeCanvas(){
+  let c=lineCanvas;
+  let t=chart;
+  c.width=t.offsetWidth;
+  c.height=t.offsetHeight;
+}
+
+function drawBlueLine(r1,c1,r2,c2){
+  let ctx=lineCanvas.getContext("2d");
+  let p1=center(r1,c1);
+  let p2=center(r2,c2);
+
+  ctx.strokeStyle="blue";
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(p1.x,p1.y);
+  ctx.lineTo(p2.x,p2.y);
+  ctx.stroke();
+
+  activeLines.push({p1,p2});
+}
+
+/* =====================
+   LINE CLICK → POPUP
+===================== */
+lineCanvas.addEventListener("click",()=>{
+  popupContent.innerHTML=chart.outerHTML;
+  popup.style.display="block";
+});
+
+/* =====================
+   UTILS
+===================== */
+function center(r,c){
+  let cell=chart.rows[r+1].cells[c];
+  let rect=cell.getBoundingClientRect();
+  let base=chart.getBoundingClientRect();
+  return {
+    x:rect.left-base.left+rect.width/2,
+    y:rect.top-base.top+rect.height/2
+  };
+}
+
+function clearMarks(){
+  document.querySelectorAll(".mark-circle,.mark-underline")
+    .forEach(td=>{
+      td.classList.remove("mark-circle","mark-underline");
+    });
+}
+
+function clearCanvas(){
+  let ctx=lineCanvas.getContext("2d");
+  ctx.clearRect(0,0,lineCanvas.width,lineCanvas.height);
+}
+
 function showPopup(msg){
   popupContent.innerHTML="<h3>"+msg+"</h3>";
   popup.style.display="block";
 }
+
 function closePopup(){
   popup.style.display="none";
-}
-
-/* ======================
-   UTILS
-====================== */
-function clearMarks(){
-  document.querySelectorAll(".mark-circle,.mark-underline")
-    .forEach(td=>{
-      td.classList.remove("mark-circle");
-      td.classList.remove("mark-underline");
-    });
 }
 
 function saveData(){
   localStorage.setItem("ismartData",dataInput.value);
   alert("Saved");
+}
+
+function clearAll(){
+  localStorage.removeItem("ismartData");
+  location.reload();
 }
 
 window.onload=()=>{
@@ -192,7 +240,7 @@ window.onload=()=>{
     dataInput.value=d;
     generate();
   }
-}
+};
 </script>
 
 </body>
