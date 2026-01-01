@@ -1,181 +1,180 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Visual Pattern Search</title>
-
+<meta charset="UTF-8">
+<title>Pirates Jodi Trend Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#c9b27c;
+body{font-family:Arial;background:#eee;padding:8px}
+h2{text-align:center;color:#b30000}
+textarea{width:100%;height:120px}
+button{padding:6px 10px;margin:4px}
+table{border-collapse:collapse;background:#fff}
+td,th{border:1px solid #777;padding:4px;font-size:13px;text-align:center}
+td.jodi{cursor:pointer;position:relative}
+.box{outline:3px solid red}
+.circle{border-radius:50%;outline:3px solid blue}
+.family{background:#c8f7c5}
+canvas{position:absolute;left:0;top:0;pointer-events:none}
+
+#zoomWrap{
+  transform-origin: top left;
+  transition: transform 0.2s ease;
 }
-table{
-  border-collapse:collapse;
-}
-td{
-  border:1px solid #2f4f2f;
-  width:48px;
-  height:38px;
-  text-align:center;
-  cursor:pointer;
-  position:relative;
-}
-td.selected{
-  outline:3px solid red;
-  border-radius:50%;
-}
-#lineCanvas{
-  position:absolute;
-  top:0;
-  left:0;
-  pointer-events:none;
-}
-#rightPanel{
-  position:fixed;
-  right:0;
-  top:0;
-  width:220px;
-  height:100%;
-  background:#eee;
-  overflow:auto;
-  padding:10px;
-}
-.checkLine{
-  background:#d9534f;
-  color:#fff;
-  padding:6px;
-  margin-bottom:6px;
-  cursor:pointer;
-}
-#popup{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:#fff;
-  padding:12px;
-  display:none;
-  box-shadow:0 0 15px #000;
-}
-#popup table td{
-  font-weight:bold;
-  font-size:18px;
-}
+
+.side{margin-top:8px;background:#fff;padding:6px}
+.popup{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center}
+.popup-inner{background:#fff;padding:12px;width:92%;max-height:85%;overflow:auto}
 </style>
 </head>
 
 <body>
 
-<h3>Jaise chart me drawing karo → wahi pattern record me search hoga</h3>
+<h2>🏴‍☠️ Pirates Multi-Trend Analyzer</h2>
 
-<input type="file" id="csvFile">
+<textarea id="data" placeholder="Mon 12 34 56 78
+Tue 23 45 67 89"></textarea><br>
 
-<div style="position:relative; display:inline-block;">
-  <table id="chart"></table>
-  <canvas id="lineCanvas"></canvas>
+<button onclick="build()">Generate</button>
+<button onclick="clearAll()">Clear</button>
+<button onclick="zoomIn()">➕ Zoom</button>
+<button onclick="zoomOut()">➖ Zoom</button>
+
+<div id="zoomWrap" style="position:relative">
+  <canvas id="cv"></canvas>
+  <div id="grid"></div>
 </div>
 
-<div id="rightPanel">
-  <h4>Pattern Check Lines</h4>
-  <div id="checks"></div>
+<div class="side">
+<b>📊 Trend List</b>
+<div id="trendList">Click any jodi</div>
 </div>
 
-<div id="popup">
-  <h4>Matched Pattern</h4>
-  <div id="popupContent"></div>
-  <button onclick="popup.style.display='none'">Close</button>
+<div class="popup" id="popup">
+ <div class="popup-inner">
+  <h3>📸 Photo Style Trend View</h3>
+  <div id="pop"></div>
+  <button onclick="closePop()">Close</button>
+ </div>
 </div>
 
 <script>
-let data=[], clicks=[], matches=[];
-const chart=document.getElementById('chart');
-const canvas=document.getElementById('lineCanvas');
-const ctx=canvas.getContext('2d');
+/* ================= ZOOM ================= */
+let zoom=1;
+function zoomIn(){
+  zoom+=0.1;
+  document.getElementById("zoomWrap").style.transform=`scale(${zoom})`;
+}
+function zoomOut(){
+  zoom=Math.max(0.5,zoom-0.1);
+  document.getElementById("zoomWrap").style.transform=`scale(${zoom})`;
+}
 
-document.getElementById('csvFile').onchange=e=>{
-  const r=new FileReader();
-  r.onload=()=>{
-    data=r.result.trim().split('\n').map(r=>r.split(','));
-    drawChart();
-  };
-  r.readAsText(e.target.files[0]);
+/* ================= FAMILY ================= */
+const family={
+0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
+5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
 };
 
-function drawChart(){
-  chart.innerHTML='';
-  data.forEach((row,i)=>{
-    const tr=document.createElement('tr');
-    row.forEach((v,j)=>{
-      const td=document.createElement('td');
-      td.textContent=v;
-      td.onclick=()=>cellClick(td,i,j);
-      tr.appendChild(td);
-    });
-    chart.appendChild(tr);
+let mat=[],cells=[],cols=0;
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+
+/* ================= BUILD ================= */
+function build(){
+ localStorage.setItem("pirateData",data.value);
+ const rows=data.value.trim().split("\n").map(r=>r.split(/\s+/));
+ mat=rows.map(r=>r.slice(1)); cols=mat[0].length;
+
+ let h="<table><tr><th>Day</th>";
+ mat[0].forEach((_,i)=>h+=`<th>C${i+1}</th>`); h+="</tr>";
+
+ rows.forEach((r,i)=>{
+  h+=`<tr><th>${r[0]}</th>`;
+  r.slice(1).forEach((v,j)=>{
+   h+=`<td class="jodi" onclick="analyze(${i},${j})">${v}</td>`;
   });
-  canvas.width=chart.offsetWidth;
-  canvas.height=chart.offsetHeight;
+  h+="</tr>";
+ });
+ h+="</table>";
+ grid.innerHTML=h;
+ cells=[...document.querySelectorAll(".jodi")];
+ resize();
 }
 
-function cellClick(td,r,c){
-  td.classList.add('selected');
-  clicks.push({r,c});
-  redrawLine();
-  if(clicks.length>=2) searchPattern();
+/* ================= CANVAS ================= */
+function resize(){
+ cv.width=grid.offsetWidth;
+ cv.height=grid.offsetHeight;
+ ctx.clearRect(0,0,cv.width,cv.height);
 }
 
-function redrawLine(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='green';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  clicks.forEach((p,i)=>{
-    const cell=chart.rows[p.r].cells[p.c];
-    const x=cell.offsetLeft+cell.offsetWidth/2;
-    const y=cell.offsetTop+cell.offsetHeight/2;
-    if(i===0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
+/* ================= ANALYZE ================= */
+function analyze(r,c){
+ ctx.clearRect(0,0,cv.width,cv.height);
+ document.querySelectorAll("td").forEach(td=>td.className="jodi");
+
+ let base=mat[r][c];
+ let fam=[...family[base[0]],...family[base[1]]];
+ let vertical=[],diag1=[],diag2=[];
+
+ mat.forEach((row,i)=>{
+  row.forEach((v,j)=>{
+   if(fam.includes(v[0])&&fam.includes(v[1])){
+    let td=cells[i*cols+j];
+    td.classList.add("family");
+    if(j===c) vertical.push(td);
+    if(i-r===j-c) diag1.push(td);
+    if(i-r===c-j) diag2.push(td);
+   }
   });
-  ctx.stroke();
+ });
+
+ draw(vertical,"blue");
+ draw(diag1,"red");
+ draw(diag2,"green");
+
+ cells[r*cols+c].classList.add("box","circle");
+
+ trendList.innerHTML=
+  `🔵 Vertical: ${vertical.length}<br>
+   🔴 Diagonal ↘: ${diag1.length}<br>
+   🟢 Diagonal ↗: ${diag2.length}`;
+
+ popup(base,fam,vertical,diag1,diag2);
 }
 
-function searchPattern(){
-  document.getElementById('checks').innerHTML='';
-  matches=[];
-  const gaps=[];
-  for(let i=1;i<clicks.length;i++)
-    gaps.push(clicks[i].r-clicks[i-1].r);
-
-  for(let r=0;r<data.length;r++){
-    let ok=true;
-    for(let i=1;i<gaps.length;i++){
-      if(!data[r+gaps[i]] || !data[r]){ ok=false; break;}
-    }
-    if(ok) matches.push(r);
-  }
-
-  matches.forEach((r,i)=>{
-    const d=document.createElement('div');
-    d.className='checkLine';
-    d.textContent='Pattern '+(i+1)+' (Row '+r+')';
-    d.onclick=()=>showPopup(r);
-    checks.appendChild(d);
-  });
+/* ================= DRAW LINE ================= */
+function draw(arr,color){
+ if(arr.length<2)return;
+ ctx.strokeStyle=color;
+ ctx.lineWidth=2;
+ ctx.beginPath();
+ arr.forEach((td,i)=>{
+  const r=td.getBoundingClientRect(),t=grid.getBoundingClientRect();
+  let x=r.left-t.left+r.width/2;
+  let y=r.top-t.top+r.height/2;
+  if(i==0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+ });
+ ctx.stroke();
 }
 
-function showPopup(baseRow){
-  popup.style.display='block';
-  let html='<table>';
-  clicks.forEach(p=>{
-    html+='<tr>';
-    data[baseRow+p.r-clicks[0].r].forEach(v=>{
-      html+='<td>'+v+'</td>';
-    });
-    html+='</tr>';
-  });
-  html+='</table>';
-  popupContent.innerHTML=html;
+/* ================= POPUP ================= */
+function popup(base,fam,v,d1,d2){
+ pop.innerHTML=
+ `<b>Selected:</b> ${base}<br>
+ <b>Family:</b> ${fam.join(",")}<br><br>
+ 🔵 Vertical matches: ${v.length}<br>
+ 🔴 Diagonal ↘: ${d1.length}<br>
+ 🟢 Diagonal ↗: ${d2.length}<br>
+ <hr>
+ Same family + same angle = same pattern`;
+ popup.style.display="flex";
 }
+function closePop(){popup.style.display="none"}
+
+/* ================= LOAD ================= */
+function clearAll(){localStorage.clear();location.reload()}
+if(localStorage.pirateData){data.value=localStorage.pirateData;build()}
 </script>
 
 </body>
