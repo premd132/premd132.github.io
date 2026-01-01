@@ -2,176 +2,192 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Real Chart Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🔥 iSmart Analyzer – Full Version</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{font-family:Arial;background:#f5f5f5;margin:0;padding:10px}
-h1{text-align:center}
-textarea{width:100%;height:120px;font-size:14px}
-button{padding:10px 14px;margin:5px;font-size:14px;cursor:pointer}
-table{border-collapse:collapse;width:100%;background:#fff;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px;text-align:center;position:relative}
-th{background:#222;color:#fff}
-td.jodi{cursor:pointer;font-weight:bold}
-td.blank{background:#eee;cursor:pointer}
-td.active{background:#ffe082}
-svg{position:absolute;top:0;left:0;pointer-events:none}
+h2{text-align:center}
+textarea{width:100%;height:160px;font-size:14px}
+button{padding:8px 12px;margin:5px;font-size:14px;cursor:pointer}
+#wrap{position:relative;overflow:auto;background:#fff}
+table{border-collapse:collapse;width:100%}
+th,td{
+ border:1px solid #999;
+ padding:6px;
+ text-align:center;
+ min-width:45px;
+ cursor:pointer;
+ user-select:none;
+}
+th{background:#222;color:#fff;position:sticky;top:0}
+td.blank{background:#eee}
+td.hit{background:#dff0ff}
+canvas{position:absolute;left:0;top:0;pointer-events:none}
 #popup{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.6);display:none;z-index:999
+ position:fixed;left:0;top:0;width:100%;height:100%;
+ background:rgba(0,0,0,.6);display:none;
 }
-#popupContent{
-  background:#fff;margin:5%;padding:10px;position:relative
+#popupBox{
+ background:#fff;
+ width:95%;
+ height:90%;
+ margin:3% auto;
+ overflow:auto;
+ position:relative;
 }
-.close{position:absolute;top:5px;right:10px;cursor:pointer;font-size:18px}
-.line{stroke:blue;stroke-width:3}
-.circle{fill:none;stroke:red;stroke-width:3}
+#popupClose{
+ position:absolute;right:10px;top:10px;
+ font-size:20px;cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🔥 iSmart REAL Chart Analyzer</h1>
+<h2>🔥 iSmart Analyzer – Full Working</h2>
 
-<textarea id="input">
-Mon Tue Wed Thu Fri Sat
-51 29 50 18 84 17
-99 96 33 96 67 26
-** 17 88 99 28 96
-86 16 63 94 53 **
-</textarea>
-
+<textarea id="dataInput" placeholder="Excel se copy-paste karo (Mon Tue Wed Thu Fri Sat)"></textarea><br>
 <button onclick="generate()">Generate</button>
 <button onclick="saveData()">Save</button>
-<button onclick="addRow()">Add Blank Row</button>
+<button onclick="clearData()">Clear</button>
 
-<div id="tableWrap"></div>
+<div id="wrap">
+<canvas id="canvas"></canvas>
+<table id="table"></table>
+</div>
 
+<!-- POPUP -->
 <div id="popup">
-  <div id="popupContent">
-    <span class="close" onclick="closePopup()">✖</span>
-    <h3>Trend Preview</h3>
-    <div id="popupChart"></div>
-  </div>
+ <div id="popupBox">
+  <span id="popupClose" onclick="popup.style.display='none'">✖</span>
+  <div id="popupContent"></div>
+ </div>
 </div>
 
 <script>
-const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
-const family={1:6,2:7,3:8,4:9,5:0,6:1,7:2,8:3,9:4,0:5};
-
-let grid=[];
+let grid=[], family={0:[5],1:[6],2:[7],3:[8],4:[9],5:[0],6:[1],7:[2],8:[3],9:[4]};
 
 function generate(){
-  grid=[];
-  const lines=document.getElementById("input").value.trim().split("\n");
-  for(let i=1;i<lines.length;i++){
-    grid.push(lines[i].split(/\s+/));
-  }
-  render();
+ let raw=dataInput.value.trim();
+ if(!raw) return alert("Data paste karo");
+ let rows=raw.split("\n");
+ grid=[];
+ rows.forEach(r=>{
+  let c=r.trim().split(/\s+/);
+  grid.push(c);
+ });
+ render();
 }
 
 function render(){
-  let html='<table><tr>';
-  days.forEach(d=>html+=`<th>${d}</th>`);
-  html+='</tr>';
+ let t=document.getElementById("table");
+ t.innerHTML="";
+ let head=document.createElement("tr");
+ ["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>{
+  let th=document.createElement("th");th.innerText=d;head.appendChild(th);
+ });
+ t.appendChild(head);
 
-  grid.forEach((row,r)=>{
-    html+='<tr>';
-    row.forEach((v,c)=>{
-      const cls=(v==="**"?"blank":"jodi");
-      html+=`<td class="${cls}" onclick="cellClick(${r},${c})">${v}</td>`;
-    });
-    html+='</tr>';
+ grid.forEach((r,i)=>{
+  let tr=document.createElement("tr");
+  r.forEach((v,j)=>{
+   let td=document.createElement("td");
+   td.innerText=v;
+   td.dataset.row=i;
+   td.dataset.col=j;
+   if(v=="**"||v=="") td.classList.add("blank");
+   tr.appendChild(td);
   });
-  html+='</table>';
-  document.getElementById("tableWrap").innerHTML=html;
+  t.appendChild(tr);
+ });
 }
 
-function cellClick(r,c){
-  document.querySelectorAll("td").forEach(td=>td.classList.remove("active"));
-  const td=document.querySelectorAll("tr")[r+1].children[c];
-  td.classList.add("active");
+document.addEventListener("click",function(e){
+ let td=e.target.closest("td");
+ if(!td||!td.dataset.row)return;
+ let r=+td.dataset.row,c=+td.dataset.col;
+ if(td.classList.contains("blank")) onBlankClick(r,c);
+ else onJodiClick(r,c);
+});
 
-  if(grid[r][c]==="**"){
-    showSuggestions(r,c);
-  }else{
-    drawTrend(r,c);
+function buildSignature(baseRow,col){
+ let sig=[];
+ for(let i=1;i<=10;i++){
+  let r=baseRow-i;
+  if(r<0)break;
+  let v=grid[r][col];
+  if(v&&v!="**"){
+   sig.push({off:i,val:v});
   }
+ }
+ return sig;
 }
 
-function drawTrend(r,c){
-  let pts=[];
-  let val=grid[r][c];
-  for(let i=r-1;i>=0;i--){
-    if(grid[i][c]===val || grid[i][c]==family[val[0]]+family[val[1]]){
-      pts.push([i,c]);
-    }
+function matchSig(row,col,sig){
+ for(let s of sig){
+  let r=row-s.off;
+  if(r<0)return false;
+  let v=grid[r][col];
+  if(!v||v=="**")return false;
+  if(v!=s.val){
+   let f1=family[v[0]],f2=family[s.val[0]];
+   if(!f1||!f2||f1[0]!=f2[0]) return false;
   }
-  openPopup(pts);
+ }
+ return true;
 }
 
-function showSuggestions(r,c){
-  let base=[];
-  for(let i=r-1;i>=0 && base.length<4;i--){
-    let v=grid[i][c];
-    if(v!=="**") base.push(v);
-  }
-  alert("Strong Jodi Suggestion:\n"+base.join(", "));
+function onBlankClick(row,col){
+ let sig=buildSignature(row,col);
+ if(sig.length<3)return alert("Pattern ke liye data kam hai");
+ let hits=[];
+ for(let r=row+1;r<grid.length;r++){
+  if(matchSig(r,col,sig)) hits.push(r);
+ }
+ drawLines(hits,col);
 }
 
-function openPopup(points){
-  const wrap=document.getElementById("popupChart");
-  wrap.innerHTML=document.getElementById("tableWrap").innerHTML;
-  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-  svg.setAttribute("width","100%");
-  svg.setAttribute("height","100%");
-  svg.style.position="absolute";
-
-  const cells=wrap.querySelectorAll("td");
-  let prev=null;
-  points.forEach(p=>{
-    const cell=cells[(p[0])*6+p[1]];
-    const r=cell.getBoundingClientRect();
-    if(prev){
-      const line=document.createElementNS(svg.namespaceURI,"line");
-      line.setAttribute("x1",prev.x);
-      line.setAttribute("y1",prev.y);
-      line.setAttribute("x2",r.left+r.width/2);
-      line.setAttribute("y2",r.top+r.height/2);
-      line.setAttribute("class","line");
-      svg.appendChild(line);
-    }
-    prev={x:r.left+r.width/2,y:r.top+r.height/2};
-    const cir=document.createElementNS(svg.namespaceURI,"circle");
-    cir.setAttribute("cx",prev.x);
-    cir.setAttribute("cy",prev.y);
-    cir.setAttribute("r",12);
-    cir.setAttribute("class","circle");
-    svg.appendChild(cir);
-  });
-  wrap.appendChild(svg);
-  document.getElementById("popup").style.display="block";
+function onJodiClick(row,col){
+ alert("Jodi clicked: "+grid[row][col]);
 }
 
-function closePopup(){
-  document.getElementById("popup").style.display="none";
+function drawLines(rows,col){
+ let c=document.getElementById("canvas");
+ let t=document.getElementById("table");
+ c.width=t.offsetWidth;
+ c.height=t.offsetHeight;
+ let ctx=c.getContext("2d");
+ ctx.clearRect(0,0,c.width,c.height);
+ ctx.strokeStyle="blue";ctx.lineWidth=3;
+
+ rows.forEach(r=>{
+  let s=t.rows[r].cells[col];
+  let e=t.rows[t.rows.length-1].cells[col];
+  let a=s.getBoundingClientRect();
+  let b=e.getBoundingClientRect();
+  let tr=t.getBoundingClientRect();
+  ctx.beginPath();
+  ctx.moveTo(a.left-tr.left+a.width/2,a.top-tr.top+a.height/2);
+  ctx.lineTo(b.left-tr.left+b.width/2,b.top-tr.top+b.height/2);
+  ctx.stroke();
+ });
 }
 
 function saveData(){
-  localStorage.setItem("chart",JSON.stringify(grid));
-  alert("Data Saved");
+ localStorage.setItem("ismartData",dataInput.value);
+ alert("Saved");
 }
-
-function addRow(){
-  grid.push(["**","**","**","**","**","**"]);
-  render();
+function clearData(){
+ localStorage.removeItem("ismartData");
+ dataInput.value="";
+ document.getElementById("table").innerHTML="";
 }
 
 window.onload=()=>{
-  const s=localStorage.getItem("chart");
-  if(s){grid=JSON.parse(s);render();}
-};
+ let d=localStorage.getItem("ismartData");
+ if(d){dataInput.value=d;generate();}
+}
 </script>
 
 </body>
