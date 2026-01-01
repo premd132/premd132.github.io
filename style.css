@@ -1,59 +1,28 @@
 body{
-  margin:0;
-  font-family:Arial, sans-serif;
+  font-family: Arial, sans-serif;
   background:#f4f4f4;
+  margin:0;
+  padding:10px;
 }
 
-.home{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
+h2{
   text-align:center;
-}
-
-.btn{
-  background:#222;
-  color:#fff;
-  padding:12px 20px;
-  text-decoration:none;
-  font-size:18px;
-  margin-top:15px;
-}
-
-/* ===== ANALYZER ===== */
-
-textarea{
-  width:100%;
-  height:140px;
-  font-family:monospace;
-}
-
-button{
-  padding:10px 14px;
-  margin:5px;
-  cursor:pointer;
-}
-
-.table-wrap{
-  position:relative;
 }
 
 table{
   border-collapse:collapse;
   width:100%;
   background:#fff;
-  position:relative;
-  z-index:5;          /* 🔥 CLICK FIX */
 }
 
 th,td{
-  border:1px solid #999;
+  border:1px solid #aaa;
   padding:6px;
   text-align:center;
-  min-width:42px;
+  font-size:15px;
   cursor:pointer;
+  position:relative;
+  user-select:none; /* TEXT SELECT FIX */
 }
 
 th{
@@ -61,21 +30,32 @@ th{
   color:#fff;
 }
 
+/* blank box */
 td.blank{
   background:#eee;
 }
 
-canvas{
+/* PHOTO STYLE UNDER MARK */
+td.mark-underline::after{
+  content:"";
   position:absolute;
-  top:0;
-  left:0;
-  z-index:0;
-  pointer-events:none;   /* 🔥 CLICK FIX */
+  bottom:3px;
+  left:10%;
+  width:80%;
+  height:4px;
+  background:#1e5cff;
+  border-radius:3px;
 }
 
-/* ===== POPUP ===== */
+/* PHOTO STYLE CIRCLE */
+td.mark-circle{
+  outline:3px solid #1e5cff;
+  outline-offset:-3px;
+  border-radius:50%;
+}
 
-.popup{
+/* popup */
+#popup{
   position:fixed;
   inset:5%;
   background:#fff;
@@ -85,12 +65,13 @@ canvas{
   overflow:auto;
 }
 
-.popup-close{
+#popup button{
   position:fixed;
   top:6%;
   right:6%;
   background:red;
-  color:white;
+  color:#fff;
+  font-size:18px;
+  border:none;
   padding:6px 10px;
-  cursor:pointer;
 }
