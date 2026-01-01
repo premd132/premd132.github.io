@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – Final Stable</title>
+<title>iSmart Analyzer – Click Always ON</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -53,7 +53,7 @@ td.edit{background:#fff9c4}
 
 <body>
 
-<h2>🔥 iSmart Analyzer (Final)</h2>
+<h2>🔥 iSmart Analyzer (Click Always ON)</h2>
 
 <textarea id="dataBox" placeholder="Excel se copy-paste yaha karo"></textarea><br>
 
@@ -88,7 +88,9 @@ const family={
 5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
 };
 
-let matrix=[],editMode=false;
+let matrix=[];
+let editMode=false;
+
 const tbody=document.querySelector("#grid tbody");
 const nextLabel=document.getElementById("nextLabel");
 
@@ -100,16 +102,8 @@ function cleanText(t){
           .trim();
 }
 
-/* ===== GENERATE ===== */
-function generate(){
-  let raw=cleanText(dataBox.value);
-  if(!raw){alert("Data daalo");return;}
-
-  matrix=raw.split("\n").map(r=>r.split(" "));
-  matrix.push(["**","**","**","**","**","**"]);   // auto blank row
-
-  localStorage.setItem("trendData",matrix.map(r=>r.join(" ")).join("\n"));
-
+/* ===== RENDER TABLE (NO CLICK LOGIC HERE) ===== */
+function render(){
   tbody.innerHTML="";
   matrix.forEach(r=>{
     const tr=document.createElement("tr");
@@ -128,9 +122,20 @@ function generate(){
   });
 }
 
-/* ===== CLICK (SAFE BASE) ===== */
+/* ===== GENERATE ===== */
+function generate(){
+  let raw=cleanText(dataBox.value);
+  if(!raw){ alert("Data daalo"); return; }
+
+  matrix = raw.split("\n").map(r=>r.split(" "));
+  matrix.push(["**","**","**","**","**","**"]); // auto blank row
+
+  localStorage.setItem("trendData", matrix.map(r=>r.join(" ")).join("\n"));
+  render();
+}
+
+/* ===== CLICK HANDLER (GLOBAL, NEVER REMOVED) ===== */
 tbody.addEventListener("click",function(e){
-  if(editMode) return;
   const td=e.target.closest("td");
   if(!td) return;
 
@@ -138,6 +143,7 @@ tbody.addEventListener("click",function(e){
   const r=[...tbody.children].indexOf(tr);
   const c=[...tr.children].indexOf(td);
 
+  // 👉 CLICK WORKS EVEN IN EDIT MODE
   runTrend(r,c);
 });
 
@@ -207,7 +213,7 @@ gen.onclick=generate;
 
 edit.onclick=()=>{
   editMode=!editMode;
-  generate();
+  render(); // click listener stays alive
 };
 
 save.onclick=()=>{
