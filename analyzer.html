@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Trend Analyzer</title>
+<title>iSmart Trend Analyzer – Final</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -13,28 +13,50 @@ button{padding:6px 10px;margin:4px}
 table{width:100%;border-collapse:collapse;background:#fff}
 th,td{border:1px solid #aaa;text-align:center;padding:6px;font-size:14px}
 th{background:#222;color:#fff}
-td.blank{background:#eee;color:#999;font-weight:bold;cursor:pointer}
+
+td{cursor:pointer}
+td.blank{background:#eee;color:#999;font-weight:bold}
 td.line{outline:3px solid red}
 td.edit{background:#fff9c4}
-#nextLabel{margin-top:10px;padding:8px;background:#fff;border:2px dashed #c40000}
-.popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6)}
-.popupBox{background:#fff;width:92%;max-height:85%;overflow:auto;
-margin:5% auto;padding:15px}
+
+#nextLabel{
+  margin-top:10px;
+  padding:8px;
+  background:#fff;
+  border:2px dashed #c40000;
+  display:none;
+}
+
+.popup{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6)
+}
+.popupBox{
+  background:#fff;
+  width:92%;
+  max-height:85%;
+  overflow:auto;
+  margin:5% auto;
+  padding:15px
+}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Trend Analyzer</h2>
+<h2>🔥 iSmart Trend Analyzer (FINAL)</h2>
 
 <textarea id="dataBox" placeholder="Paste record here (rows only)"></textarea><br>
 
 <button onclick="generate()">Generate</button>
+<button onclick="addRow()">Add New Row</button>
 <button onclick="toggleEdit()">Edit Mode</button>
 <button onclick="saveEdit()">Save Data</button>
 <button onclick="clearAll()">Clear</button>
 
-<div id="nextLabel" style="display:none"></div>
+<div id="nextLabel"></div>
 
 <table id="grid">
 <thead>
@@ -79,10 +101,11 @@ function generate(){
    let td=document.createElement("td");
    let v=row[c]||"**";
    td.textContent=v;
-   if(v==="**"){
-     td.className="blank";
-     td.onclick=()=>trendCheck(r,c);
-   }
+
+   if(v==="**") td.classList.add("blank");
+
+   td.onclick=()=>cellClick(r,c);
+
    if(editMode){
      td.classList.add("edit");
      td.contentEditable=true;
@@ -91,6 +114,25 @@ function generate(){
   }
   tb.appendChild(tr);
  });
+}
+
+/* ===== CELL CLICK (ALL JODI + BLANK) ===== */
+function cellClick(r,c){
+ if(editMode) return;
+
+ let v=matrix[r][c]||"**";
+ if(v==="**"){
+   trendCheck(r,c);
+ }else{
+   trendCheck(r,c);
+ }
+}
+
+/* ===== ADD NEW ROW ===== */
+function addRow(){
+ matrix.push(["**","**","**","**","**","**"]);
+ dataBox.value = matrix.map(r=>r.join(" ")).join("\n");
+ generate();
 }
 
 /* ===== EDIT MODE ===== */
@@ -112,17 +154,21 @@ function saveEdit(){
  dataBox.value=rows.join("\n");
  localStorage.setItem("trendData",dataBox.value);
  alert("Data saved");
+ generate();
 }
 
 /* ===== TREND CHECK ===== */
 function trendCheck(r,c){
  clearMarks();
+ nextLabel.style.display="none";
+
  let baseWindow=[];
  for(let i=Math.max(0,r-8);i<r;i++){
    if(matrix[i] && matrix[i][c] && matrix[i][c]!=="**"){
      baseWindow.push(matrix[i][c]);
    }
  }
+
  if(baseWindow.length<3){
    alert("Pattern samajhne ke liye data kam hai");
    return;
@@ -154,19 +200,19 @@ function trendCheck(r,c){
    }
  });
 
- drawCheckLines(matches,c,signature);
+ drawCheckLines(matches,c);
  showNextLabel(c,baseWindow);
+ popupView(matches,c,signature);
 }
 
 /* ===== DRAW CHECK LINE ===== */
-function drawCheckLines(rows,col,signature){
- const tb=document.querySelector("#grid tbody").children;
+function drawCheckLines(rows,col){
+ const trs=document.querySelector("#grid tbody").children;
  rows.forEach(r=>{
-   for(let i=r;i<tb.length;i++){
-     tb[i].children[col].classList.add("line");
+   for(let i=r;i<trs.length;i++){
+     trs[i].children[col].classList.add("line");
    }
  });
- popupView(rows,col,signature);
 }
 
 /* ===== NEXT LABEL ===== */
