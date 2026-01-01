@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – Click Always ON</title>
+<title>iSmart Analyzer – Button UI (Desktop Safe)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -10,20 +10,23 @@ body{font-family:Arial;background:#f2f2f2;padding:10px}
 h2{text-align:center}
 
 textarea{width:100%;height:140px;font-size:14px}
-button{padding:6px 10px;margin:4px}
+button{padding:6px 10px;margin:4px;cursor:pointer}
 
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{
-  border:1px solid #888;
-  padding:10px;
-  text-align:center;
-  font-size:15px;
-}
+table{width:100%;border-collapse:collapse;background:#fff;margin-top:10px}
+th,td{border:1px solid #888;padding:8px;text-align:center;font-size:14px}
 th{background:#222;color:#fff}
 
 td.blank{background:#eee;color:#777;font-weight:bold}
 td.line{outline:3px solid red;background:#fff3cd}
-td.edit{background:#fff9c4}
+
+.actionBar{
+  margin-top:10px;
+  padding:8px;
+  background:#fff;
+  border:2px solid #ccc;
+}
+.actionBar select{padding:5px}
+.actionBar button{background:#1976d2;color:#fff;border:none}
 
 #nextLabel{
   display:none;
@@ -53,14 +56,30 @@ td.edit{background:#fff9c4}
 
 <body>
 
-<h2>🔥 iSmart Analyzer (Click Always ON)</h2>
+<h2>🔥 iSmart Analyzer (Button UI – Desktop Mode)</h2>
 
 <textarea id="dataBox" placeholder="Excel se copy-paste yaha karo"></textarea><br>
 
-<button id="gen">Generate</button>
-<button id="edit">Edit Mode</button>
-<button id="save">Save</button>
-<button id="clear">Clear</button>
+<button onclick="generate()">Generate</button>
+<button onclick="saveData()">Save</button>
+<button onclick="clearAll()">Clear</button>
+
+<!-- ACTION BAR -->
+<div class="actionBar">
+  <b>Analyze by Button:</b><br><br>
+  Row:
+  <select id="rowSel"></select>
+  Day:
+  <select id="colSel">
+    <option value="0">Mon</option>
+    <option value="1">Tue</option>
+    <option value="2">Wed</option>
+    <option value="3">Thu</option>
+    <option value="4">Fri</option>
+    <option value="5">Sat</option>
+  </select>
+  <button onclick="runAnalysis()">CHECK TREND</button>
+</div>
 
 <div id="nextLabel"></div>
 
@@ -89,9 +108,8 @@ const family={
 };
 
 let matrix=[];
-let editMode=false;
-
 const tbody=document.querySelector("#grid tbody");
+const rowSel=document.getElementById("rowSel");
 const nextLabel=document.getElementById("nextLabel");
 
 /* ===== CLEAN EXCEL TEXT ===== */
@@ -102,55 +120,43 @@ function cleanText(t){
           .trim();
 }
 
-/* ===== RENDER TABLE (NO CLICK LOGIC HERE) ===== */
-function render(){
+/* ===== GENERATE TABLE ===== */
+function generate(){
+  let raw=cleanText(dataBox.value);
+  if(!raw){alert("Data daalo");return;}
+
+  matrix=raw.split("\n").map(r=>r.split(" "));
+  matrix.push(["**","**","**","**","**","**"]); // auto blank row
+
+  localStorage.setItem("trendData",matrix.map(r=>r.join(" ")).join("\n"));
+
   tbody.innerHTML="";
-  matrix.forEach(r=>{
+  rowSel.innerHTML="";
+
+  matrix.forEach((r,i)=>{
     const tr=document.createElement("tr");
-    for(let i=0;i<6;i++){
+    r.forEach(v=>{
       const td=document.createElement("td");
-      const v=r[i]||"**";
-      td.textContent=v;
+      td.textContent=v||"**";
       if(v==="**") td.classList.add("blank");
-      if(editMode){
-        td.classList.add("edit");
-        td.contentEditable=true;
-      }
       tr.appendChild(td);
-    }
+    });
     tbody.appendChild(tr);
+
+    const opt=document.createElement("option");
+    opt.value=i;
+    opt.textContent="Row "+(i+1);
+    rowSel.appendChild(opt);
   });
 }
 
-/* ===== GENERATE ===== */
-function generate(){
-  let raw=cleanText(dataBox.value);
-  if(!raw){ alert("Data daalo"); return; }
-
-  matrix = raw.split("\n").map(r=>r.split(" "));
-  matrix.push(["**","**","**","**","**","**"]); // auto blank row
-
-  localStorage.setItem("trendData", matrix.map(r=>r.join(" ")).join("\n"));
-  render();
-}
-
-/* ===== CLICK HANDLER (GLOBAL, NEVER REMOVED) ===== */
-tbody.addEventListener("click",function(e){
-  const td=e.target.closest("td");
-  if(!td) return;
-
-  const tr=td.parentElement;
-  const r=[...tbody.children].indexOf(tr);
-  const c=[...tr.children].indexOf(td);
-
-  // 👉 CLICK WORKS EVEN IN EDIT MODE
-  runTrend(r,c);
-});
-
-/* ===== CORE TREND ===== */
-function runTrend(r,c){
+/* ===== BUTTON ANALYSIS ===== */
+function runAnalysis(){
   document.querySelectorAll("td").forEach(td=>td.classList.remove("line"));
   nextLabel.style.display="none";
+
+  const r=parseInt(rowSel.value);
+  const c=parseInt(colSel.value);
 
   let win=[];
   for(let i=Math.max(0,r-10);i<r;i++){
@@ -158,7 +164,10 @@ function runTrend(r,c){
       win.push(matrix[i][c]);
     }
   }
-  if(win.length<3) return;
+  if(win.length<3){
+    alert("Pattern ke liye data kam hai");
+    return;
+  }
 
   let sig=win.map(v=>{
     let a=v[0],b=v[1];
@@ -204,39 +213,20 @@ function runTrend(r,c){
 
   popupData.innerHTML=
     `<b>Pattern Signature:</b><br>${sig}<br><br>
-     Matches: ${hits.length}`;
+     Matches Found: ${hits.length}`;
   popup.style.display="block";
 }
 
-/* ===== BUTTONS ===== */
-gen.onclick=generate;
-
-edit.onclick=()=>{
-  editMode=!editMode;
-  render(); // click listener stays alive
-};
-
-save.onclick=()=>{
-  let rows=[];
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    let r=[];
-    tr.querySelectorAll("td").forEach(td=>{
-      r.push(td.textContent.trim()||"**");
-    });
-    rows.push(r.join(" "));
-  });
-  dataBox.value=rows.join("\n");
+/* ===== SAVE / LOAD ===== */
+function saveData(){
   localStorage.setItem("trendData",dataBox.value);
-  editMode=false;
-  generate();
-};
-
-clear.onclick=()=>{
+  alert("Data saved");
+}
+function clearAll(){
   localStorage.clear();
   location.reload();
-};
+}
 
-/* ===== LOAD ===== */
 if(localStorage.getItem("trendData")){
   dataBox.value=localStorage.getItem("trendData");
   generate();
