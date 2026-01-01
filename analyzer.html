@@ -2,69 +2,48 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – FINAL STABLE</title>
+<title>CLICK TEST – iSmart Base</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f0f0f0;padding:10px}
-h2{text-align:center}
-
-textarea{width:100%;height:140px;font-size:14px}
-button{padding:6px 10px;margin:4px}
-
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{
-  border:1px solid #888;
-  padding:6px;
+body{font-family:Arial;padding:10px}
+table{border-collapse:collapse;width:100%}
+td,th{
+  border:1px solid #000;
+  padding:12px;
   text-align:center;
-  font-size:14px;
+  font-size:16px;
 }
-th{background:#222;color:#fff}
-
-td.blank{background:#eee;color:#777;font-weight:bold}
-td.line{outline:3px solid red;background:#fff3cd}
-td.edit{background:#fff9c4}
-
-#nextLabel{
-  display:none;
-  margin-top:10px;
-  padding:8px;
-  background:#fff;
-  border:2px dashed #c40000;
+td{
+  background:#f9f9f9;
 }
-
-.popup{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  z-index:9999;
-}
-.popupBox{
-  background:#fff;
-  width:92%;
-  max-height:85%;
-  overflow:auto;
-  margin:5% auto;
-  padding:15px;
+td:active{
+  background:#ffeb3b;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Analyzer (FINAL)</h2>
+<h3>CLICK TEST (Tap any cell)</h3>
 
-<textarea id="dataBox" placeholder="Excel se copy-paste yaha karo"></textarea><br>
+<textarea id="data" style="width:100%;height:120px">
+12 34 56 78 90 11
+23 45 67 89 01 22
+34 56 78 90 12 33
+45 67 89 01 23 44
+56 78 90 12 34 55
+67 89 01 23 45 66
+78 90 12 34 56 77
+89 01 23 45 67 88
+90 12 34 56 78 99
+12 34 56 78 90 **
+</textarea>
 
-<button id="gen">Generate</button>
-<button id="edit">Edit Mode</button>
-<button id="save">Save</button>
-<button id="clear">Clear</button>
+<br><br>
+<button onclick="build()">Generate</button>
 
-<div id="nextLabel"></div>
-
-<table id="grid">
+<table id="tbl">
 <thead>
 <tr>
 <th>Mon</th><th>Tue</th><th>Wed</th>
@@ -74,169 +53,34 @@ td.edit{background:#fff9c4}
 <tbody></tbody>
 </table>
 
-<div class="popup" id="popup">
- <div class="popupBox">
-  <div id="popupData"></div>
-  <button onclick="popup.style.display='none'">Close</button>
- </div>
-</div>
-
 <script>
-/* ================= FAMILY ================= */
-const family={
-0:["0","5"],1:["1","6"],2:["2","7"],3:["3","8"],4:["4","9"],
-5:["5","0"],6:["6","1"],7:["7","2"],8:["8","3"],9:["9","4"]
-};
-
-let matrix=[],editMode=false;
-const tbody=document.querySelector("#grid tbody");
-const nextLabel=document.getElementById("nextLabel");
-
-/* ================= CLEAN EXCEL TEXT ================= */
-function cleanText(t){
-  return t.replace(/\t+/g," ")
-          .replace(/ +/g," ")
-          .replace(/\r/g,"")
-          .trim();
-}
-
-/* ================= GENERATE ================= */
-function generate(){
-  let raw=cleanText(dataBox.value);
-  if(!raw){alert("Data daalo");return;}
-
-  matrix=raw.split("\n").map(r=>r.split(" "));
-  
-  /* 🔥 ALWAYS ADD ONE BLANK ROW */
-  matrix.push(["**","**","**","**","**","**"]);
-
-  localStorage.setItem("trendData",matrix.map(r=>r.join(" ")).join("\n"));
-
+function build(){
+  const tbody=document.querySelector("#tbl tbody");
   tbody.innerHTML="";
-  matrix.forEach(r=>{
+
+  const rows=data.value.trim().split("\n");
+  rows.forEach((r,rowIndex)=>{
     const tr=document.createElement("tr");
-    for(let i=0;i<6;i++){
+    r.split(/\s+/).forEach((v,colIndex)=>{
       const td=document.createElement("td");
-      const v=r[i]||"**";
       td.textContent=v;
-      if(v==="**") td.classList.add("blank");
-      if(editMode){
-        td.classList.add("edit");
-        td.contentEditable=true;
-      }
+
+      // 🔥 ABSOLUTE CLICK TEST
+      td.onclick=function(){
+        alert(
+          "CLICK WORKING ✅\n\n"+
+          "Row: "+(rowIndex+1)+"\n"+
+          "Col: "+(colIndex+1)+"\n"+
+          "Value: "+v
+        );
+      };
+
       tr.appendChild(td);
-    }
+    });
     tbody.appendChild(tr);
   });
 }
-
-/* ================= CLICK – EVENT DELEGATION (100% SAFE) ================= */
-tbody.addEventListener("click",function(e){
-  if(editMode) return;
-  const td=e.target.closest("td");
-  if(!td) return;
-
-  const tr=td.parentElement;
-  const r=[...tbody.children].indexOf(tr);
-  const c=[...tr.children].indexOf(td);
-
-  runTrend(r,c);
-});
-
-/* ================= CORE TREND ================= */
-function runTrend(r,c){
-  document.querySelectorAll("td").forEach(td=>td.classList.remove("line"));
-  nextLabel.style.display="none";
-
-  let win=[];
-  for(let i=Math.max(0,r-10);i<r;i++){
-    if(matrix[i] && matrix[i][c] && matrix[i][c]!=="**"){
-      win.push(matrix[i][c]);
-    }
-  }
-  if(win.length<3) return;
-
-  let sig=win.map(v=>{
-    let a=v[0],b=v[1];
-    return family[a].join("")+family[b].join("");
-  }).join("|");
-
-  let hits=[];
-  matrix.forEach((row,i)=>{
-    if(i<10) return;
-    let w=[];
-    for(let k=i-10;k<i;k++){
-      if(matrix[k][c] && matrix[k][c]!=="**") w.push(matrix[k][c]);
-    }
-    if(w.length<3) return;
-
-    let s=w.map(v=>{
-      let a=v[0],b=v[1];
-      return family[a].join("")+family[b].join("");
-    }).join("|");
-
-    if(s===sig) hits.push(i);
-  });
-
-  hits.forEach(h=>{
-    for(let i=h;i<matrix.length;i++){
-      tbody.children[i].children[c].classList.add("line");
-    }
-  });
-
-  let strong=new Set();
-  win.slice(-4).forEach(v=>{
-    family[v[0]].forEach(x=>{
-      family[v[1]].forEach(y=>{
-        strong.add(x+y);
-      });
-    });
-  });
-
-  nextLabel.style.display="block";
-  nextLabel.innerHTML=
-    `<b>NEXT LABEL (${["Mon","Tue","Wed","Thu","Fri","Sat"][c]}):</b><br>
-     ${[...strong].slice(0,4).join(", ")}`;
-
-  popupData.innerHTML=
-    `<b>Pattern Signature:</b><br>${sig}<br><br>
-     Matches: ${hits.length}`;
-  popup.style.display="block";
-}
-
-/* ================= BUTTONS ================= */
-gen.onclick=generate;
-
-edit.onclick=()=>{
-  editMode=!editMode;
-  generate();
-};
-
-save.onclick=()=>{
-  let rows=[];
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    let r=[];
-    tr.querySelectorAll("td").forEach(td=>{
-      r.push(td.textContent.trim()||"**");
-    });
-    rows.push(r.join(" "));
-  });
-  dataBox.value=rows.join("\n");
-  localStorage.setItem("trendData",dataBox.value);
-  editMode=false;
-  generate();
-};
-
-clear.onclick=()=>{
-  localStorage.clear();
-  location.reload();
-};
-
-/* ================= LOAD ================= */
-if(localStorage.getItem("trendData")){
-  dataBox.value=localStorage.getItem("trendData");
-  generate();
-}
+build();
 </script>
 
 </body>
