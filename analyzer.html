@@ -6,64 +6,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-}
-h1{ text-align:center; }
-textarea{
-  width:100%;
-  height:140px;
-  font-family:monospace;
-}
-button{
-  padding:10px 14px;
-  margin:5px;
-  font-size:14px;
-  cursor:pointer;
-}
-table{
-  border-collapse:collapse;
-  width:100%;
-  background:white;
-}
+body{font-family:Arial;background:#f4f4f4}
+h1{text-align:center}
+textarea{width:100%;height:140px;font-family:monospace}
+button{padding:10px 14px;margin:5px;font-size:14px;cursor:pointer}
+
+table{border-collapse:collapse;width:100%;background:white;position:relative;z-index:5}
 th,td{
   border:1px solid #999;
   padding:6px;
   text-align:center;
   min-width:42px;
-  position:relative;
   cursor:pointer;
 }
-th{ background:#222;color:#fff; }
-td.blank{ background:#eee; }
-td.active{ outline:3px solid red; }
+th{background:#222;color:#fff}
+td.blank{background:#eee}
 
 canvas{
   position:absolute;
   top:0;left:0;
+  z-index:0;
   pointer-events:none;
 }
 
 #popup{
   position:fixed;
-  top:5%;
-  left:5%;
-  width:90%;
-  height:90%;
+  inset:5%;
   background:white;
   border:4px solid #000;
   display:none;
-  overflow:auto;
   z-index:9999;
+  overflow:auto;
 }
 #popupClose{
   position:fixed;
-  right:8%;
-  top:6%;
+  top:6%;right:6%;
+  background:red;color:white;
   font-size:18px;
-  background:red;
-  color:white;
 }
 </style>
 </head>
@@ -73,32 +52,38 @@ canvas{
 <h1>🔥 iSmart Analyzer (Photo Style)</h1>
 
 <textarea id="dataInput" placeholder="Excel se copy-paste yahan karo"></textarea>
-
 <button onclick="generate()">Generate</button>
 <button onclick="saveData()">Save</button>
 <button onclick="clearAll()">Clear</button>
 
 <div style="position:relative">
-<table id="chart"></table>
-<canvas id="canvas"></canvas>
+  <table id="chart"></table>
+  <canvas id="canvas"></canvas>
 </div>
 
 <div id="popup">
-<button id="popupClose" onclick="closePopup()">X</button>
-<div id="popupContent"></div>
+  <button id="popupClose" onclick="closePopup()">X</button>
+  <div id="popupContent"></div>
 </div>
 
 <script>
 const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
-let grid=[];
-let rows=0,cols=6;
+let grid=[],rows=0,cols=6;
+let activeLines=[];
+
+function clean(v){
+  if(!v) return "**";
+  v=v.toString().trim();
+  if(v.includes("*")||isNaN(v)) return "**";
+  return v.padStart(2,"0");
+}
 
 function generate(){
-  let raw=document.getElementById("dataInput").value.trim().split("\n");
   grid=[];
+  let raw=dataInput.value.trim().split("\n");
   raw.forEach(r=>{
-    let row=r.trim().split(/\s+/);
-    while(row.length<6)row.push("**");
+    let row=r.split(/\s+/).map(clean);
+    while(row.length<6) row.push("**");
     grid.push(row);
   });
   rows=grid.length;
@@ -107,15 +92,10 @@ function generate(){
 }
 
 function drawTable(){
-  let t=document.getElementById("chart");
-  t.innerHTML="";
-  let tr=document.createElement("tr");
-  days.forEach(d=>{
-    let th=document.createElement("th");
-    th.textContent=d;
-    tr.appendChild(th);
-  });
-  t.appendChild(tr);
+  chart.innerHTML="";
+  let h=document.createElement("tr");
+  days.forEach(d=>{let th=document.createElement("th");th.textContent=d;h.appendChild(th)});
+  chart.appendChild(h);
 
   grid.forEach((r,i)=>{
     let tr=document.createElement("tr");
@@ -126,115 +106,94 @@ function drawTable(){
       td.onclick=()=>cellClick(i,j);
       tr.appendChild(td);
     });
-    t.appendChild(tr);
+    chart.appendChild(tr);
   });
 }
 
 function resizeCanvas(){
-  let c=document.getElementById("canvas");
-  let t=document.getElementById("chart");
-  c.width=t.offsetWidth;
-  c.height=t.offsetHeight;
-  c.style.width=t.offsetWidth+"px";
-  c.style.height=t.offsetHeight+"px";
-}
-
-function cellClick(r,c){
-  if(grid[r][c]==="**"){
-    blankTrend(r,c);
-  }else{
-    jodiPopup(r,c);
-  }
-}
-
-function blankTrend(r,c){
-  clearCanvas();
-  let pattern=[];
-  for(let i=r-1;i>=0 && pattern.length<10;i--){
-    if(grid[i][c]!=="**") pattern.push(grid[i][c]);
-  }
-  if(pattern.length<4){
-    alert("Pattern ke liye data kam hai");
-    return;
-  }
-  searchPattern(pattern,c);
+  canvas.width=chart.offsetWidth;
+  canvas.height=chart.offsetHeight;
 }
 
 function family(n){
-  let a=parseInt(n[0]),b=parseInt(n[1]);
-  return [(a+b)%10,(a+9)%10,(b+9)%10];
+  let a=+n[0],b=+n[1];
+  return [a,b,(a+b)%10,(a+9)%10,(b+9)%10];
 }
 
-function searchPattern(pat,col){
-  let ctx=canvasCtx();
-  for(let r=0;r<rows-1;r++){
+function match(a,b){
+  if(a==="**"||b==="**") return false;
+  let fa=family(a),fb=family(b);
+  return fa.some(x=>fb.includes(x));
+}
+
+function cellClick(r,c){
+  clearCanvas();
+  if(grid[r][c]==="**") blankTrend(r,c);
+  else jodiPopup(r,c);
+}
+
+function blankTrend(r,c){
+  let pattern=[];
+  for(let i=r-1;i>=0&&pattern.length<10;i--){
+    if(grid[i][c]!=="**") pattern.push(grid[i][c]);
+  }
+  if(pattern.length<4){alert("Pattern ke liye data kam hai");return;}
+  search(pattern,c);
+}
+
+function search(pat,col){
+  for(let r=0;r<rows-pat.length;r++){
     let ok=true;
     for(let k=0;k<pat.length;k++){
-      if(!grid[r+k] || grid[r+k][col]=="**"){ ok=false;break; }
-      let f1=family(pat[k]);
-      let f2=family(grid[r+k][col]);
-      if(!f1.some(x=>f2.includes(x))){ ok=false;break; }
+      if(!grid[r+k]||!match(pat[k],grid[r+k][col])){ok=false;break;}
     }
-    if(ok){
-      drawLine(r,col,r+pat.length,col);
-    }
+    if(ok) drawZigZag(r,col,pat.length);
   }
 }
 
-function drawLine(r1,c1,r2,c2){
-  let ctx=canvasCtx();
-  let p1=cellCenter(r1,c1);
-  let p2=cellCenter(r2,c2);
+function drawZigZag(r,c,len){
+  let ctx=canvas.getContext("2d");
   ctx.strokeStyle="blue";
   ctx.lineWidth=3;
   ctx.beginPath();
-  ctx.moveTo(p1.x,p1.y);
-  ctx.lineTo(p2.x,p2.y);
+  for(let i=0;i<=len;i++){
+    let p=center(r+i,c);
+    if(i==0) ctx.moveTo(p.x,p.y);
+    else ctx.lineTo(p.x,p.y);
+  }
   ctx.stroke();
 }
 
-function cellCenter(r,c){
-  let t=document.getElementById("chart");
-  let cell=t.rows[r+1].cells[c];
-  let rect=cell.getBoundingClientRect();
-  let base=t.getBoundingClientRect();
-  return{
-    x:rect.left-base.left+rect.width/2,
-    y:rect.top-base.top+rect.height/2
-  };
+function center(r,c){
+  let cell=chart.rows[r+1].cells[c];
+  let cr=cell.getBoundingClientRect();
+  let tr=chart.getBoundingClientRect();
+  return {x:cr.left-tr.left+cr.width/2,y:cr.top-tr.top+cr.height/2};
 }
 
-function canvasCtx(){
-  return document.getElementById("canvas").getContext("2d");
-}
 function clearCanvas(){
-  let c=document.getElementById("canvas");
-  canvasCtx().clearRect(0,0,c.width,c.height);
+  canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
 }
 
 function jodiPopup(r,c){
-  let p=document.getElementById("popup");
-  let cont=document.getElementById("popupContent");
-  cont.innerHTML=document.getElementById("chart").outerHTML;
-  p.style.display="block";
+  popupContent.innerHTML=chart.outerHTML;
+  popup.style.display="block";
 }
 
-function closePopup(){
-  document.getElementById("popup").style.display="none";
-}
+function closePopup(){popup.style.display="none"}
 
 function saveData(){
-  localStorage.setItem("ismartData",document.getElementById("dataInput").value);
+  localStorage.setItem("ismart",dataInput.value);
   alert("Saved");
 }
 function clearAll(){
-  localStorage.removeItem("ismartData");
+  localStorage.removeItem("ismart");
   location.reload();
 }
 
 window.onload=()=>{
-  let d=localStorage.getItem("ismartData");
-  if(d){ document.getElementById("dataInput").value=d; generate(); }
+  let d=localStorage.getItem("ismart");
+  if(d){dataInput.value=d;generate();}
 }
 </script>
 
