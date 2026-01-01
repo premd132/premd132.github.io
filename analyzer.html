@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Analyzer – Pattern Line</title>
+<title>🔥 iSmart Analyzer – Full Photo Logic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{font-family:Arial;background:#f4f4f4;margin:0}
-h2{text-align:center}
+h2{text-align:center;margin:10px}
 textarea{width:100%;height:140px;font-family:monospace}
-button{padding:8px 14px;margin:4px}
+button{padding:8px 14px;margin:4px;cursor:pointer}
 table{border-collapse:collapse;width:100%;background:#fff}
 th,td{
   border:1px solid #999;
@@ -25,17 +25,15 @@ td.mark{
   outline:3px solid blue;
   border-radius:50%;
 }
-#lineCanvas{
+#canvas{
   position:absolute;
   top:0;left:0;
   pointer-events:none;
 }
 #popup{
-  position:fixed;
-  inset:0;
+  position:fixed;inset:0;
   background:#fff;
-  display:none;
-  z-index:9999;
+  display:none;z-index:9999;
   overflow:auto;
 }
 #popup header{
@@ -43,13 +41,19 @@ td.mark{
   padding:8px;
   display:flex;
   justify-content:space-between;
+  align-items:center;
+}
+#aiBox{
+  padding:8px;
+  background:#f0f0f0;
+  border-bottom:2px solid #000;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Analyzer (Real Photo Logic)</h2>
+<h2>🔥 iSmart Analyzer (Zig-Zag + AI + Export)</h2>
 
 <textarea id="dataInput" placeholder="Excel se copy-paste data"></textarea>
 <br>
@@ -58,25 +62,29 @@ td.mark{
 
 <div style="position:relative">
   <table id="chart"></table>
-  <canvas id="lineCanvas"></canvas>
+  <canvas id="canvas"></canvas>
 </div>
 
 <div id="popup">
   <header>
     <span id="popupTitle"></span>
-    <button onclick="closePopup()">❌</button>
+    <div>
+      <button onclick="exportImage()">📸 Export</button>
+      <button onclick="closePopup()">❌</button>
+    </div>
   </header>
+  <div id="aiBox"></div>
   <div id="popupBody"></div>
 </div>
 
 <script>
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
-let grid=[], rows=0;
+let grid=[],rows=0;
 
 function generate(){
   grid=[];
-  document.getElementById("lineCanvas").getContext("2d").clearRect(0,0,5000,5000);
-  let raw=document.getElementById("dataInput").value.trim().split("\n");
+  clearAllLines();
+  let raw=dataInput.value.trim().split("\n");
   raw.forEach(r=>{
     let a=r.trim().split(/\s+/);
     while(a.length<6) a.push("**");
@@ -88,8 +96,7 @@ function generate(){
 }
 
 function drawTable(){
-  let t=document.getElementById("chart");
-  t.innerHTML="";
+  let t=chart; t.innerHTML="";
   let tr=document.createElement("tr");
   DAYS.forEach(d=>{let th=document.createElement("th");th.textContent=d;tr.appendChild(th)});
   t.appendChild(tr);
@@ -108,10 +115,8 @@ function drawTable(){
 }
 
 function resizeCanvas(){
-  let c=document.getElementById("lineCanvas");
-  let t=document.getElementById("chart");
-  c.width=t.offsetWidth;
-  c.height=t.offsetHeight;
+  canvas.width=chart.offsetWidth;
+  canvas.height=chart.offsetHeight;
 }
 
 function family(j){
@@ -124,91 +129,105 @@ function family(j){
 }
 
 function cellClick(r,c){
-  if(grid[r][c]==="**"){
-    blankSearch(r,c);
-  }else{
-    jodiPopup(r,c);
-  }
+  if(grid[r][c]==="**") blankSearch(r,c);
+  else openPopup(r,c);
 }
 
-/* 🔵 BLANK BOX → PATTERN SEARCH */
+/* 🔍 BLANK BOX SEARCH */
 function blankSearch(r,c){
-  clearMarks();
+  clearAllLines();
   let base=[];
-  for(let i=r-1;i>=0 && base.length<9;i--){
+  for(let i=r-1;i>=0 && base.length<10;i--){
     if(grid[i][c]!=="**") base.push(grid[i][c]);
   }
-  if(base.length<3){
-    alert("Pattern kam hai");
-    return;
-  }
+  if(base.length<3){alert("Pattern kam hai");return;}
 
-  let matches=[];
+  let found=[];
   for(let i=0;i<rows;i++){
     let ok=true;
     for(let k=0;k<base.length;k++){
-      if(!grid[i+k] || grid[i+k][c]==="**"){ok=false;break;}
-      let f1=family(base[k]);
-      let f2=family(grid[i+k][c]);
+      if(!grid[i+k]||grid[i+k][c]==="**"){ok=false;break;}
+      let f1=family(base[k]), f2=family(grid[i+k][c]);
       if(!f1.some(x=>f2.includes(x))){ok=false;break;}
     }
-    if(ok) matches.push(i);
+    if(ok) found.push(i);
   }
 
-  matches.forEach(start=>{
-    markColumn(start,c,base.length);
-    drawBlueLine(start,c,base.length);
+  found.forEach(start=>{
+    mark(start,c,base.length);
+    drawZigZag(start,c,base.length);
   });
+
+  aiSuggest(base);
 }
 
-/* 🔵 MARKING */
-function markColumn(r,c,len){
-  let t=document.getElementById("chart");
-  for(let i=0;i<len;i++){
-    t.rows[r+1+i].cells[c].classList.add("mark");
-  }
+/* 🔵 MARK + LINE */
+function mark(r,c,len){
+  for(let i=0;i<len;i++)
+    chart.rows[r+1+i].cells[c].classList.add("mark");
 }
 
-/* 🔵 BLUE LINE */
-function drawBlueLine(r,c,len){
-  let ctx=document.getElementById("lineCanvas").getContext("2d");
-  let p1=center(r,c);
-  let p2=center(r+len-1,c);
-  ctx.strokeStyle="blue";
-  ctx.lineWidth=4;
+function drawZigZag(r,c,len){
+  let ctx=canvas.getContext("2d");
+  ctx.strokeStyle="blue"; ctx.lineWidth=4;
   ctx.beginPath();
-  ctx.moveTo(p1.x,p1.y);
-  ctx.lineTo(p2.x,p2.y);
+  let p=center(r,c);
+  ctx.moveTo(p.x,p.y);
+  for(let i=1;i<len;i++){
+    let n=center(r+i,c);
+    ctx.lineTo(n.x,n.y);
+  }
   ctx.stroke();
 }
 
-/* 🔵 POPUP (PHOTO STYLE) */
-function jodiPopup(r,c){
-  let p=document.getElementById("popup");
-  document.getElementById("popupTitle").textContent=
-    `Jodi: ${grid[r][c]} | Day: ${DAYS[c]} | Row: ${r+1}`;
+/* 🤖 AI SUGGESTION */
+function aiSuggest(base){
+  let score={};
+  base.forEach(j=>{
+    family(j).forEach(f=>{
+      score[f]=(score[f]||0)+1;
+    });
+  });
+  let top=Object.entries(score)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,4)
+    .map(x=>x[0]);
 
-  // clone full chart (photo style)
-  let clone=document.getElementById("chart").cloneNode(true);
-  document.getElementById("popupBody").innerHTML="";
-  document.getElementById("popupBody").appendChild(clone);
-
-  p.style.display="block";
+  aiBox.innerHTML="<b>🤖 Strong Jodi Suggestion:</b> "+top.join(", ");
 }
 
-function closePopup(){document.getElementById("popup").style.display="none";}
-function clearMarks(){
+/* 📸 POPUP */
+function openPopup(r,c){
+  popupTitle.textContent=`Jodi ${grid[r][c]} | ${DAYS[c]} | Row ${r+1}`;
+  popupBody.innerHTML="";
+  popupBody.appendChild(chart.cloneNode(true));
+  popup.style.display="block";
+}
+
+function exportImage(){
+  let temp=document.createElement("canvas");
+  temp.width=popupBody.scrollWidth;
+  temp.height=popupBody.scrollHeight;
+  let ctx=temp.getContext("2d");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,temp.width,temp.height);
+  html2canvas(popupBody).then(c=>{
+    let a=document.createElement("a");
+    a.href=c.toDataURL("image/png");
+    a.download="ismart_pattern.png";
+    a.click();
+  });
+}
+
+function closePopup(){popup.style.display="none";}
+function clearAllLines(){
   document.querySelectorAll(".mark").forEach(e=>e.classList.remove("mark"));
-  document.getElementById("lineCanvas").getContext("2d").clearRect(0,0,5000,5000);
+  canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
 }
 function center(r,c){
-  let t=document.getElementById("chart");
-  let cell=t.rows[r+1].cells[c].getBoundingClientRect();
-  let base=t.getBoundingClientRect();
-  return{
-    x:cell.left-base.left+cell.width/2,
-    y:cell.top-base.top+cell.height/2
-  };
+  let cell=chart.rows[r+1].cells[c].getBoundingClientRect();
+  let base=chart.getBoundingClientRect();
+  return{ x:cell.left-base.left+cell.width/2,
+          y:cell.top-base.top+cell.height/2 };
 }
 function saveData(){
   localStorage.setItem("ismartData",dataInput.value);
@@ -219,6 +238,8 @@ window.onload=()=>{
   if(d){dataInput.value=d;generate();}
 };
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
 </html>
