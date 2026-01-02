@@ -1,0 +1,88 @@
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  margin:10px;
+}
+
+h1{text-align:center}
+
+textarea{
+  width:100%;
+  height:140px;
+  font-family:monospace;
+}
+
+.btns{text-align:center;margin:8px}
+
+button{
+  padding:8px 14px;
+  margin:4px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+#tableWrap{
+  position:relative;
+  margin-top:10px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  min-width:48px;
+  cursor:pointer;
+}
+
+th{
+  background:#111;
+  color:white;
+}
+
+td.blank{
+  background:#eee;
+}
+
+td.mark{
+  outline:3px solid red;
+  font-weight:bold;
+}
+
+canvas{
+  position:absolute;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+
+#popup{
+  position:fixed;
+  top:5%;
+  left:5%;
+  width:90%;
+  height:90%;
+  background:white;
+  border:4px solid black;
+  display:none;
+  z-index:9999;
+}
+
+#popupHeader{
+  background:black;
+  color:white;
+  padding:8px;
+  display:flex;
+  justify-content:space-between;
+}
+
+#popupBody{
+  padding:10px;
+  overflow:auto;
+  height:85%;
+}
