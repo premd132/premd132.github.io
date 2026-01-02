@@ -1,19 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer</title>
-<link rel="stylesheet" href="style.css">
+<title>🔥 iSmart Analyzer – Photo Style Pattern Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{font-family:Arial;background:#f4f4f4;margin:0}
+h1{text-align:center;margin:10px 0}
+
+textarea{width:100%;height:140px;font-family:monospace}
+button{padding:8px 12px;margin:4px;font-size:14px;cursor:pointer}
+
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  min-width:44px;
+  position:relative;
+  cursor:pointer;
+  user-select:none;
+}
+th{background:#222;color:#fff}
+td.blank{background:#eee}
+td.mark{background:#ffe0e0;box-shadow:inset 0 0 0 2px red}
+
+canvas{
+  position:absolute;
+  top:0;left:0;
+  pointer-events:none;
+}
+
+#popup{
+  position:fixed;
+  inset:5%;
+  background:#fff;
+  border:4px solid #000;
+  display:none;
+  z-index:9999;
+  overflow:auto;
+}
+#popupHeader{
+  background:#000;color:#fff;
+  padding:6px 10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#popupClose{background:red;color:#fff;border:none;padding:4px 8px}
+</style>
 </head>
+
 <body>
 
-<h2>🔥 iSmart Analyzer</h2>
+<h1>🔥 iSmart Analyzer (Photo-Style)</h1>
 
-<p style="text-align:center">
-  <a href="analyzer.html">
-    <button style="font-size:18px">ENTER</button>
-  </a>
-</p>
+<textarea id="dataInput" placeholder="Excel se copy-paste yahan karo"></textarea>
+
+<div>
+<button onclick="generate()">Generate</button>
+<button onclick="addRow()">Add Row</button>
+<button onclick="saveData()">Save</button>
+<button onclick="clearAll()">Clear</button>
+</div>
+
+<div style="position:relative">
+<table id="chart"></table>
+<canvas id="canvas"></canvas>
+</div>
+
+<div id="popup">
+  <div id="popupHeader">
+    <div id="popupTitle"></div>
+    <button id="popupClose" onclick="closePopup()">X</button>
+  </div>
+  <div id="popupContent"></div>
+</div>
+
+<script>
+const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+let grid=[],rows=0,cols=6;
+let patterns=[];
+
+function generate(){
+  const raw=document.getElementById("dataInput").value.trim().split("\n");
+  grid=[];
+  raw.forEach(r=>{
+    let row=r.trim().split(/\s+/);
+    while(row.length<6)row.push("**");
+    grid.push(row);
+  });
+  rows=grid.length;
+  drawTable();
+  resizeCanvas();
+}
+
+function drawTable(){
+  const t=document.getElementById("chart");
+  t.innerHTML="";
+  let tr=document.createElement("tr");
+  days.forEach(d=>{let th=document.createElement("th");th.textContent=d;tr.appendChild(th)});
+  t.appendChild(tr);
+
+  grid.forEach((r,i)=>{
+    let tr=document.createElement("tr");
+    r.forEach((v,j)=>{
+      let td=document.createElement("td");
+      td.textContent=v;
+      if(v==="**") td.classList.add("blank");
+      td.onclick=()=>cellClick(i,j);
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+}
+
+function resizeCanvas(){
+  const c=document.getElementById("canvas");
+  const t=document.getElementById("chart");
+  c.width=t.offsetWidth;
+  c.height=t.offsetHeight;
+}
+
+function cellClick(r,c){
+  clearMarks();
+  clearCanvas();
+
+  if(grid[r][c]==="**"){
+    blankPatternSearch(r,c);
+  }else{
+    showPopup(`Jodi ${grid[r][c]} | ${days[c]} | Row ${r+1}`,highlightBlock(r,c));
+  }
+}
+
+function blankPatternSearch(r,c){
+  let base=[];
+  for(let i=r-1;i>=0 && base.length<10;i--){
+    if(grid[i][c]!=="**"){
+      base.push({
+        row:i,
+        val:grid[i][c],
+        fam:family(grid[i][c])
+      });
+    }
+  }
+  if(base.length<4){alert("Pattern ke liye data kam hai");return}
+
+  let matches=[];
+  for(let i=0;i<=rows-base.length;i++){
+    let ok=true;
+    for(let k=0;k<base.length;k++){
+      if(grid[i+k][c]==="**"){ok=false;break}
+      let fam2=family(grid[i+k][c]);
+      if(!base[k].fam.some(x=>fam2.includes(x))){
+        ok=false;break;
+      }
+    }
+    if(ok) matches.push(i);
+  }
+
+  matches.forEach(start=>{
+    for(let k=0;k<base.length;k++){
+      markCell(start+k,c);
+    }
+    drawLine(start,c,start+base.length-1,c);
+  });
+
+  // AI suggestion
+  let ai=aiSuggest(c);
+  showPopup(
+    `AI Suggestion – ${days[c]}`,
+    `<div style="padding:10px">
+      <b>AI Strong Jodi (2–4)</b><br>
+      ${ai.join(" , ")}
+     </div>`
+  );
+}
+
+function family(j){
+  let a=parseInt(j[0]),b=parseInt(j[1]);
+  return [a,b,(a+b)%10,(a+9)%10,(b+9)%10];
+}
+
+function markCell(r,c){
+  document.getElementById("chart").rows[r+1].cells[c].classList.add("mark");
+}
+
+function clearMarks(){
+  document.querySelectorAll(".mark").forEach(x=>x.classList.remove("mark"));
+}
+
+function drawLine(r1,c1,r2,c2){
+  const ctx=canvas.getContext("2d");
+  const p1=center(r1,c1),p2=center(r2,c2);
+  ctx.strokeStyle="blue";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(p1.x,p1.y);
+  ctx.lineTo(p2.x,p2.y);
+  ctx.stroke();
+}
+
+function center(r,c){
+  const t=document.getElementById("chart");
+  const cell=t.rows[r+1].cells[c].getBoundingClientRect();
+  const base=t.getBoundingClientRect();
+  return {x:cell.left-base.left+cell.width/2,y:cell.top-base.top+cell.height/2};
+}
+
+function clearCanvas(){
+  const c=document.getElementById("canvas");
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
+
+function highlightBlock(r,c){
+  let html="<table>"+document.getElementById("chart").innerHTML+"</table>";
+  return html;
+}
+
+function showPopup(title,content){
+  document.getElementById("popupTitle").innerHTML=title;
+  document.getElementById("popupContent").innerHTML=content;
+  document.getElementById("popup").style.display="block";
+}
+
+function closePopup(){
+  document.getElementById("popup").style.display="none";
+}
+
+function aiSuggest(col){
+  let freq={};
+  for(let i=0;i<rows;i++){
+    let v=grid[i][col];
+    if(v!=="**") freq[v]=(freq[v]||0)+1;
+  }
+  return Object.entries(freq)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,4)
+    .map(x=>x[0]);
+}
+
+function addRow(){
+  grid.push(["**","**","**","**","**","**"]);
+  drawTable();
+}
+
+function saveData(){
+  localStorage.setItem("ismartData",document.getElementById("dataInput").value);
+  alert("Saved");
+}
+
+function clearAll(){
+  localStorage.clear();
+  location.reload();
+}
+
+window.onload=()=>{
+  let d=localStorage.getItem("ismartData");
+  if(d){document.getElementById("dataInput").value=d;generate()}
+}
+</script>
 
 </body>
 </html>
