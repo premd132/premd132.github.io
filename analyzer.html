@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🔥 iSmart Pattern Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<h2>🔥 iSmart Analyzer (REAL Pattern Logic)</h2>
+
+<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
+
+<div class="btns">
+  <button onclick="generate()">Generate</button>
+  <button onclick="addBlankRow()">Add Blank Row</button>
+  <button onclick="saveData()">Save</button>
+</div>
+
+<div id="chartWrap">
+  <table id="chart"></table>
+  <canvas id="lines"></canvas>
+</div>
+
+<!-- POPUP -->
+<div id="popup">
+  <div id="popupHead">
+    <span id="popupTitle"></span>
+    <button onclick="closePopup()">✖</button>
+  </div>
+  <div id="popupBody"></div>
+</div>
+
+<script src="patternEngine.js"></script>
+</body>
+</html>
