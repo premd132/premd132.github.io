@@ -34,9 +34,23 @@ function blankPattern(r,c){
   }
 
   // 3️⃣ AI popup ONLY if pattern found
-  if(foundCount>0){
-    aiSuggest(base, foundCount);
-  }else{
-    alert("Koi matching pattern nahi mila");
+  function aiSuggest(base,count){
+  let set=new Set();
+
+  base.forEach(v=>{
+    let a=parseInt(v[0]), b=parseInt(v[1]);
+    set.add(`${a}${(b+1)%10}`);
+    set.add(`${(a+1)%10}${b}`);
+    set.add(`${(a+9)%10}${b}`);
+  });
+
+  let res=[...set].slice(0,4);
+
+  alert(
+    "🤖 AI Strong Jodi\n\n" +
+    "Patterns Found: "+count+"\n\n" +
+    res.join(" , ")
+  );
+}
   }
 }
