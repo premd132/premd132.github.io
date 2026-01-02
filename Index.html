@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Flow Analyzer</title>
+<title>🔥 iSmart Analyzer – Photo Style</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h2>🔥 iSmart – Flow Pattern Analyzer</h2>
+<h1>🔥 iSmart Analyzer (Photo-Style Line)</h1>
 
-<textarea id="dataInput" placeholder="Excel se data paste karo (blank = **)"></textarea>
+<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
 
 <div class="btns">
   <button onclick="generate()">Generate</button>
@@ -19,14 +18,20 @@
   <button onclick="saveData()">Save</button>
 </div>
 
-<div class="tableWrap">
+<div id="tableWrap">
   <table id="chart"></table>
-  <canvas id="lineLayer"></canvas>
+  <canvas id="lineCanvas"></canvas>
 </div>
 
-<div id="aiBox"></div>
-<div id="log"></div>
+<!-- POPUP -->
+<div id="popup">
+  <div id="popupHeader">
+    <span id="popupTitle"></span>
+    <button onclick="closePopup()">✖</button>
+  </div>
+  <div id="popupBody"></div>
+</div>
 
-<script src="engine.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
