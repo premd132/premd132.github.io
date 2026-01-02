@@ -1,13 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>iSmart Analyzer</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>🔥 iSmart Analyzer – Phase 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🔥 iSmart Analyzer</h1>
-  <a href="analyzer.html">
-    <button>Open Analyzer</button>
-  </a>
+
+<h2>🔥 iSmart Analyzer (PHOTO STYLE – Phase 1)</h2>
+
+<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
+
+<div class="btns">
+  <button onclick="generate()">Generate</button>
+  <button onclick="addBlankRow()">Add Blank Row</button>
+</div>
+
+<div class="table-wrap">
+  <table id="chart"></table>
+</div>
+
+<script src="engine.js"></script>
 </body>
 </html>
