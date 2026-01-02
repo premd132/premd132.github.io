@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iSmart Analyzer – CLICK FIXED</title>
+<title>iSmart – Row Pattern + Family Logic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
-  font-family: Arial, sans-serif;
+  font-family:Arial;
   background:#f2f2f2;
   margin:0;
   padding:10px;
@@ -22,7 +22,7 @@ textarea{
 }
 
 button{
-  padding:10px 14px;
+  padding:8px 12px;
   margin:4px;
   font-size:14px;
 }
@@ -32,14 +32,12 @@ table{
   width:100%;
   background:#fff;
 }
-
 th,td{
-  border:1px solid #777;
+  border:1px solid #999;
   padding:6px;
   text-align:center;
   min-width:45px;
 }
-
 th{
   background:#111;
   color:#fff;
@@ -48,19 +46,26 @@ th{
 td.blank{
   background:#e0e0e0;
   font-weight:bold;
+  cursor:pointer;
 }
 
-td.match{
-  background:#ffd6d6;
+td.mark{
+  background:#ffdada;       /* PHOTO-STYLE UNDER MARK */
+}
+
+#lineLayer{
+  position:absolute;
+  top:0;left:0;
+  pointer-events:none;
 }
 
 #log{
   margin-top:10px;
-  padding:8px;
   background:#000;
   color:#0f0;
   font-size:12px;
-  max-height:140px;
+  padding:8px;
+  height:160px;
   overflow:auto;
 }
 </style>
@@ -68,14 +73,19 @@ td.match{
 
 <body>
 
-<h2>🔥 iSmart Analyzer (CLICK WORKING)</h2>
+<h2>🔥 iSmart – Family / Cut / Row-Pattern Engine</h2>
 
-<textarea id="dataInput" placeholder="Excel se data paste karo"></textarea><br>
+<textarea id="dataInput" placeholder="Excel se data paste karo  
+Blank ke liye ** use karo"></textarea>
 
+<br>
 <button onclick="generate()">Generate</button>
 <button onclick="addBlankRow()">Add Blank Row</button>
 
-<div id="tableWrap"></div>
+<div style="position:relative">
+  <table id="chart"></table>
+  <canvas id="lineLayer"></canvas>
+</div>
 
 <div id="log">LOG:</div>
 
@@ -83,109 +93,197 @@ td.match{
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
 let grid=[];
 
+/* ---------------- UTIL ---------------- */
+
 function log(msg){
-  document.getElementById("log").innerHTML += "<br>"+msg;
+  let l=document.getElementById("log");
+  l.innerHTML += msg+"<br>";
+  l.scrollTop=l.scrollHeight;
 }
 
+/* ---------------- DATA ---------------- */
+
 function generate(){
-  log("Generate clicked");
   grid=[];
-  let lines=document.getElementById("dataInput").value.trim().split("\n");
-
-  lines.forEach(line=>{
-    let r=line.trim().split(/\s+/);
-    while(r.length<6) r.push("**");
-    grid.push(r);
+  let raw=document.getElementById("dataInput").value.trim().split("\n");
+  raw.forEach(r=>{
+    let row=r.trim().split(/\s+/);
+    while(row.length<6) row.push("**");
+    grid.push(row);
   });
-
   drawTable();
+  resizeCanvas();
+  log("Data loaded. Rows="+grid.length);
 }
 
 function addBlankRow(){
-  grid.push(["**","**","**","**","**","**"]);
-  drawTable();
+  document.getElementById("dataInput").value += "\n** ** ** ** ** **";
 }
+
+/* ---------------- DRAW ---------------- */
 
 function drawTable(){
-  let html="<table><tr>";
-  DAYS.forEach(d=>html+="<th>"+d+"</th>");
-  html+="</tr>";
+  const t=document.getElementById("chart");
+  t.innerHTML="";
 
-  grid.forEach((row,r)=>{
-    html+="<tr>";
-    row.forEach((val,c)=>{
-      let cls = val==="**" ? "blank":"";
-      html+=`<td class="${cls}" data-r="${r}" data-c="${c}">${val}</td>`;
+  let tr=document.createElement("tr");
+  DAYS.forEach(d=>{
+    let th=document.createElement("th");
+    th.textContent=d;
+    tr.appendChild(th);
+  });
+  t.appendChild(tr);
+
+  grid.forEach((r,ri)=>{
+    let tr=document.createElement("tr");
+    r.forEach((v,ci)=>{
+      let td=document.createElement("td");
+      td.textContent=v;
+      td.dataset.r=ri;
+      td.dataset.c=ci;
+
+      if(v==="**"){
+        td.classList.add("blank");
+        td.onclick=()=>blankClick(ri,ci);
+      }
+
+      tr.appendChild(td);
     });
-    html+="</tr>";
-  });
-
-  html+="</table>";
-  document.getElementById("tableWrap").innerHTML=html;
-
-  // 🔥 ONE single event handler (FIX)
-  document.querySelectorAll("td").forEach(td=>{
-    td.addEventListener("click",onCellClick);
+    t.appendChild(tr);
   });
 }
 
-function onCellClick(e){
-  let td=e.target;
-  let r=parseInt(td.dataset.r);
-  let c=parseInt(td.dataset.c);
-  let val=grid[r][c];
+/* ---------------- FORMULA ---------------- */
 
+/* Family + Cut */
+function familySet(j){
+  let a=parseInt(j[0]), b=parseInt(j[1]);
+  return [
+    a, b,
+    (a+5)%10,
+    (b+5)%10,
+    Math.abs(a-b)
+  ];
+}
+
+/* Row structure = GAME FLOW (number independent) */
+function rowSignature(row){
+  let sig=[];
+  row.forEach(v=>{
+    if(v==="**"){
+      sig.push("X");
+    }else{
+      let a=parseInt(v[0]), b=parseInt(v[1]);
+      sig.push(
+        (a+b)%10 + "-" +           // sum mod
+        (a>b?1:0) + "-" +          // direction
+        Math.abs(a-b)              // cut
+      );
+    }
+  });
+  return sig.join("|");
+}
+
+/* ---------------- BLANK CLICK LOGIC ---------------- */
+
+function blankClick(r,c){
   clearMarks();
+  clearCanvas();
 
-  if(val==="**"){
-    log("Blank clicked → row "+r+" col "+c);
-    blankPatternSearch(r,c);
-  }else{
-    log("Jodi clicked: "+val+" (row "+r+", col "+c+")");
-    td.style.outline="3px solid red";
-  }
-}
+  log("Blank clicked at row "+r+" col "+c);
 
-function blankPatternSearch(r,c){
-  let pattern=[];
+  let depth=9;
+  let basePattern=[];
 
-  // 🔍 last 8 rows pattern
-  for(let i=r-1;i>=0 && pattern.length<8;i--){
-    if(grid[i][c]!=="**") pattern.push(grid[i][c]);
+  for(let i=r-1;i>=0 && basePattern.length<depth;i--){
+    if(grid[i][c]!=="**"){
+      basePattern.push(rowSignature(grid[i]));
+    }
   }
 
-  if(pattern.length<3){
-    log("Pattern too small");
+  if(basePattern.length<4){
+    log("❌ Pattern too small");
     return;
   }
 
-  log("Pattern found: "+pattern.join(","));
+  log("ROW-PATTERN:");
+  basePattern.forEach(p=>log(p));
 
-  // 🔁 search same pattern everywhere
+  searchSamePattern(basePattern,c);
+}
+
+/* ---------------- SEARCH ---------------- */
+
+function searchSamePattern(pattern,col){
+  let matches=0;
+
   for(let i=0;i<=grid.length-pattern.length;i++){
     let ok=true;
     for(let k=0;k<pattern.length;k++){
-      if(grid[i+k][c]!==pattern[k]){
+      if(rowSignature(grid[i+k])!==pattern[k]){
         ok=false; break;
       }
     }
     if(ok){
-      markRows(i,pattern.length,c);
-      log("Match at row "+i);
+      matches++;
+      markBlock(i,pattern.length,col);
+      drawLine(i,i+pattern.length-1,col);
+      log("✔ Match at row "+i);
     }
   }
+
+  log("TOTAL MATCHES = "+matches);
 }
 
-function markRows(start,len,c){
+/* ---------------- MARKING ---------------- */
+
+function markBlock(start,len,col){
+  const t=document.getElementById("chart");
   for(let i=0;i<len;i++){
-    let td=document.querySelector(`td[data-r="${start+i}"][data-c="${c}"]`);
-    if(td) td.classList.add("match");
+    t.rows[start+i+1].cells[col].classList.add("mark");
   }
 }
 
+/* ---------------- LINE (visual connector) ---------------- */
+
+function resizeCanvas(){
+  let c=document.getElementById("lineLayer");
+  let t=document.getElementById("chart");
+  c.width=t.offsetWidth;
+  c.height=t.offsetHeight;
+}
+
+function clearCanvas(){
+  let c=document.getElementById("lineLayer");
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
+
+function drawLine(r1,r2,c){
+  let ctx=document.getElementById("lineLayer").getContext("2d");
+  let p1=center(r1,c);
+  let p2=center(r2,c);
+  ctx.strokeStyle="blue";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(p1.x,p1.y);
+  ctx.lineTo(p2.x,p2.y);
+  ctx.stroke();
+}
+
+function center(r,c){
+  let t=document.getElementById("chart");
+  let cell=t.rows[r+1].cells[c].getBoundingClientRect();
+  let base=t.getBoundingClientRect();
+  return {
+    x:cell.left-base.left+cell.width/2,
+    y:cell.top-base.top+cell.height/2
+  };
+}
+
+/* ---------------- HELPERS ---------------- */
+
 function clearMarks(){
-  document.querySelectorAll(".match").forEach(td=>td.classList.remove("match"));
-  document.querySelectorAll("td").forEach(td=>td.style.outline="none");
+  document.querySelectorAll(".mark").forEach(e=>e.classList.remove("mark"));
 }
 </script>
 
