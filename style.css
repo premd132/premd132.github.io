@@ -1,88 +1,28 @@
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  margin:10px;
-}
+body{font-family:Arial;background:#f2f2f2}
+textarea{width:100%;height:130px;font-family:monospace}
+button{padding:8px 12px;margin:5px}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{border:1px solid #999;text-align:center;padding:6px;cursor:pointer}
+th{background:#222;color:#fff}
+td.blank{background:#eee}
+td.mark{outline:3px solid red;background:#ffeaea}
 
-h1{text-align:center}
-
-textarea{
-  width:100%;
-  height:140px;
-  font-family:monospace;
-}
-
-.btns{text-align:center;margin:8px}
-
-button{
-  padding:8px 14px;
-  margin:4px;
-  font-size:14px;
-  cursor:pointer;
-}
-
-#tableWrap{
-  position:relative;
-  margin-top:10px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:white;
-}
-
-th,td{
-  border:1px solid #999;
-  padding:6px;
-  text-align:center;
-  min-width:48px;
-  cursor:pointer;
-}
-
-th{
-  background:#111;
-  color:white;
-}
-
-td.blank{
-  background:#eee;
-}
-
-td.mark{
-  outline:3px solid red;
-  font-weight:bold;
-}
-
-canvas{
-  position:absolute;
-  top:0;
-  left:0;
-  pointer-events:none;
-}
+#tableWrap{position:relative}
+canvas{position:absolute;top:0;left:0;pointer-events:none}
 
 #popup{
   position:fixed;
-  top:5%;
-  left:5%;
-  width:90%;
-  height:90%;
-  background:white;
-  border:4px solid black;
+  inset:5%;
+  background:#fff;
+  border:4px solid #000;
   display:none;
   z-index:9999;
+  overflow:auto;
 }
-
 #popupHeader{
-  background:black;
-  color:white;
-  padding:8px;
+  background:#000;
+  color:#fff;
+  padding:10px;
   display:flex;
   justify-content:space-between;
-}
-
-#popupBody{
-  padding:10px;
-  overflow:auto;
-  height:85%;
 }
