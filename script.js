@@ -1,4 +1,5 @@
-alert("✅ Phase-2 script loaded");
+console.clear();
+alert("🔥 NEW Phase-2 ACTIVE");
 
 let tableData = [];
 
@@ -23,11 +24,12 @@ function generate(){
       td.dataset.row = r;
       td.dataset.col = c;
 
-      if(val === "**"){
-        td.classList.add("blank");
-      }
+      if(val === "**") td.classList.add("blank");
 
-      td.onclick = ()=> cellClick(r,c,val);
+      td.onclick = ()=>{
+        console.log("CLICK:", r, c, val);
+        cellClick(r,c,val);
+      };
 
       tableData[r][c] = td;
       tr.appendChild(td);
@@ -37,7 +39,7 @@ function generate(){
   });
 }
 
-/* ---------------- CLICK LOGIC ---------------- */
+/* ------------ CLICK ------------ */
 
 function cellClick(r,c,val){
   clearMarks();
@@ -49,7 +51,7 @@ function cellClick(r,c,val){
   }
 }
 
-/* ---------------- BLANK CLICK ---------------- */
+/* ------------ BLANK LOGIC ------------ */
 
 function blankClick(r,c){
   let families = new Set();
@@ -57,16 +59,17 @@ function blankClick(r,c){
   for(let i=r-1; i>=0 && i>=r-10; i--){
     let v = tableData[i][c].textContent;
     if(v !== "**"){
-      families.add(v[0]); // tens digit family
+      families.add(v[0]);
     }
   }
 
-  drawLines(c, families);
+  console.log("Families found:", [...families]);
+  drawMarks(c, families);
 }
 
-/* ---------------- DRAW LINES ---------------- */
+/* ------------ MARK ------------ */
 
-function drawLines(col, families){
+function drawMarks(col, families){
   families.forEach(fam=>{
     for(let r=0; r<tableData.length; r++){
       let td = tableData[r][col];
@@ -78,7 +81,7 @@ function drawLines(col, families){
   });
 }
 
-/* ---------------- CLEAR ---------------- */
+/* ------------ CLEAR ------------ */
 
 function clearMarks(){
   document.querySelectorAll(".mark").forEach(td=>{
