@@ -2,127 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Photo-Logic Analyzer</title>
+<title>🔥 iSmart Analyzer – AI Photo Logic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  margin:0;
-  padding:10px;
-}
-h1{
-  text-align:center;
-  margin:10px 0;
-}
-textarea{
-  width:100%;
-  height:140px;
-  font-family:monospace;
-  font-size:14px;
-}
-button{
-  padding:10px 14px;
-  margin:5px 3px;
-  font-size:14px;
-  cursor:pointer;
-}
-.table-wrap{
-  position:relative;
-  overflow:auto;
-  background:#fff;
-}
-table{
-  border-collapse:collapse;
-  width:100%;
-}
-th,td{
-  border:1px solid #999;
-  padding:6px;
-  text-align:center;
-  min-width:46px;
-  cursor:pointer;
-  user-select:none;
-}
-th{
-  background:#111;
-  color:#fff;
-}
-td.blank{
-  background:#eee;
-  color:#999;
-}
-td.mark{
-  background:#ffe6e6;
-  box-shadow: inset 0 0 0 2px red;
-}
-td.focus{
-  box-shadow: inset 0 0 0 3px blue;
-}
-.vertical-line{
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:4px;
-  background:blue;
-  pointer-events:auto;
-  cursor:pointer;
-}
-.controls{
-  margin:10px 0;
-  text-align:center;
-}
-
-/* POPUP */
-#popup{
-  position:fixed;
-  inset:5%;
-  background:#fff;
-  border:4px solid #000;
-  z-index:9999;
-  display:none;
-  overflow:auto;
-}
-#popupHeader{
-  background:#000;
-  color:#fff;
-  padding:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-#popupHeader button{
-  background:red;
-  color:#fff;
-  border:none;
-  padding:6px 10px;
-  font-size:16px;
-}
-#popupContent{
-  padding:10px;
-}
+body{font-family:Arial;background:#f4f4f4;margin:0;padding:10px}
+h1{text-align:center}
+textarea{width:100%;height:140px;font-family:monospace}
+button{padding:10px;margin:4px;cursor:pointer}
+.table-wrap{position:relative;overflow:auto;background:#fff}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #999;padding:6px;text-align:center;min-width:46px;cursor:pointer}
+th{background:#111;color:#fff}
+td.blank{background:#eee;color:#999}
+td.mark{background:#ffe6e6;box-shadow:inset 0 0 0 2px red}
+td.focus{box-shadow:inset 0 0 0 3px blue}
+.vertical-line{position:absolute;top:0;bottom:0;width:4px;background:blue;cursor:pointer}
+#popup{position:fixed;inset:5%;background:#fff;border:4px solid #000;display:none;z-index:9999;overflow:auto}
+#popupHeader{background:#000;color:#fff;padding:10px;display:flex;justify-content:space-between}
+#popupHeader button{background:red;color:#fff;border:none;padding:6px 10px}
+.aiBox{background:#f0f8ff;border:2px dashed blue;margin:10px;padding:10px}
 </style>
 </head>
 
 <body>
 
-<h1>🔥 iSmart Analyzer (PHOTO LOGIC)</h1>
+<h1>🔥 iSmart Analyzer (AI + Multi-Day)</h1>
 
-<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
+<textarea id="dataInput" placeholder="Excel se copy-paste data"></textarea>
 
-<div class="controls">
-  <button onclick="generate()">Generate</button>
-  <button onclick="addBlankRow()">Add Blank Row</button>
-  <button onclick="saveData()">Save</button>
-  <button onclick="clearAll()">Clear</button>
-</div>
+<button onclick="generate()">Generate</button>
+<button onclick="addBlankRow()">Add Blank Row</button>
+<button onclick="saveData()">Save</button>
 
 <div class="table-wrap" id="wrap">
   <table id="chart"></table>
 </div>
 
-<!-- POPUP -->
 <div id="popup">
   <div id="popupHeader">
     <div id="popupTitle"></div>
@@ -134,7 +50,6 @@ td.focus{
 <script>
 const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
 let grid=[];
-let matches=[];
 
 function generate(){
   const raw=document.getElementById("dataInput").value.trim().split("\n");
@@ -151,7 +66,6 @@ function drawTable(){
   const t=document.getElementById("chart");
   t.innerHTML="";
   document.querySelectorAll(".vertical-line").forEach(l=>l.remove());
-  matches=[];
 
   let tr=document.createElement("tr");
   days.forEach(d=>{
@@ -182,92 +96,92 @@ function addBlankRow(){
 function cellClick(r,c){
   clearMarks();
   if(grid[r][c]==="**"){
-    blankBoxSearch(r,c);
+    blankSearch(r,c);
   }else{
-    showPopupSingle(r,c);
+    singlePopup(r,c);
   }
 }
 
-function blankBoxSearch(row,col){
-  const basePattern=getPattern(row,col);
-  if(basePattern.length<6){
-    alert("Pattern ke liye data kam hai");
-    return;
-  }
+/* ---------------- MULTI DAY + AI ---------------- */
 
-  for(let r=0;r<=grid.length-basePattern.length;r++){
-    let ok=true;
-    for(let k=0;k<basePattern.length;k++){
-      if(grid[r+k][col]==="**"){ ok=false; break; }
-      if(!patternMatch(basePattern[k],grid[r+k][col])){ ok=false; break; }
-    }
-    if(ok){
-      matches.push({start:r,col,pattern:basePattern});
-      drawVerticalLine(col,r,basePattern.length);
-      markCells(r,col,basePattern.length);
-    }
-  }
+function blankSearch(row,col){
+  let cols=[col];
+  if(col>0) cols.push(col-1);
+  if(col<5) cols.push(col+1);
+
+  let freq={};
+  cols.forEach(c=>{
+    let pat=getPattern(row,c);
+    pat.forEach(j=>{
+      freq[j]=(freq[j]||0)+1;
+    });
+    searchPattern(pat,c);
+  });
+
+  showAISuggestion(freq,row,col);
 }
 
 function getPattern(r,c){
   let p=[];
   for(let i=r-1;i>=0 && p.length<10;i--){
-    if(grid[i][c]!=="**"){
-      p.unshift(grid[i][c]);
-    }
+    if(grid[i][c]!=="**") p.unshift(grid[i][c]);
   }
   for(let i=r+1;i<grid.length && p.length<10;i++){
-    if(grid[i][c]!=="**"){
-      p.push(grid[i][c]);
-    }
+    if(grid[i][c]!=="**") p.push(grid[i][c]);
   }
   return p;
 }
 
-function patternMatch(a,b){
-  const da=Math.abs(a[0]-a[1]);
-  const db=Math.abs(b[0]-b[1]);
-  return da===db || (a[0]===b[0] || a[1]===b[1]);
-}
-
-function markCells(start,col,len){
-  const t=document.getElementById("chart");
-  for(let i=0;i<len;i++){
-    const cell=t.rows[start+1+i].cells[col];
-    cell.classList.add("mark");
+function searchPattern(pat,col){
+  for(let r=0;r<=grid.length-pat.length;r++){
+    let ok=true;
+    for(let k=0;k<pat.length;k++){
+      if(grid[r+k][col]==="**") {ok=false;break;}
+      if(!familyMatch(pat[k],grid[r+k][col])){ok=false;break;}
+    }
+    if(ok){
+      markLine(r,col,pat.length);
+    }
   }
 }
 
-function drawVerticalLine(col,start,len){
+function familyMatch(a,b){
+  return a[0]===b[0] || a[1]===b[1] ||
+         Math.abs(a[0]-a[1])===Math.abs(b[0]-b[1]);
+}
+
+function markLine(start,col,len){
   const wrap=document.getElementById("wrap");
   const t=document.getElementById("chart");
-  const cellTop=t.rows[start+1].cells[col].getBoundingClientRect();
-  const cellBottom=t.rows[start+len].cells[col].getBoundingClientRect();
+  for(let i=0;i<len;i++){
+    t.rows[start+1+i].cells[col].classList.add("mark");
+  }
+  const top=t.rows[start+1].cells[col].getBoundingClientRect();
+  const bottom=t.rows[start+len].cells[col].getBoundingClientRect();
   const base=wrap.getBoundingClientRect();
-
   let line=document.createElement("div");
   line.className="vertical-line";
-  line.style.left=(cellTop.left-base.left+cellTop.width/2-2)+"px";
-  line.style.top=(cellTop.top-base.top)+"px";
-  line.style.height=(cellBottom.bottom-cellTop.top)+"px";
-
-  line.onclick=()=>showPopupPattern(col,start,len);
+  line.style.left=(top.left-base.left+top.width/2-2)+"px";
+  line.style.top=(top.top-base.top)+"px";
+  line.style.height=(bottom.bottom-top.top)+"px";
   wrap.appendChild(line);
 }
 
-function showPopupPattern(col,start,len){
-  const t=document.getElementById("chart").cloneNode(true);
-  for(let i=0;i<len;i++){
-    t.rows[start+1+i].cells[col].classList.add("mark","focus");
-  }
-  openPopup(`Pattern | ${days[col]}`,t);
+function showAISuggestion(freq,row,col){
+  let arr=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  let box=document.createElement("div");
+  box.className="aiBox";
+  box.innerHTML="<b>🤖 AI Strong Jodi Suggestion</b><br>"+arr.map(a=>"🔹 "+a[0]).join(" ");
+  openPopup("AI + Multi-Day | "+days[col],box);
 }
 
-function showPopupSingle(r,c){
-  const t=document.getElementById("chart").cloneNode(true);
+function singlePopup(r,c){
+  let t=document.getElementById("chart").cloneNode(true);
   t.rows[r+1].cells[c].classList.add("focus");
-  openPopup(`Jodi ${grid[r][c]} | ${days[c]} | Row ${r+1}`,t);
+  openPopup("Jodi "+grid[r][c]+" | "+days[c],t);
 }
+
+/* ---------------- POPUP ---------------- */
 
 function openPopup(title,content){
   document.getElementById("popupTitle").textContent=title;
@@ -276,33 +190,20 @@ function openPopup(title,content){
   box.appendChild(content);
   document.getElementById("popup").style.display="block";
 }
-
-function closePopup(){
-  document.getElementById("popup").style.display="none";
-}
-
+function closePopup(){document.getElementById("popup").style.display="none"}
 function clearMarks(){
-  document.querySelectorAll("td").forEach(td=>{
-    td.classList.remove("mark","focus");
-  });
+  document.querySelectorAll("td").forEach(td=>td.classList.remove("mark","focus"));
   document.querySelectorAll(".vertical-line").forEach(l=>l.remove());
 }
 
 function saveData(){
-  localStorage.setItem("ismartPhotoData",document.getElementById("dataInput").value);
-  alert("Data saved");
-}
-function clearAll(){
-  localStorage.removeItem("ismartPhotoData");
-  location.reload();
+  localStorage.setItem("ismartAI",document.getElementById("dataInput").value);
+  alert("Saved");
 }
 
 window.onload=()=>{
-  const d=localStorage.getItem("ismartPhotoData");
-  if(d){
-    document.getElementById("dataInput").value=d;
-    generate();
-  }
+  let d=localStorage.getItem("ismartAI");
+  if(d){document.getElementById("dataInput").value=d;generate();}
 }
 </script>
 
