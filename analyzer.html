@@ -2,42 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Analyzer – Photo Style FINAL</title>
+<title>🔥 iSmart Analyzer – REAL LINE LOGIC</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial;
-  background:#f2f2f2;
-  margin:0;
-}
-h1{
-  text-align:center;
-  background:#111;
-  color:#fff;
-  margin:0;
-  padding:10px;
-}
-textarea{
-  width:100%;
-  height:130px;
-  font-family:monospace;
-  font-size:14px;
-}
-button{
-  padding:8px 14px;
-  margin:4px;
-  font-size:14px;
-}
-#wrap{
-  position:relative;
-  overflow:auto;
-}
-table{
-  border-collapse:collapse;
-  width:100%;
-  background:#fff;
-}
+body{font-family:Arial;background:#eee;margin:0}
+h1{background:#111;color:#fff;text-align:center;margin:0;padding:8px}
+
+textarea{width:100%;height:120px;font-family:monospace}
+button,select{padding:6px;margin:4px}
+
+table{border-collapse:collapse;width:100%;background:#fff}
 th,td{
   border:1px solid #999;
   padding:6px;
@@ -46,86 +21,68 @@ th,td{
   cursor:pointer;
   user-select:none;
 }
-th{
-  background:#222;
-  color:#fff;
-}
-td.blank{
-  background:#eee;
-}
-td.mark{
-  outline:3px solid red;
-}
-canvas{
-  position:absolute;
-  left:0;
-  top:0;
-  pointer-events:none;
-}
+th{background:#222;color:#fff}
+
+td.blank{background:#f0f0f0}
+td.family{background:#ffe0e0}
+td.main{outline:3px solid red}
+
 #popup{
-  position:fixed;
-  inset:5%;
+  position:fixed;inset:5%;
   background:#fff;
   border:4px solid #000;
   display:none;
   z-index:9999;
 }
-#popupHeader{
-  background:#000;
-  color:#fff;
-  padding:8px;
+#ph{
+  background:#000;color:#fff;padding:6px
 }
-#popupClose{
-  float:right;
-  background:red;
-  color:#fff;
-  padding:4px 8px;
-  cursor:pointer;
-}
+#close{float:right;background:red;color:#fff;padding:4px 8px}
+
 </style>
 </head>
 
 <body>
 
-<h1>🔥 iSmart Analyzer – Photo Style FINAL</h1>
+<h1>🔥 iSmart Analyzer – REAL PHOTO LINE</h1>
 
-<textarea id="input" placeholder="Excel se copy paste karo"></textarea>
+<textarea id="input" placeholder="Excel se copy paste"></textarea><br>
 <button onclick="generate()">Generate</button>
 <button onclick="save()">Save</button>
-<button onclick="addRow()">Add Row</button>
 
-<div id="wrap">
+<br>
+<select id="daySel"></select>
+<input id="rowSel" type="number" placeholder="Row">
+<button onclick="manualSearch()">Search</button>
+
 <table id="chart"></table>
-<canvas id="cv"></canvas>
-</div>
 
 <div id="popup">
-  <div id="popupHeader">
-    <span id="popupTitle"></span>
-    <span id="popupClose" onclick="closePopup()">X</span>
+  <div id="ph">
+    <span id="pt"></span>
+    <span id="close" onclick="popup.style.display='none'">X</span>
   </div>
-  <div id="popupBody"></div>
+  <div id="pb"></div>
 </div>
 
 <script>
 const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
 let grid=[];
-let rows=0;
 
 function generate(){
-  let raw=input.value.trim().split("\n");
   grid=[];
+  let raw=input.value.trim().split("\n");
   raw.forEach(r=>{
-    let row=r.trim().split(/\s+/);
+    let row=r.split(/\s+/);
     while(row.length<6) row.push("**");
     grid.push(row);
   });
-  rows=grid.length;
-  drawTable();
-  resizeCanvas();
+  for(let i=0;i<10;i++) grid.push(["**","**","**","**","**","**"]);
+  draw();
+  fillDay();
 }
 
-function drawTable(){
+function draw(){
   chart.innerHTML="";
   let tr=document.createElement("tr");
   days.forEach(d=>{
@@ -141,16 +98,22 @@ function drawTable(){
       let td=document.createElement("td");
       td.textContent=v;
       if(v==="**") td.classList.add("blank");
+
       td.onclick=()=>cellClick(i,j);
+      td.ondblclick=()=>editCell(td,i,j);
+
       tr.appendChild(td);
     });
     chart.appendChild(tr);
   });
 }
 
-function resizeCanvas(){
-  cv.width=chart.offsetWidth;
-  cv.height=chart.offsetHeight;
+function editCell(td,r,c){
+  let v=prompt("Edit jodi",grid[r][c]);
+  if(v!==null){
+    grid[r][c]=v;
+    td.textContent=v;
+  }
 }
 
 function family(j){
@@ -160,101 +123,91 @@ function family(j){
 }
 
 function cellClick(r,c){
-  clearCanvas();
+  clearMarks();
   if(grid[r][c]==="**"){
     blankSearch(r,c);
   }else{
-    jodiPopup(r,c);
+    showPopup(r,c);
   }
 }
 
 function blankSearch(r,c){
-  let pat=[];
-  for(let i=r-1;i>=0 && pat.length<10;i--){
-    if(grid[i][c]!=="**") pat.push(grid[i][c]);
+  let base=[];
+  for(let i=r-1;i>=0 && base.length<10;i--){
+    if(grid[i][c]!=="**") base.push(grid[i][c]);
   }
-  if(pat.length<4){
-    alert("Pattern ke liye data kam hai");
-    return;
-  }
+  if(base.length<3){alert("Data kam");return;}
 
-  for(let rr=0;rr<rows-pat.length;rr++){
-    let ok=true;
-    for(let k=0;k<pat.length;k++){
-      let f1=family(pat[k]);
-      let f2=family(grid[rr+k][c]);
-      if(!f1.some(x=>f2.includes(x))){ ok=false;break;}
-    }
-    if(ok){
-      drawLine(rr,c,rr+pat.length-1,c,true);
+  for(let i=0;i<grid.length;i++){
+    if(grid[i][c]==="**") continue;
+    if(familyMatch(grid[i][c],base)){
+      markLine(i,c);
     }
   }
 }
 
-function drawLine(r1,c1,r2,c2,clickable){
-  let ctx=cv.getContext("2d");
-  let p1=center(r1,c1);
-  let p2=center(r2,c2);
-  ctx.strokeStyle="blue";
-  ctx.lineWidth=3;
-  ctx.beginPath();
-  ctx.moveTo(p1.x,p1.y);
-  ctx.lineTo(p2.x,p2.y);
-  ctx.stroke();
+function familyMatch(v,arr){
+  let f=family(v);
+  return arr.some(x=>family(x).some(n=>f.includes(n)));
 }
 
-function center(r,c){
+function markLine(r,c){
   let td=chart.rows[r+1].cells[c];
-  let t=chart.getBoundingClientRect();
-  let rct=td.getBoundingClientRect();
-  return{
-    x:rct.left-t.left+rct.width/2,
-    y:rct.top-t.top+rct.height/2
-  };
+  td.classList.add("family");
+  td.onclick=()=>showPopup(r,c);
 }
 
-function clearCanvas(){
-  cv.getContext("2d").clearRect(0,0,cv.width,cv.height);
-}
-
-function jodiPopup(r,c){
+function showPopup(r,c){
   popup.style.display="block";
-  popupTitle.textContent=`Jodi ${grid[r][c]} | ${days[c]} | Row ${r+1}`;
-  popupBody.innerHTML="";
-  let tbl=document.createElement("table");
-  tbl.style.width="100%";
-
-  for(let i=Math.max(0,r-4);i<=Math.min(rows-1,r+5);i++){
+  pt.textContent=`Jodi ${grid[r][c]} | ${days[c]} | Row ${r+1}`;
+  pb.innerHTML="";
+  let t=document.createElement("table");
+  for(let i=Math.max(0,r-5);i<=r+5;i++){
+    if(!grid[i]) continue;
     let tr=document.createElement("tr");
     for(let j=0;j<6;j++){
       let td=document.createElement("td");
       td.textContent=grid[i][j];
-      if(i===r && j===c) td.classList.add("mark");
+      if(i===r && j===c) td.classList.add("main");
       if(family(grid[i][j]).some(x=>family(grid[r][c]).includes(x))){
-        td.style.background="#ffe0e0";
+        td.classList.add("family");
       }
       tr.appendChild(td);
     }
-    tbl.appendChild(tr);
+    t.appendChild(tr);
   }
-  popupBody.appendChild(tbl);
+  pb.appendChild(t);
 }
 
-function closePopup(){
-  popup.style.display="none";
+function clearMarks(){
+  document.querySelectorAll("td").forEach(td=>{
+    td.classList.remove("family","main");
+  });
+}
+
+function fillDay(){
+  daySel.innerHTML="";
+  days.forEach((d,i)=>{
+    let o=document.createElement("option");
+    o.value=i;o.textContent=d;
+    daySel.appendChild(o);
+  });
+}
+
+function manualSearch(){
+  let r=parseInt(rowSel.value)-1;
+  let c=parseInt(daySel.value);
+  if(grid[r] && grid[r][c]) showPopup(r,c);
 }
 
 function save(){
   localStorage.setItem("ismart",input.value);
   alert("Saved");
 }
-function addRow(){
-  input.value+="\n** ** ** ** ** **";
-}
 
 window.onload=()=>{
   let d=localStorage.getItem("ismart");
-  if(d){ input.value=d; generate(); }
+  if(d){input.value=d;generate();}
 }
 </script>
 
