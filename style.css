@@ -1,10 +1,10 @@
 body{
-  font-family: Arial, sans-serif;
+  font-family:Arial, sans-serif;
   background:#f2f2f2;
   padding:10px;
 }
 
-h2{ text-align:center; }
+h2{text-align:center}
 
 textarea{
   width:100%;
@@ -12,12 +12,12 @@ textarea{
   font-family:monospace;
 }
 
-.btns{ margin:10px 0; text-align:center; }
-button{ padding:8px 12px; margin:4px; }
+.btns{text-align:center;margin:10px 0}
+button{padding:8px 12px;margin:4px}
 
 .table-wrap{
-  overflow:auto;
   background:#fff;
+  overflow:auto;
 }
 
 table{
@@ -28,39 +28,63 @@ table{
 th,td{
   border:1px solid #999;
   padding:6px;
-  text-align:center;
   min-width:42px;
+  text-align:center;
   cursor:pointer;
   position:relative;
   user-select:none;
 }
 
-th{
-  background:#222;
-  color:#fff;
-}
+th{background:#222;color:#fff}
 
-/* 🔴 under-mark jodi (photo style) */
+.blank{background:#eee;color:#999}
+
+/* 🔴 under-mark */
 .mark{
   outline:3px solid red;
   background:#ffecec;
 }
 
-/* 🔵 vertical line illusion */
+/* 🔵 line illusion */
 .line::after{
   content:"";
   position:absolute;
-  top:-100%;
+  top:-120%;
   left:50%;
   width:4px;
-  height:200%;
+  height:240%;
   background:#1e6bff;
   transform:translateX(-50%);
-  z-index:1;
 }
 
-/* blank cell */
-.blank{
-  background:#eee;
-  color:#999;
+/* 🔳 POPUP */
+#popup{
+  position:fixed;
+  inset:5%;
+  background:#fff;
+  border:4px solid #000;
+  display:none;
+  z-index:9999;
+  overflow:auto;
+}
+
+#popupHeader{
+  background:#000;
+  color:#fff;
+  padding:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+#popupHeader button{
+  background:red;
+  color:#fff;
+  border:none;
+  font-size:16px;
+  padding:4px 8px;
+}
+
+#popupBody{
+  padding:10px;
 }
