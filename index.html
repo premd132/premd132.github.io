@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🔥 iSmart Analyzer – Phase 2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>🔥 iSmart Analyzer (Photo Line + Popup)</h2>
+
+<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
+
+<div class="btns">
+  <button onclick="generate()">Generate</button>
+  <button onclick="addBlankRow()">Add Blank Row</button>
+</div>
+
+<div class="table-wrap">
+  <table id="chart"></table>
+</div>
+
+<!-- 🔳 POPUP -->
+<div id="popup">
+  <div id="popupHeader">
+    <span id="popupTitle">Matched Pattern</span>
+    <button onclick="closePopup()">✖</button>
+  </div>
+  <div id="popupBody"></div>
+</div>
+
+<script src="engine.js"></script>
+</body>
+</html>
