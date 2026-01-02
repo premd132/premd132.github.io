@@ -1,28 +1,66 @@
-body{font-family:Arial;background:#f2f2f2}
-textarea{width:100%;height:130px;font-family:monospace}
-button{padding:8px 12px;margin:5px}
-table{border-collapse:collapse;width:100%;background:#fff}
-th,td{border:1px solid #999;text-align:center;padding:6px;cursor:pointer}
-th{background:#222;color:#fff}
-td.blank{background:#eee}
-td.mark{outline:3px solid red;background:#ffeaea}
-
-#tableWrap{position:relative}
-canvas{position:absolute;top:0;left:0;pointer-events:none}
-
-#popup{
-  position:fixed;
-  inset:5%;
-  background:#fff;
-  border:4px solid #000;
-  display:none;
-  z-index:9999;
-  overflow:auto;
-}
-#popupHeader{
-  background:#000;
-  color:#fff;
+body{
+  font-family: Arial, sans-serif;
+  background:#f2f2f2;
   padding:10px;
-  display:flex;
-  justify-content:space-between;
+}
+
+h2{ text-align:center; }
+
+textarea{
+  width:100%;
+  height:140px;
+  font-family:monospace;
+}
+
+.btns{ margin:10px 0; text-align:center; }
+button{ padding:8px 12px; margin:4px; }
+
+.table-wrap{
+  overflow:auto;
+  background:#fff;
+}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+}
+
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  min-width:42px;
+  cursor:pointer;
+  position:relative;
+  user-select:none;
+}
+
+th{
+  background:#222;
+  color:#fff;
+}
+
+/* 🔴 under-mark jodi (photo style) */
+.mark{
+  outline:3px solid red;
+  background:#ffecec;
+}
+
+/* 🔵 vertical line illusion */
+.line::after{
+  content:"";
+  position:absolute;
+  top:-100%;
+  left:50%;
+  width:4px;
+  height:200%;
+  background:#1e6bff;
+  transform:translateX(-50%);
+  z-index:1;
+}
+
+/* blank cell */
+.blank{
+  background:#eee;
+  color:#999;
 }
