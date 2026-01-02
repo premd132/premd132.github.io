@@ -1,89 +1,73 @@
 body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
+  font-family:Arial;
+  background:#f2f2f2;
   margin:0;
   padding:10px;
 }
-
-h2{
-  text-align:center;
-}
+h2{text-align:center}
 
 textarea{
   width:100%;
-  height:120px;
+  height:140px;
   font-family:monospace;
+  font-size:14px;
 }
 
-button{
+.btns button{
   padding:8px 12px;
   margin:4px;
   font-size:14px;
 }
 
+.tableWrap{
+  position:relative;
+  background:#fff;
+  margin-top:10px;
+}
+
 table{
   border-collapse:collapse;
   width:100%;
-  background:#fff;
 }
-
 th,td{
-  border:1px solid #aaa;
+  border:1px solid #999;
   padding:6px;
   text-align:center;
-  font-size:15px;
-  cursor:pointer;
-  position:relative;
-  user-select:none; /* TEXT SELECT FIX */
+  min-width:46px;
 }
+th{background:#111;color:#fff}
 
-th{
-  background:#222;
-  color:#fff;
-}
-
-/* blank box */
 td.blank{
-  background:#eee;
+  background:#e0e0e0;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-/* PHOTO STYLE UNDER MARK */
-td.mark-underline::after{
-  content:"";
+td.mark{
+  background:#ffdada;           /* PHOTO STYLE UNDER-MARK */
+  box-shadow:inset 0 0 0 2px red;
+}
+
+#lineLayer{
   position:absolute;
-  bottom:3px;
-  left:10%;
-  width:80%;
-  height:4px;
-  background:#1e5cff;
-  border-radius:3px;
+  top:0;left:0;
+  pointer-events:none;
 }
 
-/* PHOTO STYLE CIRCLE */
-td.mark-circle{
-  outline:3px solid #1e5cff;
-  outline-offset:-3px;
-  border-radius:50%;
+#aiBox{
+  margin-top:10px;
+  padding:8px;
+  border:2px dashed blue;
+  background:#f5fbff;
+  font-weight:bold;
 }
 
-/* popup */
-#popup{
-  position:fixed;
-  inset:5%;
-  background:#fff;
-  border:4px solid #000;
-  display:none;
-  z-index:9999;
+#log{
+  margin-top:10px;
+  background:#000;
+  color:#0f0;
+  font-size:12px;
+  padding:8px;
+  height:160px;
   overflow:auto;
-}
-
-#popup button{
-  position:fixed;
-  top:6%;
-  right:6%;
-  background:red;
-  color:#fff;
-  font-size:18px;
-  border:none;
-  padding:6px 10px;
 }
