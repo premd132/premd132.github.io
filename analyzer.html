@@ -1,94 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Analyzer – Full Photo Logic</title>
+<title>🔥 iSmart Analyzer – Photo Style FINAL</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f4f4f4;margin:0}
-h2{text-align:center;margin:10px}
-textarea{width:100%;height:140px;font-family:monospace}
-button{padding:8px 14px;margin:4px;cursor:pointer}
-table{border-collapse:collapse;width:100%;background:#fff}
+body{
+  font-family: Arial;
+  background:#f2f2f2;
+  margin:0;
+}
+h1{
+  text-align:center;
+  background:#111;
+  color:#fff;
+  margin:0;
+  padding:10px;
+}
+textarea{
+  width:100%;
+  height:130px;
+  font-family:monospace;
+  font-size:14px;
+}
+button{
+  padding:8px 14px;
+  margin:4px;
+  font-size:14px;
+}
+#wrap{
+  position:relative;
+  overflow:auto;
+}
+table{
+  border-collapse:collapse;
+  width:100%;
+  background:#fff;
+}
 th,td{
   border:1px solid #999;
   padding:6px;
   text-align:center;
-  min-width:42px;
+  min-width:44px;
   cursor:pointer;
-  position:relative;
+  user-select:none;
 }
-th{background:#222;color:#fff}
-td.blank{background:#eee}
+th{
+  background:#222;
+  color:#fff;
+}
+td.blank{
+  background:#eee;
+}
 td.mark{
-  outline:3px solid blue;
-  border-radius:50%;
+  outline:3px solid red;
 }
-#canvas{
+canvas{
   position:absolute;
-  top:0;left:0;
+  left:0;
+  top:0;
   pointer-events:none;
 }
 #popup{
-  position:fixed;inset:0;
+  position:fixed;
+  inset:5%;
   background:#fff;
-  display:none;z-index:9999;
-  overflow:auto;
+  border:4px solid #000;
+  display:none;
+  z-index:9999;
 }
-#popup header{
-  background:#000;color:#fff;
+#popupHeader{
+  background:#000;
+  color:#fff;
   padding:8px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
-#aiBox{
-  padding:8px;
-  background:#f0f0f0;
-  border-bottom:2px solid #000;
+#popupClose{
+  float:right;
+  background:red;
+  color:#fff;
+  padding:4px 8px;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Analyzer (Zig-Zag + AI + Export)</h2>
+<h1>🔥 iSmart Analyzer – Photo Style FINAL</h1>
 
-<textarea id="dataInput" placeholder="Excel se copy-paste data"></textarea>
-<br>
+<textarea id="input" placeholder="Excel se copy paste karo"></textarea>
 <button onclick="generate()">Generate</button>
-<button onclick="saveData()">Save</button>
+<button onclick="save()">Save</button>
+<button onclick="addRow()">Add Row</button>
 
-<div style="position:relative">
-  <table id="chart"></table>
-  <canvas id="canvas"></canvas>
+<div id="wrap">
+<table id="chart"></table>
+<canvas id="cv"></canvas>
 </div>
 
 <div id="popup">
-  <header>
+  <div id="popupHeader">
     <span id="popupTitle"></span>
-    <div>
-      <button onclick="exportImage()">📸 Export</button>
-      <button onclick="closePopup()">❌</button>
-    </div>
-  </header>
-  <div id="aiBox"></div>
+    <span id="popupClose" onclick="closePopup()">X</span>
+  </div>
   <div id="popupBody"></div>
 </div>
 
 <script>
-const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
-let grid=[],rows=0;
+const days=["Mon","Tue","Wed","Thu","Fri","Sat"];
+let grid=[];
+let rows=0;
 
 function generate(){
+  let raw=input.value.trim().split("\n");
   grid=[];
-  clearAllLines();
-  let raw=dataInput.value.trim().split("\n");
   raw.forEach(r=>{
-    let a=r.trim().split(/\s+/);
-    while(a.length<6) a.push("**");
-    grid.push(a);
+    let row=r.trim().split(/\s+/);
+    while(row.length<6) row.push("**");
+    grid.push(row);
   });
   rows=grid.length;
   drawTable();
@@ -96,10 +126,14 @@ function generate(){
 }
 
 function drawTable(){
-  let t=chart; t.innerHTML="";
+  chart.innerHTML="";
   let tr=document.createElement("tr");
-  DAYS.forEach(d=>{let th=document.createElement("th");th.textContent=d;tr.appendChild(th)});
-  t.appendChild(tr);
+  days.forEach(d=>{
+    let th=document.createElement("th");
+    th.textContent=d;
+    tr.appendChild(th);
+  });
+  chart.appendChild(tr);
 
   grid.forEach((r,i)=>{
     let tr=document.createElement("tr");
@@ -110,136 +144,119 @@ function drawTable(){
       td.onclick=()=>cellClick(i,j);
       tr.appendChild(td);
     });
-    t.appendChild(tr);
+    chart.appendChild(tr);
   });
 }
 
 function resizeCanvas(){
-  canvas.width=chart.offsetWidth;
-  canvas.height=chart.offsetHeight;
+  cv.width=chart.offsetWidth;
+  cv.height=chart.offsetHeight;
 }
 
 function family(j){
+  if(j==="**") return [];
   let a=parseInt(j[0]),b=parseInt(j[1]);
-  return [
-    `${a}${b}`,
-    `${(a+9)%10}${b}`,
-    `${a}${(b+9)%10}`
-  ];
+  return [a,b,(a+b)%10,(a+9)%10,(b+9)%10];
 }
 
 function cellClick(r,c){
-  if(grid[r][c]==="**") blankSearch(r,c);
-  else openPopup(r,c);
+  clearCanvas();
+  if(grid[r][c]==="**"){
+    blankSearch(r,c);
+  }else{
+    jodiPopup(r,c);
+  }
 }
 
-/* 🔍 BLANK BOX SEARCH */
 function blankSearch(r,c){
-  clearAllLines();
-  let base=[];
-  for(let i=r-1;i>=0 && base.length<10;i--){
-    if(grid[i][c]!=="**") base.push(grid[i][c]);
+  let pat=[];
+  for(let i=r-1;i>=0 && pat.length<10;i--){
+    if(grid[i][c]!=="**") pat.push(grid[i][c]);
   }
-  if(base.length<3){alert("Pattern kam hai");return;}
+  if(pat.length<4){
+    alert("Pattern ke liye data kam hai");
+    return;
+  }
 
-  let found=[];
-  for(let i=0;i<rows;i++){
+  for(let rr=0;rr<rows-pat.length;rr++){
     let ok=true;
-    for(let k=0;k<base.length;k++){
-      if(!grid[i+k]||grid[i+k][c]==="**"){ok=false;break;}
-      let f1=family(base[k]), f2=family(grid[i+k][c]);
-      if(!f1.some(x=>f2.includes(x))){ok=false;break;}
+    for(let k=0;k<pat.length;k++){
+      let f1=family(pat[k]);
+      let f2=family(grid[rr+k][c]);
+      if(!f1.some(x=>f2.includes(x))){ ok=false;break;}
     }
-    if(ok) found.push(i);
+    if(ok){
+      drawLine(rr,c,rr+pat.length-1,c,true);
+    }
   }
-
-  found.forEach(start=>{
-    mark(start,c,base.length);
-    drawZigZag(start,c,base.length);
-  });
-
-  aiSuggest(base);
 }
 
-/* 🔵 MARK + LINE */
-function mark(r,c,len){
-  for(let i=0;i<len;i++)
-    chart.rows[r+1+i].cells[c].classList.add("mark");
-}
-
-function drawZigZag(r,c,len){
-  let ctx=canvas.getContext("2d");
-  ctx.strokeStyle="blue"; ctx.lineWidth=4;
+function drawLine(r1,c1,r2,c2,clickable){
+  let ctx=cv.getContext("2d");
+  let p1=center(r1,c1);
+  let p2=center(r2,c2);
+  ctx.strokeStyle="blue";
+  ctx.lineWidth=3;
   ctx.beginPath();
-  let p=center(r,c);
-  ctx.moveTo(p.x,p.y);
-  for(let i=1;i<len;i++){
-    let n=center(r+i,c);
-    ctx.lineTo(n.x,n.y);
-  }
+  ctx.moveTo(p1.x,p1.y);
+  ctx.lineTo(p2.x,p2.y);
   ctx.stroke();
 }
 
-/* 🤖 AI SUGGESTION */
-function aiSuggest(base){
-  let score={};
-  base.forEach(j=>{
-    family(j).forEach(f=>{
-      score[f]=(score[f]||0)+1;
-    });
-  });
-  let top=Object.entries(score)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,4)
-    .map(x=>x[0]);
-
-  aiBox.innerHTML="<b>🤖 Strong Jodi Suggestion:</b> "+top.join(", ");
-}
-
-/* 📸 POPUP */
-function openPopup(r,c){
-  popupTitle.textContent=`Jodi ${grid[r][c]} | ${DAYS[c]} | Row ${r+1}`;
-  popupBody.innerHTML="";
-  popupBody.appendChild(chart.cloneNode(true));
-  popup.style.display="block";
-}
-
-function exportImage(){
-  let temp=document.createElement("canvas");
-  temp.width=popupBody.scrollWidth;
-  temp.height=popupBody.scrollHeight;
-  let ctx=temp.getContext("2d");
-  ctx.fillStyle="#fff";ctx.fillRect(0,0,temp.width,temp.height);
-  html2canvas(popupBody).then(c=>{
-    let a=document.createElement("a");
-    a.href=c.toDataURL("image/png");
-    a.download="ismart_pattern.png";
-    a.click();
-  });
-}
-
-function closePopup(){popup.style.display="none";}
-function clearAllLines(){
-  document.querySelectorAll(".mark").forEach(e=>e.classList.remove("mark"));
-  canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
-}
 function center(r,c){
-  let cell=chart.rows[r+1].cells[c].getBoundingClientRect();
-  let base=chart.getBoundingClientRect();
-  return{ x:cell.left-base.left+cell.width/2,
-          y:cell.top-base.top+cell.height/2 };
+  let td=chart.rows[r+1].cells[c];
+  let t=chart.getBoundingClientRect();
+  let rct=td.getBoundingClientRect();
+  return{
+    x:rct.left-t.left+rct.width/2,
+    y:rct.top-t.top+rct.height/2
+  };
 }
-function saveData(){
-  localStorage.setItem("ismartData",dataInput.value);
+
+function clearCanvas(){
+  cv.getContext("2d").clearRect(0,0,cv.width,cv.height);
+}
+
+function jodiPopup(r,c){
+  popup.style.display="block";
+  popupTitle.textContent=`Jodi ${grid[r][c]} | ${days[c]} | Row ${r+1}`;
+  popupBody.innerHTML="";
+  let tbl=document.createElement("table");
+  tbl.style.width="100%";
+
+  for(let i=Math.max(0,r-4);i<=Math.min(rows-1,r+5);i++){
+    let tr=document.createElement("tr");
+    for(let j=0;j<6;j++){
+      let td=document.createElement("td");
+      td.textContent=grid[i][j];
+      if(i===r && j===c) td.classList.add("mark");
+      if(family(grid[i][j]).some(x=>family(grid[r][c]).includes(x))){
+        td.style.background="#ffe0e0";
+      }
+      tr.appendChild(td);
+    }
+    tbl.appendChild(tr);
+  }
+  popupBody.appendChild(tbl);
+}
+
+function closePopup(){
+  popup.style.display="none";
+}
+
+function save(){
+  localStorage.setItem("ismart",input.value);
   alert("Saved");
 }
-window.onload=()=>{
-  let d=localStorage.getItem("ismartData");
-  if(d){dataInput.value=d;generate();}
-};
-</script>
+function addRow(){
+  input.value+="\n** ** ** ** ** **";
+}
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+window.onload=()=>{
+  let d=localStorage.getItem("ismart");
+  if(d){ input.value=d; generate(); }
+}
+</script>
 
 </body>
 </html>
