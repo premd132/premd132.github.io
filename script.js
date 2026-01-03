@@ -1,29 +1,19 @@
-let headers = ["A","B","C","D"];
-let grid = [];
+let grid=[];
 
-/* ================= LOAD CSV ================= */
-document.getElementById("csv").onchange = e=>{
-  let r = new FileReader();
-  r.onload = ()=>{
-    parseCSV(r.result);
-    save();
-    render();
+/* ===== CSV LOAD ===== */
+document.getElementById("csv").onchange=e=>{
+  let r=new FileReader();
+  r.onload=()=>{
+    grid=r.result.trim().split("\n").map(l=>l.split(","));
+    save(); render();
   };
   r.readAsText(e.target.files[0]);
 };
 
-function parseCSV(txt){
-  let lines = txt.trim().split("\n");
-  grid = lines.map(l=>l.split(","));
-}
-
-/* ================= TABLE ================= */
+/* ===== TABLE ===== */
 function render(){
-  let t = document.getElementById("dataTable");
-  let html="<tr>";
-  headers.forEach(h=>html+=`<th>${h}</th>`);
-  html+="</tr>";
-
+  let t=document.getElementById("table");
+  let html="";
   grid.forEach((r,i)=>{
     html+="<tr>";
     r.forEach((v,j)=>{
@@ -41,81 +31,89 @@ function edit(r,c,v){
 
 function addRow(){
   grid.push(["","","",""]);
-  save();
-  render();
+  save(); render();
 }
 
-/* ================= SAVE ================= */
+/* ===== SAVE ===== */
 function save(){
   localStorage.setItem("jodiData",JSON.stringify(grid));
 }
-
-function load(){
+(function load(){
   let d=localStorage.getItem("jodiData");
-  if(d){
-    grid=JSON.parse(d);
-    render();
-  }
-}
-load();
+  if(d){grid=JSON.parse(d); render();}
+})();
 
-/* ================= FAMILY ================= */
-function family(j){
-  let a=j[0], b=j[1];
-  return [
-    a+b, b+a,
-    a+a, b+b,
-    (9-a)+""+(9-b)
-  ];
-}
-
-/* ================= AI ANALYZE ================= */
+/* ===== AI ANALYZE ===== */
 function analyze(){
 
-  let digitFreq={};
+  let last=null, lr=null, ll=null, lu=null;
 
-  grid.forEach(r=>{
-    r.forEach(v=>{
-      if(/^\d{2}$/.test(v)){
-        digitFreq[v[0]]=(digitFreq[v[0]]||0)+1;
-        digitFreq[v[1]]=(digitFreq[v[1]]||0)+1;
+  for(let i=grid.length-1;i>=0;i--){
+    for(let j=0;j<grid[i].length;j++){
+      if(/^\d{2}$/.test(grid[i][j])){
+        last={r:i,c:j,v:grid[i][j]};
+        break;
       }
-    });
+    }
+    if(last)break;
+  }
+
+  if(!last){
+    result.innerHTML="No jodi found";
+    return;
+  }
+
+  lu = grid[last.r-1]?.[last.c];
+  ll = grid[last.r]?.[last.c-1];
+  lr = grid[last.r]?.[last.c+1];
+
+  let digits={};
+
+  [last.v,lu,ll,lr].forEach(v=>{
+    if(/^\d{2}$/.test(v)){
+      digits[v[0]]=(digits[v[0]]||0)+1;
+      digits[v[1]]=(digits[v[1]]||0)+1;
+    }
   });
 
-  let singles = Object.entries(digitFreq)
+  let singles=Object.entries(digits)
     .sort((a,b)=>b[1]-a[1])
     .slice(0,3)
     .map(x=>x[0]);
 
-  let [x,y,z]=singles;
+  if(singles.length<3){
+    result.innerHTML="Not enough data";
+    return;
+  }
 
-  /* ===== ONLY 8 JODI ===== */
-  let jodi = [
-    x+y, y+x,
-    x+z, z+x,
-    y+z, z+y,
-    x+x, z+z
+  let [a,b,c]=singles;
+
+  let jodi=[
+    a+b,b+a,
+    a+c,c+a,
+    b+c,c+b,
+    a+a,c+c
   ];
 
-  let html = `
-  <b>🤖 AI Single Ank:</b><br>
+  result.innerHTML=`
+  <b>Last Jodi:</b> ${last.v}<br><br>
+
+  <b>Used Jodi:</b><br>
+  ${[lu,ll,lr].filter(Boolean).join(" , ")}<br><br>
+
+  <b>3 Single Ank:</b><br>
   ${singles.join(" , ")}<br><br>
 
-  <b>🎯 Only 8 Suggested Jodi:</b><br>
-  ${jodi.join(" , ")}<br><br>
-
-  <i>Logic: frequency + controlled family</i>
+  <b>🎯 8 Suggested Jodi:</b><br>
+  ${jodi.join(" , ")}
   `;
-
-  document.getElementById("result").innerHTML=html;
 }
 
-/* ================= CLEAR ================= */
+/* ===== CLEAR ===== */
 function clearAll(){
   if(!confirm("Clear all data?"))return;
   localStorage.removeItem("jodiData");
   grid=[];
   render();
-  document.getElementById("result").innerHTML="Cleared";
+  result.innerHTML="Cleared";
 }
