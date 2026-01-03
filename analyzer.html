@@ -1,279 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Pattern Analyzer – Drawing | Block | Blank Box (FINAL)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+function analyze(){
+  let freq={}, dayFreq={};
+  let last=null, prev=null;
+  let lastDay=null, prevDay=null;
 
-<style>
-body{margin:0;font-family:Arial;background:#f1d18a}
-h2{text-align:center;margin:8px}
-#top{text-align:center;padding:8px}
-button{padding:6px 10px;margin:3px;font-weight:bold}
-#wrap{display:flex;gap:10px;padding:8px}
-#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
-canvas{background:#fff}
-#right{width:28%;max-height:80vh;overflow:auto}
-.check{
- background:#fff;
- margin:6px;
- padding:6px;
- border-left:6px solid red;
- cursor:pointer;
- font-size:13px
-}
-#modal{
- display:none;
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.7);
- align-items:center;
- justify-content:center;
-}
-#modalBox{
- background:#fff;
- padding:8px;
- max-width:95vw;
- max-height:95vh;
- overflow:auto;
-}
-</style>
-</head>
+  // scan record
+  grid.forEach(row=>{
+    row.forEach((v,i)=>{
+      if(/^\d{2}$/.test(v)){
+        freq[v]=(freq[v]||0)+1;
 
-<body>
+        let d=headers[i];
+        dayFreq[d]=dayFreq[d]||{};
+        dayFreq[d][v]=(dayFreq[d][v]||0)+1;
 
-<h2>📊 Pattern Analyzer – Drawing + Block + Blank Box (FINAL)</h2>
-
-<div id="top">
-<input type="file" id="csv">
-<button onclick="setMode('draw')">✏ Drawing Mode</button>
-<button onclick="setMode('block')">🧱 Block Pattern</button>
-<button onclick="setMode('blank')">⬜ Blank Box Mode</button>
-<button onclick="resetAll()">Reset</button>
-</div>
-
-<div id="wrap">
- <div id="chartWrap"><canvas id="chart"></canvas></div>
- <div id="right"><b>Pattern Check Lines</b></div>
-</div>
-
-<div id="modal" onclick="this.style.display='none'">
- <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="popup"></canvas>
- </div>
-</div>
-
-<script>
-/* ========== GLOBAL ========== */
-let headers=[], grid=[];
-let mode="draw";
-let userPath=[], found=[];
-const BLOCK_ROWS=10;
-
-const cellW=80, cellH=30;
-const cvs=document.getElementById("chart");
-const ctx=cvs.getContext("2d");
-const pop=document.getElementById("popup");
-const pctx=pop.getContext("2d");
-
-/* ========== FAMILY LOGIC (UNCHANGED) ========== */
-function family(j){
- if(!j || j.length<2) return [];
- let a=parseInt(j[0]), b=parseInt(j[1]);
- const m=n=>(n+10)%10;
- return [
-  `${a}${b}`,`${b}${a}`,
-  `${m(a+1)}${m(b+3)}`,
-  `${m(b+3)}${m(a+1)}`,
-  `${m(a-5)}${m(b-5)}`
- ];
-}
-
-/* ========== LOAD CSV ========== */
-window.onload=()=>{
- let s=localStorage.getItem("savedCSV");
- if(s) loadCSV(s);
-};
-
-csv.onchange=e=>{
- let r=new FileReader();
- r.onload=()=>{
-  localStorage.setItem("savedCSV",r.result);
-  loadCSV(r.result);
- };
- r.readAsText(e.target.files[0]);
-};
-
-function loadCSV(txt){
- let lines=txt.trim().split("\n");
- headers=lines.shift().split(",");
- grid=lines.map(l=>l.split(","));
- drawAll();
-}
-
-function drawAll(){
- cvs.width=headers.length*cellW+100;
- cvs.height=grid.length*cellH+60;
- drawChart();
-}
-
-/* ========== DRAW CHART ========== */
-function drawChart(){
- ctx.clearRect(0,0,cvs.width,cvs.height);
- ctx.font="bold 12px Arial";
- headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
- grid.forEach((r,ri)=>{
-  r.forEach((v,ci)=>{
-   let x=60+ci*cellW,y=40+ri*cellH;
-   ctx.strokeStyle="#0a7";
-   ctx.strokeRect(x,y,cellW,cellH);
-   if(v && v!=="**"){
-    ctx.fillStyle="#000";
-    ctx.fillText(v,x+cellW/2-8,y+18);
-   }
+        prev = last;
+        prevDay = lastDay;
+        last = v;
+        lastDay = d;
+      }
+    });
   });
- });
-}
 
-/* ========== MODE SWITCH ========== */
-function setMode(m){
- mode=m;
- userPath=[]; found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
- alert(m.toUpperCase()+" MODE ON");
-}
+  if(!last || !prev) return;
 
-function resetAll(){
- userPath=[]; found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
-}
+  document.getElementById("last").innerHTML = `
+    <b>Last:</b> ${last} <span class="day">(${lastDay})</span><br>
+    <b>Prev:</b> ${prev} <span class="day">(${prevDay})</span>
+  `;
 
-/* ========== CANVAS CLICK (BLANK FIXED) ========== */
-cvs.onclick=e=>{
- let r=cvs.getBoundingClientRect();
- let col=Math.floor((e.clientX-r.left-60)/cellW);
- let row=Math.floor((e.clientY-r.top-40)/cellH);
- if(!grid[row]) return;
+  let famLast = family(last);
+  let famPrev = family(prev);
 
- if(mode==="draw") handleDraw(row,col);
- if(mode==="block") handleBlock(row,col);
- if(mode==="blank") handleBlank(row,col);
-};
+  let score={};
 
-/* ========== DRAWING MODE ========== */
-function handleDraw(r,c){
- let v=grid[r][c];
- if(!v || v==="**") return;
- userPath.push({r,c,val:v});
- drawUserPath(userPath);
- if(userPath.length>1) searchPattern(userPath);
-}
+  Object.keys(freq).forEach(j=>{
+    let s = freq[j];
+    let why=[];
 
-/* ========== BLANK BOX MODE ========== */
-function handleBlank(r,c){
- let start=Math.max(0,r-BLOCK_ROWS);
- userPath=[];
- for(let i=start;i<r;i++){
-  let v=grid[i][c];
-  if(v && v!=="**"){
-   userPath.push({r:i,c,val:v});
-  }
- }
- drawUserPath(userPath);
- if(userPath.length>1) searchPattern(userPath);
-}
-
-/* ========== BLOCK MODE ========== */
-function handleBlock(r,c){
- let base=grid[r][c];
- if(!base || base==="**") return;
- userPath=[{r,c,val:base}];
- for(let i=1;i<BLOCK_ROWS;i++){
-  if(grid[r+i] && grid[r+i][c]){
-   userPath.push({r:r+i,c,val:grid[r+i][c]});
-  }
- }
- drawUserPath(userPath);
- searchPattern(userPath);
-}
-
-/* ========== DRAW PATH ========== */
-function drawUserPath(p){
- drawChart();
- p.forEach((pt,i)=>{
-  let x=60+pt.c*cellW+cellW/2;
-  let y=40+pt.r*cellH+cellH/2;
-  ctx.beginPath();
-  ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";
-  ctx.stroke();
-  ctx.fillText(pt.val,x-8,y-14);
-  if(i){
-   let pr=p[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
-   ctx.lineTo(x,y);
-   ctx.strokeStyle="green";
-   ctx.stroke();
-  }
- });
-}
-
-/* ========== SEARCH PATTERN ========== */
-function searchPattern(base){
- found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
- let dr=[],dc=[];
- for(let i=1;i<base.length;i++){
-  dr.push(base[i].r-base[i-1].r);
-  dc.push(base[i].c-base[i-1].c);
- }
- for(let r=0;r<grid.length;r++){
-  for(let c=0;c<headers.length;c++){
-   let pts=[],ok=true;
-   for(let i=0;i<base.length;i++){
-    let rr=r+(dr.slice(0,i).reduce((a,b)=>a+b,0));
-    let cc=c+(dc.slice(0,i).reduce((a,b)=>a+b,0));
-    if(!grid[rr]||!grid[rr][cc]||
-       !family(base[i].val).includes(grid[rr][cc])){
-        ok=false;break;
+    if(famLast.includes(j)){
+      s+=5;
+      why.push("family match with last jodi");
     }
-    pts.push({r:rr,c:cc,val:grid[rr][cc]});
-   }
-   if(ok) found.push(pts);
-  }
- }
- renderChecks();
-}
 
-/* ========== CHECK LINES ========== */
-function renderChecks(){
- found.forEach((p,i)=>{
-  let d=document.createElement("div");
-  d.className="check";
-  d.innerHTML=`<b>Pattern ${i+1}</b><br>${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>showPattern(p);
-  right.appendChild(d);
- });
-}
+    if(famPrev.includes(j)){
+      s+=4;
+      why.push("family match with previous jodi");
+    }
 
-function showPattern(p){
- drawUserPath(p);
- showPopup(p);
-}
+    if(dayFreq[lastDay] && dayFreq[lastDay][j]){
+      s+=dayFreq[lastDay][j]*3;
+      why.push(`same day repeat (${lastDay})`);
+    }
 
-function showPopup(p){
- let minR=Math.min(...p.map(x=>x.r));
- let maxR=Math.max(...p.map(x=>x.r))+1;
- let cropY=40+minR*cellH;
- let h=(maxR-minR)*cellH+40;
- pop.width=cvs.width; pop.height=h;
- pctx.drawImage(cvs,0,cropY,cvs.width,h,0,0,cvs.width,h);
- modal.style.display="flex";
-}
-</script>
+    if(dayFreq[prevDay] && dayFreq[prevDay][j]){
+      s+=dayFreq[prevDay][j]*2;
+      why.push(`previous day pattern (${prevDay})`);
+    }
 
-</body>
-</html>
+    // family strength overlap
+    family(j).forEach(x=>{
+      if(famLast.includes(x) || famPrev.includes(x)){
+        s+=2;
+      }
+    });
+
+    score[j]={val:s, why:[...new Set(why)]};
+  });
+
+  // 🔒 ONLY TOP 8
+  let top = Object.entries(score)
+    .sort((a,b)=>b[1].val-a[1].val)
+    .slice(0,8);
+
+  let out="";
+  top.forEach(([j,o],i)=>{
+    out+=`
+    <div class="suggest">
+      <b>${i+1}. ${j}</b><br>
+      <span class="family">Family:</span> ${family(j).join(", ")}<br>
+      <span class="score">Score: ${o.val}</span>
+      <div class="ai">
+        🤖 AI Logic: ${o.why.join("; ") || "frequency + family overlap"}
+      </div>
+    </div>`;
+  });
+
+  result.innerHTML = out;
+}
