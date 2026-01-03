@@ -1,17 +1,22 @@
 function analyze(){
-  let freq={}, dayFreq={};
-  let last=null, prev=null;
-  let lastDay=null, prevDay=null;
 
-  // scan record
+  let freq = {};
+  let dayFreq = {};
+
+  let last = null;
+  let prev = null;
+  let lastDay = null;
+  let prevDay = null;
+
+  // scan full record
   grid.forEach(row=>{
     row.forEach((v,i)=>{
       if(/^\d{2}$/.test(v)){
-        freq[v]=(freq[v]||0)+1;
+        freq[v] = (freq[v] || 0) + 1;
 
-        let d=headers[i];
-        dayFreq[d]=dayFreq[d]||{};
-        dayFreq[d][v]=(dayFreq[d][v]||0)+1;
+        let d = headers[i];
+        if(!dayFreq[d]) dayFreq[d] = {};
+        dayFreq[d][v] = (dayFreq[d][v] || 0) + 1;
 
         prev = last;
         prevDay = lastDay;
@@ -21,69 +26,72 @@ function analyze(){
     });
   });
 
-  if(!last || !prev) return;
+  if(!last || !prev){
+    result.innerHTML = "Not enough data";
+    return;
+  }
 
-  document.getElementById("last").innerHTML = `
-    <b>Last:</b> ${last} <span class="day">(${lastDay})</span><br>
-    <b>Prev:</b> ${prev} <span class="day">(${prevDay})</span>
-  `;
+  // show last & prev
+  document.getElementById("last").innerHTML =
+    `<b>Last:</b> ${last} (${lastDay})<br>
+     <b>Prev:</b> ${prev} (${prevDay})`;
 
   let famLast = family(last);
   let famPrev = family(prev);
 
-  let score={};
+  let score = {};
 
   Object.keys(freq).forEach(j=>{
     let s = freq[j];
-    let why=[];
+    let why = [];
 
     if(famLast.includes(j)){
-      s+=5;
-      why.push("family match with last jodi");
+      s += 5;
+      why.push("family of last jodi");
     }
 
     if(famPrev.includes(j)){
-      s+=4;
-      why.push("family match with previous jodi");
+      s += 4;
+      why.push("family of previous jodi");
     }
 
     if(dayFreq[lastDay] && dayFreq[lastDay][j]){
-      s+=dayFreq[lastDay][j]*3;
-      why.push(`same day repeat (${lastDay})`);
+      s += dayFreq[lastDay][j] * 3;
+      why.push("same day repeat");
     }
 
     if(dayFreq[prevDay] && dayFreq[prevDay][j]){
-      s+=dayFreq[prevDay][j]*2;
-      why.push(`previous day pattern (${prevDay})`);
+      s += dayFreq[prevDay][j] * 2;
+      why.push("previous day effect");
     }
 
-    // family strength overlap
     family(j).forEach(x=>{
       if(famLast.includes(x) || famPrev.includes(x)){
-        s+=2;
+        s += 2;
       }
     });
 
-    score[j]={val:s, why:[...new Set(why)]};
+    score[j] = {val:s, why:[...new Set(why)]};
   });
 
-  // 🔒 ONLY TOP 8
+  // 🔒 STRICT TOP 8 ONLY
   let top = Object.entries(score)
-    .sort((a,b)=>b[1].val-a[1].val)
+    .sort((a,b)=>b[1].val - a[1].val)
     .slice(0,8);
 
-  let out="";
+  let html = "";
   top.forEach(([j,o],i)=>{
-    out+=`
-    <div class="suggest">
-      <b>${i+1}. ${j}</b><br>
-      <span class="family">Family:</span> ${family(j).join(", ")}<br>
-      <span class="score">Score: ${o.val}</span>
-      <div class="ai">
-        🤖 AI Logic: ${o.why.join("; ") || "frequency + family overlap"}
+    html += `
+      <div class="suggest">
+        <b>${i+1}. ${j}</b><br>
+        Family: ${family(j).join(", ")}<br>
+        Score: ${o.val}
+        <div class="ai">
+          🤖 ${o.why.join(" | ") || "frequency + family overlap"}
+        </div>
       </div>
-    </div>`;
+    `;
   });
 
-  result.innerHTML = out;
+  result.innerHTML = html;
 }
