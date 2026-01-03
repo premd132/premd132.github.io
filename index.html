@@ -2,40 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔮 Jodi Suggestion Analyzer – FINAL</title>
+<title>🔮 Jodi Suggestion Analyzer (FINAL)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#f1d18a;
+  font-family:Arial, sans-serif;
+  background:#f2d28b;
 }
 h2{text-align:center;margin:10px}
+
 #top{
   text-align:center;
   padding:10px;
-  background:#e7c06f;
+  background:#eac46b;
 }
 button{
   padding:6px 12px;
   margin:4px;
   cursor:pointer;
-}
-table{
-  border-collapse:collapse;
-  margin:auto;
-  background:#fff;
-}
-td,th{
-  border:1px solid #999;
-  padding:4px;
-  text-align:center;
-  font-size:13px;
-  min-width:38px;
-}
-td[contenteditable]{
-  background:#fff7cc;
+  font-weight:bold;
 }
 #wrap{
   display:flex;
@@ -43,25 +30,47 @@ td[contenteditable]{
   padding:10px;
 }
 #tableWrap{
-  flex:1;
-  max-height:75vh;
-  overflow:auto;
-  border:3px solid #000;
+  width:65%;
   background:#fff;
+  border:3px solid #000;
+  overflow:auto;
+  max-height:80vh;
 }
 #right{
-  width:32%;
+  width:35%;
   background:#fff;
   border:3px solid #000;
-  padding:8px;
+  padding:10px;
+  max-height:80vh;
+  overflow:auto;
+}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+}
+td,th{
+  border:1px solid #999;
+  padding:4px;
+  text-align:center;
+  font-size:13px;
+}
+td[contenteditable]{
+  background:#fff6c7;
+}
+
+.family{
+  color:#c40000;
+  font-weight:bold;
 }
 .suggest{
-  border-left:5px solid green;
-  padding:6px;
-  margin:6px 0;
-  background:#f7fff7;
+  border-bottom:1px solid #ccc;
+  padding:6px 0;
 }
-small{color:#555}
+.score{
+  font-size:12px;
+  color:#555;
+}
 </style>
 </head>
 
@@ -72,20 +81,19 @@ small{color:#555}
 <div id="top">
   <input type="file" id="csv">
   <button onclick="addRow()">➕ Add Row</button>
-  <button onclick="analyze()">📊 Analyze & Suggest</button>
-  <button onclick="clearAll()">🗑 Clear</button>
+  <button onclick="analyze()">Analyze & Suggest</button>
+  <button onclick="clearAll()">Clear</button>
 </div>
 
 <div id="wrap">
   <div id="tableWrap">
-    <table id="dataTable"></table>
+    <table id="tbl"></table>
   </div>
   <div id="right">
-    <b>📌 Last Jodi</b>
-    <div id="lastJodi">—</div>
-    <hr>
-    <b>🎯 Top 4 Suggested Jodi</b>
-    <div id="suggestions"></div>
+    <h3>📌 Last Jodi</h3>
+    <div id="last">—</div>
+    <h3>🔥 Top 4 Suggested Jodi</h3>
+    <div id="result"></div>
   </div>
 </div>
 
@@ -93,122 +101,124 @@ small{color:#555}
 let headers=[];
 let grid=[];
 
-/* ================= FILTER ================= */
-function isValidJodi(v){
-  return typeof v==="string" && /^[0-9]{2}$/.test(v.trim());
-}
-
-/* ================= FAMILY ================= */
-function familySet(j){
+/* ========= FAMILY / PALTI LOGIC ========= */
+function family(j){
   let a=parseInt(j[0]), b=parseInt(j[1]);
-  const m=n=>(n+10)%10;
+  if(isNaN(a)||isNaN(b)) return [];
+  let m=n=>(n+10)%10;
   return [
-    j,
+    `${a}${b}`,
     `${b}${a}`,
-    `${m(a+1)}${m(b+3)}`,
-    `${m(b+3)}${m(a+1)}`,
-    `${m(a-5)}${m(b-5)}`
+    `${m(a+5)}${m(b+5)}`,
+    `${m(b+5)}${m(a+5)}`
   ];
 }
 
-/* ================= CSV LOAD ================= */
+/* ========= LOAD / SAVE ========= */
+window.onload=()=>{
+  let saved=localStorage.getItem("jodiCSV");
+  if(saved) loadCSV(saved);
+};
+
 csv.onchange=e=>{
   let r=new FileReader();
   r.onload=()=>{
-    let lines=r.result.trim().split("\n");
-    headers=lines.shift().split(",");
-    grid=lines.map(l=>l.split(","));
-    renderTable();
+    localStorage.setItem("jodiCSV",r.result);
+    loadCSV(r.result);
   };
   r.readAsText(e.target.files[0]);
 };
 
-/* ================= TABLE ================= */
-function renderTable(){
-  let t=document.getElementById("dataTable");
-  let html="<tr>";
-  headers.forEach(h=>html+=`<th>${h}</th>`);
-  html+="</tr>";
-
-  grid.forEach((r,ri)=>{
-    html+="<tr>";
-    r.forEach((v,ci)=>{
-      html+=`<td contenteditable onblur="editCell(${ri},${ci},this.innerText)">${v||""}</td>`;
-    });
-    html+="</tr>";
-  });
-  t.innerHTML=html;
+function loadCSV(txt){
+  let lines=txt.trim().split("\n");
+  headers=lines.shift().split(",");
+  grid=lines.map(l=>l.split(","));
+  renderTable();
 }
 
-function editCell(r,c,v){
+/* ========= TABLE ========= */
+function renderTable(){
+  let h="<tr>";
+  headers.forEach(x=>h+=`<th>${x}</th>`);
+  h+="</tr>";
+  grid.forEach((r,i)=>{
+    h+="<tr>";
+    r.forEach((v,j)=>{
+      h+=`<td contenteditable onblur="edit(${i},${j},this.innerText)">${v}</td>`;
+    });
+    h+="</tr>";
+  });
+  tbl.innerHTML=h;
+}
+
+function edit(r,c,v){
   grid[r][c]=v.trim();
+  save();
 }
 
 function addRow(){
   if(!headers.length) return alert("Upload CSV first");
-  grid.push(headers.map(()=> ""));
-  renderTable();
+  grid.push(headers.map(()=>"--"));
+  save(); renderTable();
 }
 
-/* ================= LAST JODI ================= */
-function getLastValidJodi(){
-  for(let r=grid.length-1;r>=0;r--){
-    for(let c=grid[r].length-1;c>=0;c--){
-      if(isValidJodi(grid[r][c])) return grid[r][c];
-    }
-  }
-  return null;
+function save(){
+  let txt=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
+  localStorage.setItem("jodiCSV",txt);
 }
 
-/* ================= ANALYZE ================= */
+/* ========= ANALYSIS ========= */
 function analyze(){
-  let last=getLastValidJodi();
-  if(!last){
-    alert("No valid jodi found");
-    return;
-  }
-  document.getElementById("lastJodi").innerText=last;
+  if(!grid.length) return;
 
-  let count={};
+  let all=[];
+  grid.forEach(r=>r.forEach(v=>{
+    if(/^\d{2}$/.test(v)) all.push(v);
+  }));
 
-  grid.flat().forEach(v=>{
-    if(isValidJodi(v)){
-      count[v]=(count[v]||0)+1;
-    }
+  let last=all[all.length-1];
+  document.getElementById("last").innerHTML=`<b>${last}</b>`;
+
+  let freq={};
+  all.forEach(v=>freq[v]=(freq[v]||0)+1);
+
+  let fam=family(last);
+  let score={};
+
+  Object.keys(freq).forEach(j=>{
+    let s=freq[j];
+    if(fam.includes(j)) s+=5;
+    family(j).forEach(x=>{
+      if(freq[x]) s+=freq[x];
+    });
+    score[j]=s;
   });
 
-  // include family boost
-  let fam=familySet(last);
-  fam.forEach(f=>{
-    count[f]=(count[f]||0)+3;
-  });
-
-  let sorted=Object.entries(count)
+  let top=Object.entries(score)
     .sort((a,b)=>b[1]-a[1])
     .slice(0,4);
 
-  let box=document.getElementById("suggestions");
-  box.innerHTML="";
-
-  sorted.forEach(([j,sc])=>{
-    let famList=familySet(j).filter(x=>x!==j).join(", ");
-    box.innerHTML+=`
+  let out="";
+  top.forEach(([j,s],i)=>{
+    out+=`
       <div class="suggest">
-        <b>${j}</b>
-        <small>(Family: ${famList})</small><br>
-        <small>Score: ${sc}</small>
+        <b>${i+1}. ${j}</b><br>
+        <span class="family">Family:</span> ${family(j).join(", ")}<br>
+        <span class="score">Score: ${s}</span>
       </div>
     `;
   });
+  result.innerHTML=out;
 }
 
-/* ================= CLEAR ================= */
+/* ========= CLEAR ========= */
 function clearAll(){
-  if(!confirm("Clear everything?"))return;
+  if(!confirm("Clear all data?")) return;
+  localStorage.removeItem("jodiCSV");
   headers=[]; grid=[];
-  document.getElementById("dataTable").innerHTML="";
-  document.getElementById("suggestions").innerHTML="";
-  document.getElementById("lastJodi").innerText="—";
+  tbl.innerHTML="";
+  result.innerHTML="";
+  last.innerHTML="—";
 }
 </script>
 
