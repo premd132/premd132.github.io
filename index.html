@@ -2,241 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pattern Analyzer – Blank Box Logic FINAL</title>
+<title>Jodi Suggestion Analyzer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{margin:0;font-family:Arial;background:#f1d18a}
-h2{text-align:center;margin:10px}
-#top{text-align:center;padding:8px}
-button{padding:6px 10px;margin:4px;font-weight:bold}
-
-#wrap{display:flex;gap:10px;padding:10px}
-#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
-canvas{background:#fff}
-
-#right{width:28%;max-height:80vh;overflow:auto}
-.check{
- background:#fff;
- margin:6px;
- padding:6px;
- border-left:5px solid red;
- cursor:pointer;
- font-size:13px
-}
-
-#modal{
- display:none;
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.7);
- align-items:center;
- justify-content:center;
-}
-#modalBox{
- background:#fff;
- padding:8px;
- max-width:95vw;
- max-height:95vh;
- overflow:auto;
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>📊 Pattern Analyzer – Blank Box FINAL</h2>
+<h2>🔮 Jodi Suggestion Analyzer</h2>
 
-<div id="top">
-<input type="file" id="csv">
-<button onclick="setMode('draw')">✏️ Drawing Mode</button>
-<button onclick="setMode('block')">🧱 Block Pattern Mode</button>
-<button onclick="setMode('blank')">⬜ Blank Box Mode</button>
-<button onclick="resetAll()">Reset</button>
+<div class="box">
+  <input type="file" id="csv">
+  <button onclick="analyze()">Analyze & Suggest</button>
 </div>
 
-<div id="wrap">
- <div id="chartWrap"><canvas id="chart"></canvas></div>
- <div id="right"><b>Pattern Check Lines</b></div>
+<div id="last"></div>
+
+<div id="result">
+  <h3>📌 Suggested Jodi (Top 4)</h3>
+  <ol id="suggestions"></ol>
 </div>
 
-<div id="modal" onclick="this.style.display='none'">
- <div id="modalBox" onclick="event.stopPropagation()">
-  <canvas id="popup"></canvas>
- </div>
-</div>
-
-<script>
-/* ========= GLOBAL ========= */
-let headers=[],grid=[];
-let mode="draw";
-let userPath=[],found=[];
-const LOOKBACK=10;
-
-const cellW=80,cellH=30;
-const cvs=document.getElementById("chart");
-const ctx=cvs.getContext("2d");
-const pop=document.getElementById("popup");
-const pctx=pop.getContext("2d");
-
-/* ========= FAMILY ========= */
-function family(j){
- if(!j||j.length<2) return [];
- let a=parseInt(j[0]),b=parseInt(j[1]);
- const m=n=>(n+10)%10;
- return [
-  `${a}${b}`,`${b}${a}`,
-  `${m(a+1)}${m(b+3)}`,
-  `${m(b+3)}${m(a+1)}`,
-  `${m(a-5)}${m(b-5)}`
- ];
-}
-
-/* ========= CSV ========= */
-csv.onchange=e=>{
- let r=new FileReader();
- r.onload=()=>loadCSV(r.result);
- r.readAsText(e.target.files[0]);
-};
-
-function loadCSV(txt){
- let l=txt.trim().split("\n");
- headers=l.shift().split(",");
- grid=l.map(x=>x.split(","));
- drawAll();
-}
-
-/* ========= DRAW ========= */
-function drawAll(){
- cvs.width=headers.length*cellW+100;
- cvs.height=grid.length*cellH+60;
- drawChart();
-}
-
-function drawChart(){
- ctx.clearRect(0,0,cvs.width,cvs.height);
- ctx.font="12px Arial";
- headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
- grid.forEach((r,ri)=>{
-  r.forEach((v,ci)=>{
-   let x=60+ci*cellW,y=40+ri*cellH;
-   ctx.strokeRect(x,y,cellW,cellH);
-   ctx.fillText(v,x+cellW/2-8,y+18);
-  });
- });
-}
-
-/* ========= MODE ========= */
-function setMode(m){
- mode=m;
- userPath=[];found=[];
- right.innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
- alert(m+" mode ON");
-}
-
-function resetAll(){
- userPath=[];found=[];
- right.innerHTML="<b>Pattern Check Lines</b>";
- drawChart();
-}
-
-/* ========= CLICK ========= */
-cvs.onclick=e=>{
- let r=cvs.getBoundingClientRect();
- let c=Math.floor((e.clientX-r.left-60)/cellW);
- let ro=Math.floor((e.clientY-r.top-40)/cellH);
- if(!grid[ro]) return;
-
- if(mode==="blank"){
-  handleBlank(ro,c);
-  return;
- }
- if(!grid[ro][c]) return;
- userPath.push({r:ro,c:c,val:grid[ro][c]});
- drawAndSearch();
-};
-
-/* ========= BLANK MODE ========= */
-function handleBlank(row,col){
- userPath=[];
- for(let r=row-1;r>=0 && userPath.length<LOOKBACK;r--){
-  for(let c=0;c<headers.length;c++){
-   if(grid[r][c]){
-    userPath.push({r:r,c:c,val:grid[r][c]});
-   }
-  }
- }
- drawAndSearch();
-}
-
-/* ========= SEARCH ========= */
-function drawAndSearch(){
- drawChart();
- drawPath(userPath);
- if(userPath.length<2) return;
-
- found=[];
- right.innerHTML="<b>Pattern Check Lines</b>";
-
- for(let br=0;br<grid.length;br++){
-  for(let bc=0;bc<headers.length;bc++){
-   let ok=true,pts=[];
-   for(let i=0;i<userPath.length;i++){
-    let rr=br+(userPath[i].r-userPath[0].r);
-    let cc=bc+(userPath[i].c-userPath[0].c);
-    if(!grid[rr]||!grid[rr][cc]||
-       !family(userPath[i].val).includes(grid[rr][cc])){
-        ok=false;break;
-    }
-    pts.push({r:rr,c:cc,val:grid[rr][cc]});
-   }
-   if(ok) found.push(pts);
-   if(found.length>=3) break;
-  }
-  if(found.length>=3) break;
- }
- renderChecks();
-}
-
-/* ========= DRAW PATH ========= */
-function drawPath(p){
- p.forEach((x,i)=>{
-  let cx=60+x.c*cellW+cellW/2;
-  let cy=40+x.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  if(i){
-   let q=p[i-1];
-   ctx.beginPath();
-   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
-   ctx.lineTo(cx,cy);
-   ctx.strokeStyle="green";ctx.stroke();
-  }
- });
-}
-
-/* ========= CHECK ========= */
-function renderChecks(){
- found.forEach((p,i)=>{
-  let d=document.createElement("div");
-  d.className="check";
-  d.innerHTML=`Pattern ${i+1}<br>${p.map(x=>x.val).join(" → ")}`;
-  d.onclick=()=>showPattern(p);
-  right.appendChild(d);
- });
-}
-
-function showPattern(p){
- drawChart();drawPath(p);
- let min=Math.min(...p.map(x=>x.r));
- let max=Math.max(...p.map(x=>x.r))+1;
- let y=40+min*cellH,h=(max-min)*cellH+40;
- pop.width=cvs.width;pop.height=h;
- pctx.drawImage(cvs,0,y,cvs.width,h,0,0,cvs.width,h);
- modal.style.display="flex";
-}
-</script>
-
+<script src="engine.js"></script>
 </body>
 </html>
