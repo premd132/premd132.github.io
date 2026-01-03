@@ -1,32 +1,274 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Last Jodi AI Analyzer</title>
-<link rel="stylesheet" href="style.css">
+<title>🔮 Last Jodi Based AI Suggestion (FINAL)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#f2d48f;
+}
+h2{
+  text-align:center;
+  margin:10px 0;
+}
+#top{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  padding:10px;
+}
+button{
+  padding:6px 10px;
+  cursor:pointer;
+}
+#wrap{
+  display:flex;
+  gap:10px;
+  padding:10px;
+}
+#left{
+  width:60%;
+  max-height:80vh;
+  overflow:auto;
+  background:#fff;
+  border:2px solid #000;
+}
+#right{
+  width:40%;
+  background:#fff;
+  border:2px solid #000;
+  padding:10px;
+  max-height:80vh;
+  overflow:auto;
+}
+table{
+  border-collapse:collapse;
+  width:100%;
+}
+td{
+  border:1px solid #999;
+  padding:4px;
+  text-align:center;
+  font-size:13px;
+}
+td[contenteditable]{
+  background:#fff7cc;
+}
+.sug{
+  border-left:5px solid green;
+  margin:6px 0;
+  padding:6px;
+  background:#f9fff2;
+}
+.small{
+  font-size:12px;
+  color:#333;
+}
+</style>
 </head>
+
 <body>
 
-<h2>🔮 Last Jodi Based AI Suggestion</h2>
+<h2>🔮 Last Jodi Based AI Suggestion (FINAL)</h2>
 
-<div class="top">
+<div id="top">
   <input type="file" id="csv">
   <button onclick="addRow()">➕ Add Row</button>
-  <button onclick="analyze()">🤖 Analyze</button>
+  <button onclick="analyze()">🔍 Analyze</button>
   <button onclick="clearAll()">🗑 Clear</button>
 </div>
 
-<div class="wrap">
-  <div class="tableBox">
+<div id="wrap">
+  <div id="left">
     <table id="table"></table>
   </div>
-
-  <div class="resultBox">
-    <h3>AI Result</h3>
-    <div id="result">Upload record</div>
+  <div id="right">
+    <b>AI Result</b>
+    <div id="result" class="small">Upload record</div>
   </div>
 </div>
 
-<script src="script.js"></script>
+<script>
+/* ================== GLOBAL ================== */
+let grid=[];
+
+/* ================== LOAD SAVED ================== */
+window.onload=()=>{
+  let s=localStorage.getItem("record");
+  if(s){
+    grid=JSON.parse(s);
+    render();
+  }
+};
+
+/* ================== CSV UPLOAD ================== */
+csv.onchange=e=>{
+  let r=new FileReader();
+  r.onload=()=>{
+    grid=r.result
+      .trim()
+      .split("\n")
+      .map(l=>l.split(",").map(x=>x.trim()));
+    save();
+    render();
+  };
+  r.readAsText(e.target.files[0]);
+};
+
+/* ================== RENDER TABLE ================== */
+function render(){
+  let t=document.getElementById("table");
+  if(grid.length===0){
+    t.innerHTML="";
+    return;
+  }
+  let html="";
+  grid.forEach((row,i)=>{
+    html+="<tr>";
+    row.forEach((v,j)=>{
+      html+=`<td contenteditable
+        onblur="edit(${i},${j},this.innerText)">
+        ${v||""}
+      </td>`;
+    });
+    html+="</tr>";
+  });
+  t.innerHTML=html;
+}
+
+/* ================== EDIT ================== */
+function edit(r,c,val){
+  grid[r][c]=val.trim();
+  save();
+}
+
+/* ================== ADD ROW ================== */
+function addRow(){
+  if(grid.length===0) return;
+  grid.push(new Array(grid[0].length).fill(""));
+  save();
+  render();
+}
+
+/* ================== SAVE ================== */
+function save(){
+  localStorage.setItem("record",JSON.stringify(grid));
+}
+
+/* ================== CLEAR ================== */
+function clearAll(){
+  if(!confirm("Clear all data?"))return;
+  grid=[];
+  localStorage.removeItem("record");
+  render();
+  result.innerHTML="Upload record";
+}
+
+/* ================== FAMILY ================== */
+function family(j){
+  if(!/^\d{2}$/.test(j)) return [];
+  let a=+j[0], b=+j[1];
+  let m=n=>(n+10)%10;
+  return [
+    `${a}${b}`,`${b}${a}`,
+    `${m(a+1)}${m(b+1)}`,
+    `${m(a-1)}${m(b-1)}`,
+    `${m(a+5)}${m(b+5)}`
+  ];
+}
+
+/* ================== ANALYZE ================== */
+function analyze(){
+  if(grid.length<2){
+    result.innerHTML="Not enough data";
+    return;
+  }
+
+  // last row
+  let lastRow=grid[grid.length-1];
+  let prevRow=grid[grid.length-2];
+
+  // last valid jodi
+  let last=null, prev=null;
+  for(let i=lastRow.length-1;i>=0;i--){
+    if(/^\d{2}$/.test(lastRow[i])){ last=lastRow[i]; break; }
+  }
+  for(let i=prevRow.length-1;i>=0;i--){
+    if(/^\d{2}$/.test(prevRow[i])){ prev=prevRow[i]; break; }
+  }
+
+  if(!last){
+    result.innerHTML="Last jodi not found";
+    return;
+  }
+
+  let famLast=family(last);
+  let famPrev=prev?family(prev):[];
+
+  // count frequency
+  let freq={};
+  grid.forEach(r=>{
+    r.forEach(v=>{
+      if(/^\d{2}$/.test(v)){
+        freq[v]=(freq[v]||0)+1;
+      }
+    });
+  });
+
+  // pick 3 single ank from last+prev
+  let singles=new Set();
+  last.split("").forEach(d=>singles.add(d));
+  if(prev) prev.split("").forEach(d=>singles.add(d));
+  singles=[...singles].slice(0,3);
+
+  // build candidate jodi from 3 ank
+  let candidates=[];
+  singles.forEach(a=>{
+    singles.forEach(b=>{
+      if(a!==b) candidates.push(`${a}${b}`);
+    });
+  });
+
+  // scoring
+  let score={};
+  candidates.forEach(j=>{
+    let s=0;
+    if(freq[j]) s+=freq[j];
+    if(famLast.includes(j)) s+=5;
+    if(famPrev.includes(j)) s+=3;
+    score[j]=s;
+  });
+
+  // top 8 only
+  let top=Object.entries(score)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,8);
+
+  // render
+  let html=`<b>Last Jodi:</b> ${last}<br>`;
+  if(prev) html+=`<b>Previous Jodi:</b> ${prev}<br><br>`;
+
+  html+=`<b>🎯 Top 8 Suggested Jodi</b><br>`;
+  top.forEach(([j,s],i)=>{
+    html+=`
+    <div class="sug">
+      <b>${i+1}. ${j}</b><br>
+      <span class="small">
+        Family: ${family(j).join(", ")}<br>
+        Score: ${s}
+      </span>
+    </div>`;
+  });
+
+  result.innerHTML=html;
+}
+</script>
+
 </body>
 </html>
