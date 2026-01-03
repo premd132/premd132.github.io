@@ -2,130 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jodi Suggestion Analyzer – FINAL</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{margin:0;font-family:Arial;background:#f1d18a}
-h2{text-align:center;margin:10px}
-#top{text-align:center;padding:10px}
-button{padding:6px 10px;margin:4px;font-weight:bold}
-table{border-collapse:collapse;margin:auto;background:#fff}
-td,th{border:1px solid #666;padding:4px;text-align:center;font-size:13px}
-td[contenteditable]{background:#fff6c9}
-#wrap{display:flex;gap:10px;padding:10px}
-#left{width:65%;overflow:auto}
-#right{width:35%;background:#fff;padding:8px;border:3px solid #000;max-height:80vh;overflow:auto}
-.sug{border-left:5px solid green;padding:6px;margin:6px 0;background:#f7f7f7}
-small{color:#444}
-</style>
+<title>Jodi AI Analyzer (FINAL)</title>
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h2>🔮 Jodi Suggestion Analyzer (FINAL)</h2>
+<h2>🔮 Jodi AI Suggestion Analyzer</h2>
 
-<div id="top">
-<input type="file" id="csv">
-<button onclick="addRow()">➕ Add Row</button>
-<button onclick="analyze()">Analyze & Suggest</button>
-<button onclick="clearAll()">Clear</button>
+<div class="top">
+  <input type="file" id="csv">
+  <button onclick="addRow()">➕ Add Row</button>
+  <button onclick="analyze()">🤖 Analyze & Suggest</button>
+  <button onclick="clearAll()">🗑 Clear</button>
 </div>
 
-<div id="wrap">
-  <div id="left"><div id="tableBox"></div></div>
-  <div id="right">
-    <b>Last Jodi:</b>
-    <div id="lastJodi">–</div>
-    <hr>
-    <b>Top 8 Suggested Jodi</b>
-    <div id="result"></div>
+<div class="wrap">
+
+  <div class="tableBox">
+    <table id="dataTable"></table>
   </div>
+
+  <div class="resultBox">
+    <h3>📌 AI Result</h3>
+    <div id="result">Upload record & click Analyze</div>
+  </div>
+
 </div>
 
-<script>
-/* ========= GLOBAL ========= */
-let headers=[], grid=[];
-
-/* ========= FAMILY ========= */
-function family(j){
-  let a=parseInt(j[0]), b=parseInt(j[1]);
-  const m=n=>(n+10)%10;
-  return [`${a}${b}`,`${b}${a}`,`${m(a+1)}${m(b+1)}`,`${m(a-1)}${m(b-1)}`,`${m(a+5)}${m(b+5)}`];
-}
-
-/* ========= CSV ========= */
-document.getElementById("csv").onchange=e=>{
-  let r=new FileReader();
-  r.onload=()=>{localStorage.setItem("savedCSV",r.result);loadCSV(r.result);}
-  r.readAsText(e.target.files[0]);
-};
-
-window.onload=()=>{
-  let s=localStorage.getItem("savedCSV");
-  if(s) loadCSV(s);
-};
-
-function loadCSV(txt){
-  let lines=txt.trim().split("\n");
-  headers=lines.shift().split(",");
-  grid=lines.map(l=>l.split(","));
-  renderTable();
-}
-
-function renderTable(){
-  let html="<table><tr>";
-  headers.forEach(h=>html+=`<th>${h}</th>`);
-  html+="</tr>";
-  grid.forEach((r,i)=>{
-    html+="<tr>";
-    r.forEach((v,j)=>{
-      html+=`<td contenteditable onblur="edit(${i},${j},this.innerText)">${v}</td>`;
-    });
-    html+="</tr>";
-  });
-  html+="</table>";
-  tableBox.innerHTML=html;
-}
-
-function edit(r,c,v){grid[r][c]=v.trim();save();}
-function addRow(){grid.push(headers.map(()=>"--"));save();renderTable();}
-function save(){
-  let t=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
-  localStorage.setItem("savedCSV",t);
-}
-
-/* ========= ANALYZE ========= */
-function analyze(){
-  let freq={}, all=[];
-  grid.forEach(row=>row.forEach(v=>{/^\d{2}$/.test(v)&&(freq[v]=(freq[v]||0)+1,all.push(v))}));
-  if(all.length<2) return;
-
-  let last=all.at(-1), prev=all.at(-2);
-  lastJodi.innerHTML=`<b>${last}</b> (prev ${prev})`;
-
-  let fL=family(last), fP=family(prev), score={};
-  Object.keys(freq).forEach(j=>{
-    if(j===last) return;
-    score[j]=(fL.includes(j)?4:0)+(fP.includes(j)?3:0)+freq[j];
-  });
-
-  let top=Object.entries(score).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  result.innerHTML=top.map(([j,s],i)=>`
-    <div class="sug">
-      <b>${i+1}. ${j}</b><br>
-      <small>Family: ${family(j).join(", ")}<br>Score: ${s}<br>Logic: frequency + family overlap</small>
-    </div>`).join("");
-}
-
-/* ========= CLEAR ========= */
-function clearAll(){
-  if(!confirm("Clear all data?"))return;
-  localStorage.removeItem("savedCSV");
-  headers=[];grid=[];
-  tableBox.innerHTML="";result.innerHTML="";lastJodi.innerHTML="–";
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
