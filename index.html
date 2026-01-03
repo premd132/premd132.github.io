@@ -2,37 +2,303 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>i-Smart King – Analysis</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Pattern Analyzer – Drawing + Block Pattern</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{margin:0;font-family:Arial;background:#f1d18a}
+h2{text-align:center;margin:8px}
+#top{text-align:center;padding:8px}
+button{padding:6px 10px;margin:3px;font-weight:bold}
+
+#wrap{display:flex;gap:8px;padding:8px}
+#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff;position:relative}
+canvas{background:#fff}
+
+#right{width:28%;max-height:80vh;overflow:auto}
+.check{
+ background:#fff;margin:6px;padding:6px;
+ border-left:5px solid red;cursor:pointer;font-size:13px
+}
+
+#modal{
+ display:none;position:fixed;inset:0;
+ background:rgba(0,0,0,.7);
+ align-items:center;justify-content:center;
+}
+#modalBox{
+ background:#fff;padding:8px;
+ max-width:95vw;max-height:95vh;overflow:auto;
+}
+</style>
 </head>
+
 <body>
 
-<header>
-  <h1>i-Smart King</h1>
-  <p>Advanced Pattern & Trend Analysis</p>
-</header>
+<h2>📊 Pattern Analyzer (Drawing + Block Pattern)</h2>
 
-<section class="cards">
-  <div onclick="showLine()">📈 Line Analysis</div>
-  <div onclick="showTable()">📋 Table Trick</div>
-</section>
+<div id="top">
+<input type="file" id="csv">
+<button onclick="setMode('draw')">✏️ Drawing Mode</button>
+<button onclick="setMode('block')">🧱 Block Pattern Mode</button>
+<button onclick="resetAll()">Reset</button>
+</div>
 
-<section class="tools">
-  <input type="date" id="dateFilter">
-  <input type="file" id="fileInput">
-</section>
+<div id="wrap">
+ <div id="chartWrap">
+  <canvas id="chart"></canvas>
+ </div>
+ <div id="right"><b>Pattern Check Lines</b></div>
+</div>
 
-<canvas id="chart"></canvas>
-<div id="bubbleBox"></div>
+<div id="modal" onclick="this.style.display='none'">
+ <div id="modalBox" onclick="event.stopPropagation()">
+  <canvas id="popup"></canvas>
+ </div>
+</div>
 
-<table id="table">
-<thead>
-<tr><th>Date</th><th>Jodi-A</th><th>Jodi-B</th><th>Trend</th></tr>
-</thead>
-<tbody></tbody>
-</table>
+<script>
+/* ================== GLOBAL ================== */
+let headers=[], grid=[];
+let mode="draw";               // draw | block
+let userPath=[];               // drawing mode path
+let found=[];                  // check lines
+const BLOCK_ROWS = 10;         // ~10 rows
 
-<script src="script.js"></script>
+const cellW=80, cellH=30;
+const cvs=document.getElementById("chart");
+const ctx=cvs.getContext("2d");
+const pop=document.getElementById("popup");
+const pctx=pop.getContext("2d");
+
+/* ================== FAMILY LOGIC (UNCHANGED) ================== */
+function family(j){
+ let a=parseInt(j[0]), b=parseInt(j[1]);
+ const mod=n=>(n+10)%10;
+ return [
+  `${a}${b}`,
+  `${b}${a}`,
+  `${mod(a+1)}${mod(b+3)}`,
+  `${mod(b+3)}${mod(a+1)}`,
+  `${mod(a-5)}${mod(b-5)}`
+ ];
+}
+
+/* ================== LOAD CSV ================== */
+csv.onchange=e=>{
+ let r=new FileReader();
+ r.onload=()=>loadCSV(r.result);
+ r.readAsText(e.target.files[0]);
+};
+
+function loadCSV(txt){
+ let lines=txt.trim().split("\n");
+ headers=lines.shift().split(",");
+ grid=lines.map(l=>l.split(","));
+ drawAll();
+}
+
+/* ================== DRAW CHART ================== */
+function drawAll(){
+ cvs.width=headers.length*cellW+100;
+ cvs.height=grid.length*cellH+60;
+ drawChart();
+}
+
+function drawChart(){
+ ctx.clearRect(0,0,cvs.width,cvs.height);
+ ctx.font="bold 12px Arial";
+ headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
+ grid.forEach((r,ri)=>{
+  r.forEach((v,ci)=>{
+   let x=60+ci*cellW, y=40+ri*cellH;
+   ctx.strokeRect(x,y,cellW,cellH);
+   ctx.fillStyle="#000";
+   ctx.fillText(v,x+cellW/2-8,y+18);
+  });
+ });
+}
+
+/* ================== MODE SWITCH ================== */
+function setMode(m){
+ mode=m;
+ userPath=[];
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ drawChart();
+ alert(m==="draw" ? "Drawing Mode ON" : "Block Pattern Mode ON");
+}
+
+function resetAll(){
+ userPath=[]; found=[];
+ drawChart();
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+}
+
+/* ================== CANVAS CLICK ================== */
+cvs.onclick=e=>{
+ let r=cvs.getBoundingClientRect();
+ let col=Math.floor((e.clientX-r.left-60)/cellW);
+ let row=Math.floor((e.clientY-r.top-40)/cellH);
+ if(!grid[row] || !grid[row][col]) return;
+
+ if(mode==="draw"){
+   handleDrawing(row,col);
+ }else{
+   handleBlockPattern(row,col);
+ }
+};
+
+/* ================== DRAWING MODE ================== */
+function handleDrawing(row,col){
+ userPath.push({r:row,c:col,val:grid[row][col]});
+ drawChart();
+ drawUserPath(userPath);
+ if(userPath.length>1) searchDrawingPattern();
+}
+
+function drawUserPath(path){
+ path.forEach((p,i)=>{
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
+  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.strokeStyle="red";ctx.stroke();
+  if(i){
+   let q=path[i-1];
+   ctx.beginPath();
+   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
+   ctx.lineTo(x,y);
+   ctx.strokeStyle="green";ctx.stroke();
+  }
+ });
+}
+
+function searchDrawingPattern(){
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+
+ let rg=[], cg=[];
+ for(let i=1;i<userPath.length;i++){
+  rg.push(userPath[i].r-userPath[i-1].r);
+  cg.push(userPath[i].c-userPath[i-1].c);
+ }
+
+ for(let br=0;br<grid.length;br++){
+  for(let bc=0;bc<headers.length;bc++){
+   let pts=[], ok=true;
+   for(let i=0;i<userPath.length;i++){
+    let rr=br+rg.slice(0,i).reduce((a,b)=>a+b,0);
+    let cc=bc+cg.slice(0,i).reduce((a,b)=>a+b,0);
+    if(!grid[rr]||!grid[rr][cc]||
+       !family(userPath[i].val).includes(grid[rr][cc])){
+      ok=false;break;
+    }
+    pts.push({r:rr,c:cc,val:grid[rr][cc]});
+   }
+   if(ok) found.push(pts);
+  }
+ }
+ renderCheckLines();
+}
+
+/* ================== BLOCK PATTERN MODE ================== */
+function handleBlockPattern(row,col){
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+
+ // Extract block ABOVE clicked cell
+ let start=Math.max(0,row-BLOCK_ROWS);
+ let block=[];
+ for(let r=start;r<row;r++){
+  block.push({r, vals:grid[r]});
+ }
+
+ // Build relation signature
+ let sig = block.map(b=>b.vals.map(v=>family(v)));
+
+ // Search whole record
+ for(let br=BLOCK_ROWS;br<grid.length;br++){
+  let ok=true, pts=[];
+  for(let i=0;i<block.length;i++){
+   let rr=br-block.length+i;
+   for(let c=0;c<headers.length;c++){
+    if(!sig[i][c].includes(grid[rr][c])){
+     ok=false;break;
+    }
+   }
+   if(!ok) break;
+   pts.push({r:rr});
+  }
+  if(ok) found.push({base:br,block});
+ }
+
+ renderBlockCheckLines(col);
+}
+
+function renderBlockCheckLines(){
+ found.forEach((p,i)=>{
+  let d=document.createElement("div");
+  d.className="check";
+  d.innerHTML=`<b>Block Pattern ${i+1}</b>`;
+  d.onclick=()=>showBlock(p.block);
+  right.appendChild(d);
+ });
+}
+
+/* ================== SHOW BLOCK ================== */
+function showBlock(block){
+ drawChart();
+ block.forEach((b,i)=>{
+  b.vals.forEach((v,c)=>{
+   let x=60+c*cellW+cellW/2;
+   let y=40+b.r*cellH+cellH/2;
+   ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);
+   ctx.strokeStyle="red";ctx.stroke();
+  });
+ });
+ showPopupBlock(block);
+}
+
+/* ================== POPUP (REAL CROP) ================== */
+function showPopupBlock(block){
+ let minR=block[0].r;
+ let maxR=block[block.length-1].r+1;
+ let cropY=40+minR*cellH;
+ let h=(maxR-minR)*cellH+40;
+ let w=cvs.width;
+ pop.width=w; pop.height=h;
+ pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
+ modal.style.display="flex";
+}
+
+/* ================== CHECK LINES ================== */
+function renderCheckLines(){
+ found.forEach((p,i)=>{
+  let d=document.createElement("div");
+  d.className="check";
+  d.innerHTML=`<b>Pattern ${i+1}</b><br>${p.map(x=>x.val).join(" → ")}`;
+  d.onclick=()=>showPattern(p);
+  right.appendChild(d);
+ });
+}
+
+function showPattern(p){
+ drawChart();
+ drawUserPath(p);
+ showPopupPattern(p);
+}
+
+function showPopupPattern(p){
+ let minR=Math.min(...p.map(x=>x.r));
+ let maxR=Math.max(...p.map(x=>x.r))+1;
+ let cropY=40+minR*cellH;
+ let h=(maxR-minR)*cellH+40;
+ let w=cvs.width;
+ pop.width=w; pop.height=h;
+ pctx.drawImage(cvs,0,cropY,w,h,0,0,w,h);
+ modal.style.display="flex";
+}
+</script>
+
 </body>
 </html>
