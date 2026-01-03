@@ -1,7 +1,7 @@
 body{
   margin:0;
   font-family:Arial;
-  background:#f2d48c;
+  background:#f3d892;
 }
 
 h2{
@@ -50,13 +50,12 @@ td,th{
   border:1px solid #333;
   padding:4px;
   text-align:center;
-  font-size:13px;
 }
 
 td{
-  background:#fff9dc;
+  background:#fff7cc;
 }
 
 td[contenteditable]{
-  background:#fff3b0;
+  background:#fff2a8;
 }
