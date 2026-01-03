@@ -136,20 +136,29 @@ function resetAll(){
 }
 
 /* ================== CANVAS CLICK ================== */
-cvs.onclick=e=>{
- let r=cvs.getBoundingClientRect();
- let col=Math.floor((e.clientX-r.left-60)/cellW);
- let row=Math.floor((e.clientY-r.top-40)/cellH);
- if(!grid[row] || !grid[row][col]) return;
-
- if(mode==="draw"){
-   handleDrawing(row,col);
- }else{
-   handleBlockPattern(row,col);
- }
-};
-
 /* ================== DRAWING MODE ================== */
+ /* ============ CANVAS CLICK ============ */
+cvs.onclick = e => {
+  let r = cvs.getBoundingClientRect();
+  let col = Math.floor((e.clientX - r.left - 60) / cellW);
+  let row = Math.floor((e.clientY - r.top - 40) / cellH);
+
+  if (!grid[row]) return; // sirf row check
+
+  // ===== BLOCK PATTERN MODE =====
+  if (mode === "block") {
+    // sirf blank box allow
+    if (grid[row][col] && grid[row][col].trim() !== "") return;
+    handleBlockPattern(row, col);
+    return;
+  }
+
+  // ===== DRAWING MODE =====
+  if (mode === "draw") {
+    if (!grid[row][col] || grid[row][col].trim() === "") return;
+    handleDrawing(row, col);
+  }
+};
 function handleDrawing(row,col){
  userPath.push({r:row,c:col,val:grid[row][col]});
  drawChart();
