@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔮 Last Jodi Based AI Suggestion (FINAL)</title>
+<title>Last Jodi AI Suggestion – FINAL SIMPLE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f2d48f;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#f3d892;
 }
 h2{
   text-align:center;
@@ -17,14 +17,14 @@ h2{
 }
 #top{
   display:flex;
-  gap:8px;
+  gap:10px;
   justify-content:center;
   align-items:center;
   flex-wrap:wrap;
   padding:10px;
 }
 button{
-  padding:6px 10px;
+  padding:6px 12px;
   cursor:pointer;
 }
 #wrap{
@@ -32,20 +32,18 @@ button{
   gap:10px;
   padding:10px;
 }
+#left,#right{
+  background:#fff;
+  border:2px solid #000;
+  padding:10px;
+}
 #left{
   width:60%;
   max-height:80vh;
   overflow:auto;
-  background:#fff;
-  border:2px solid #000;
 }
 #right{
   width:40%;
-  background:#fff;
-  border:2px solid #000;
-  padding:10px;
-  max-height:80vh;
-  overflow:auto;
 }
 table{
   border-collapse:collapse;
@@ -58,13 +56,14 @@ td{
   font-size:13px;
 }
 td[contenteditable]{
-  background:#fff7cc;
+  background:#fff6cc;
 }
-.sug{
+.box{
   border-left:5px solid green;
-  margin:6px 0;
   padding:6px;
-  background:#f9fff2;
+  margin:6px 0;
+  background:#f6fff0;
+  font-size:13px;
 }
 .small{
   font-size:12px;
@@ -95,10 +94,10 @@ td[contenteditable]{
 </div>
 
 <script>
-/* ================== GLOBAL ================== */
+/* ================= DATA ================= */
 let grid=[];
 
-/* ================== LOAD SAVED ================== */
+/* ================= LOAD SAVED ================= */
 window.onload=()=>{
   let s=localStorage.getItem("record");
   if(s){
@@ -107,7 +106,7 @@ window.onload=()=>{
   }
 };
 
-/* ================== CSV UPLOAD ================== */
+/* ================= CSV UPLOAD ================= */
 csv.onchange=e=>{
   let r=new FileReader();
   r.onload=()=>{
@@ -121,13 +120,10 @@ csv.onchange=e=>{
   r.readAsText(e.target.files[0]);
 };
 
-/* ================== RENDER TABLE ================== */
+/* ================= RENDER ================= */
 function render(){
   let t=document.getElementById("table");
-  if(grid.length===0){
-    t.innerHTML="";
-    return;
-  }
+  if(grid.length===0){ t.innerHTML=""; return; }
   let html="";
   grid.forEach((row,i)=>{
     html+="<tr>";
@@ -142,26 +138,25 @@ function render(){
   t.innerHTML=html;
 }
 
-/* ================== EDIT ================== */
+/* ================= EDIT ================= */
 function edit(r,c,val){
   grid[r][c]=val.trim();
   save();
 }
 
-/* ================== ADD ROW ================== */
+/* ================= ADD ROW ================= */
 function addRow(){
   if(grid.length===0) return;
   grid.push(new Array(grid[0].length).fill(""));
-  save();
-  render();
+  save(); render();
 }
 
-/* ================== SAVE ================== */
+/* ================= SAVE ================= */
 function save(){
   localStorage.setItem("record",JSON.stringify(grid));
 }
 
-/* ================== CLEAR ================== */
+/* ================= CLEAR ================= */
 function clearAll(){
   if(!confirm("Clear all data?"))return;
   grid=[];
@@ -170,7 +165,7 @@ function clearAll(){
   result.innerHTML="Upload record";
 }
 
-/* ================== FAMILY ================== */
+/* ================= FAMILY ================= */
 function family(j){
   if(!/^\d{2}$/.test(j)) return [];
   let a=+j[0], b=+j[1];
@@ -183,19 +178,18 @@ function family(j){
   ];
 }
 
-/* ================== ANALYZE ================== */
+/* ================= ANALYZE ================= */
 function analyze(){
   if(grid.length<2){
     result.innerHTML="Not enough data";
     return;
   }
 
-  // last row
   let lastRow=grid[grid.length-1];
   let prevRow=grid[grid.length-2];
 
-  // last valid jodi
   let last=null, prev=null;
+
   for(let i=lastRow.length-1;i>=0;i--){
     if(/^\d{2}$/.test(lastRow[i])){ last=lastRow[i]; break; }
   }
@@ -208,61 +202,27 @@ function analyze(){
     return;
   }
 
-  let famLast=family(last);
-  let famPrev=prev?family(prev):[];
+  /* 3 single ank */
+  let singles=[...new Set((last+(prev||"")).split(""))].slice(0,3);
 
-  // count frequency
-  let freq={};
-  grid.forEach(r=>{
-    r.forEach(v=>{
-      if(/^\d{2}$/.test(v)){
-        freq[v]=(freq[v]||0)+1;
-      }
-    });
-  });
-
-  // pick 3 single ank from last+prev
-  let singles=new Set();
-  last.split("").forEach(d=>singles.add(d));
-  if(prev) prev.split("").forEach(d=>singles.add(d));
-  singles=[...singles].slice(0,3);
-
-  // build candidate jodi from 3 ank
+  /* build 8 jodi max */
   let candidates=[];
-  singles.forEach(a=>{
-    singles.forEach(b=>{
-      if(a!==b) candidates.push(`${a}${b}`);
-    });
-  });
+  for(let i=0;i<singles.length;i++){
+    for(let j=0;j<singles.length;j++){
+      if(i!==j) candidates.push(singles[i]+singles[j]);
+    }
+  }
+  candidates=candidates.slice(0,8);
 
-  // scoring
-  let score={};
-  candidates.forEach(j=>{
-    let s=0;
-    if(freq[j]) s+=freq[j];
-    if(famLast.includes(j)) s+=5;
-    if(famPrev.includes(j)) s+=3;
-    score[j]=s;
-  });
-
-  // top 8 only
-  let top=Object.entries(score)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,8);
-
-  // render
   let html=`<b>Last Jodi:</b> ${last}<br>`;
   if(prev) html+=`<b>Previous Jodi:</b> ${prev}<br><br>`;
+  html+=`<b>🎯 Suggested 8 Jodi</b><br>`;
 
-  html+=`<b>🎯 Top 8 Suggested Jodi</b><br>`;
-  top.forEach(([j,s],i)=>{
+  candidates.forEach((j,i)=>{
     html+=`
-    <div class="sug">
+    <div class="box">
       <b>${i+1}. ${j}</b><br>
-      <span class="small">
-        Family: ${family(j).join(", ")}<br>
-        Score: ${s}
-      </span>
+      <span class="small">Family: ${family(j).join(", ")}</span>
     </div>`;
   });
 
