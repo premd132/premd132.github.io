@@ -2,37 +2,259 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔥 iSmart Pattern Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
+<title>Pattern Analyzer – FINAL STABLE</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#f1d18a}
+h2{text-align:center;margin:10px}
+
+#top{text-align:center;padding:10px}
+button{padding:6px 10px;margin:4px;font-weight:bold}
+
+#wrap{display:flex;gap:10px;padding:10px}
+#chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
+canvas{background:#fff}
+
+#right{width:28%;max-height:80vh;overflow:auto}
+.check{
+ background:#fff;
+ margin:6px;
+ padding:6px;
+ border-left:5px solid red;
+ cursor:pointer;
+ font-size:13px
+}
+
+#modal{
+ display:none;
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.7);
+ align-items:center;
+ justify-content:center;
+}
+#modalBox{
+ background:#fff;
+ padding:8px;
+ max-width:95vw;
+ max-height:95vh;
+ overflow:auto;
+}
+</style>
 </head>
 
 <body>
 
-<h2>🔥 iSmart Analyzer (REAL Pattern Logic)</h2>
+<h2>📊 Pattern Analyzer – Drawing + Block Pattern (FINAL)</h2>
 
-<textarea id="dataInput" placeholder="Excel se copy-paste data yahan karo"></textarea>
-
-<div class="btns">
-  <button onclick="generate()">Generate</button>
-  <button onclick="addBlankRow()">Add Blank Row</button>
-  <button onclick="saveData()">Save</button>
+<div id="top">
+<input type="file" id="csv">
+<button onclick="setMode('draw')">✏️ Drawing Mode</button>
+<button onclick="setMode('block')">🧱 Block Pattern Mode</button>
+<button onclick="resetAll()">🔄 Reset</button>
 </div>
 
-<div id="chartWrap">
-  <table id="chart"></table>
-  <canvas id="lines"></canvas>
+<div id="wrap">
+ <div id="chartWrap"><canvas id="chart"></canvas></div>
+ <div id="right"><b>Pattern Check Lines</b></div>
 </div>
 
-<!-- POPUP -->
-<div id="popup">
-  <div id="popupHead">
-    <span id="popupTitle"></span>
-    <button onclick="closePopup()">✖</button>
-  </div>
-  <div id="popupBody"></div>
+<div id="modal" onclick="this.style.display='none'">
+ <div id="modalBox" onclick="event.stopPropagation()">
+  <canvas id="popup"></canvas>
+ </div>
 </div>
 
-<script src="patternEngine.js"></script>
+<script>
+/* ================= GLOBAL ================= */
+let headers=[], grid=[];
+let mode="draw";              // draw | block
+let userPath=[];              // drawing path
+let found=[];                 // matched patterns
+const BLOCK_ROWS=10;
+
+const cellW=80, cellH=30;
+const cvs=document.getElementById("chart");
+const ctx=cvs.getContext("2d");
+const pop=document.getElementById("popup");
+const pctx=pop.getContext("2d");
+
+/* ================= FAMILY LOGIC (UNCHANGED) ================= */
+function family(j){
+ if(!j || j.length<2) return [];
+ let a=parseInt(j[0]), b=parseInt(j[1]);
+ if(isNaN(a)||isNaN(b)) return [];
+ const m=n=>(n+10)%10;
+ return [
+  `${a}${b}`,`${b}${a}`,
+  `${m(a+1)}${m(b+3)}`,`${m(b+3)}${m(a+1)}`,
+  `${m(a-5)}${m(b-5)}`
+ ];
+}
+
+/* ================= LOAD CSV ================= */
+csv.onchange=e=>{
+ let r=new FileReader();
+ r.onload=()=>loadCSV(r.result);
+ r.readAsText(e.target.files[0]);
+};
+
+function loadCSV(txt){
+ let lines=txt.trim().split("\n");
+ headers=lines.shift().split(",");
+ grid=lines.map(l=>l.split(","));
+ resizeCanvas();
+ drawChart();
+}
+
+/* ================= CANVAS ================= */
+function resizeCanvas(){
+ cvs.width=headers.length*cellW+100;
+ cvs.height=grid.length*cellH+60;
+}
+
+function drawChart(){
+ ctx.clearRect(0,0,cvs.width,cvs.height);
+ ctx.font="bold 12px Arial";
+ headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
+
+ grid.forEach((r,ri)=>{
+  r.forEach((v,ci)=>{
+   let x=60+ci*cellW, y=40+ri*cellH;
+   ctx.strokeRect(x,y,cellW,cellH);
+   ctx.fillText(v,x+cellW/2-8,y+18);
+  });
+ });
+}
+
+/* ================= MODE ================= */
+function setMode(m){
+ mode=m;
+ userPath=[];
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ drawChart();
+ alert(m==="draw"?"Drawing Mode ON":"Block Pattern Mode ON");
+}
+
+function resetAll(){
+ userPath=[]; found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+ drawChart();
+}
+
+/* ================= CLICK ================= */
+cvs.onclick=e=>{
+ let r=cvs.getBoundingClientRect();
+ let col=Math.floor((e.clientX-r.left-60)/cellW);
+ let row=Math.floor((e.clientY-r.top-40)/cellH);
+ if(!grid[row] || !grid[row][col]) return;
+
+ if(mode==="draw") handleDrawing(row,col);
+ else handleBlockPattern(row,col);
+};
+
+/* ================= DRAWING MODE ================= */
+function handleDrawing(row,col){
+ userPath.push({r:row,c:col,val:grid[row][col]});
+ drawChart(); drawUserPath(userPath);
+ if(userPath.length>1) searchByPath(userPath);
+}
+
+function drawUserPath(path){
+ path.forEach((p,i)=>{
+  let x=60+p.c*cellW+cellW/2;
+  let y=40+p.r*cellH+cellH/2;
+  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.strokeStyle="red";ctx.stroke();
+  ctx.fillText(p.val,x-8,y-14);
+  if(i){
+   let q=path[i-1];
+   ctx.beginPath();
+   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
+   ctx.lineTo(x,y);
+   ctx.strokeStyle="green";ctx.stroke();
+  }
+ });
+}
+
+/* ================= BLOCK PATTERN MODE ================= */
+function handleBlockPattern(row,col){
+ userPath=[{r:row,c:col,val:grid[row][col]}];
+ drawChart(); drawUserPath(userPath);
+
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+
+ for(let start=row-BLOCK_ROWS; start<=row-1; start++){
+  if(start<0) continue;
+  let fam=family(grid[row][col]);
+  fam.forEach(f=>{
+   if(grid[start][col]===f){
+    found.push([{r:start,c:col,val:f},{r:row,c:col,val:grid[row][col]}]);
+   }
+  });
+ }
+ renderCheckLines();
+}
+
+/* ================= SEARCH ================= */
+function searchByPath(path){
+ found=[];
+ document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
+
+ let dr=[], dc=[];
+ for(let i=1;i<path.length;i++){
+  dr.push(path[i].r-path[i-1].r);
+  dc.push(path[i].c-path[i-1].c);
+ }
+
+ for(let br=0;br<grid.length;br++){
+  for(let bc=0;bc<headers.length;bc++){
+   let pts=[], ok=true;
+   for(let i=0;i<path.length;i++){
+    let rr=br+dr.slice(0,i).reduce((a,b)=>a+b,0);
+    let cc=bc+dc.slice(0,i).reduce((a,b)=>a+b,0);
+    if(!grid[rr]||!grid[rr][cc]||
+       !family(path[i].val).includes(grid[rr][cc])){
+       ok=false; break;
+    }
+    pts.push({r:rr,c:cc,val:grid[rr][cc]});
+   }
+   if(ok) found.push(pts);
+  }
+ }
+ renderCheckLines();
+}
+
+/* ================= CHECK LINES ================= */
+function renderCheckLines(){
+ found.forEach((p,i)=>{
+  let d=document.createElement("div");
+  d.className="check";
+  d.innerHTML=`<b>Pattern ${i+1}</b><br>${p.map(x=>x.val).join(" → ")}`;
+  d.onclick=()=>showPattern(p);
+  right.appendChild(d);
+ });
+}
+
+function showPattern(p){
+ drawChart(); drawUserPath(p);
+ showPopup(p);
+}
+
+/* ================= POPUP ================= */
+function showPopup(p){
+ let minR=Math.min(...p.map(x=>x.r));
+ let maxR=Math.max(...p.map(x=>x.r))+1;
+ let cropY=40+minR*cellH;
+ let h=(maxR-minR)*cellH+40;
+ pop.width=cvs.width;
+ pop.height=h;
+ pctx.drawImage(cvs,0,cropY,cvs.width,h,0,0,cvs.width,h);
+ modal.style.display="flex";
+}
+</script>
+
 </body>
 </html>
