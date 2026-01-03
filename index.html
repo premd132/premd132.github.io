@@ -1,32 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Jodi AI Analyzer (FINAL)</title>
+<title>Last Jodi AI Analyzer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h2>🔮 Jodi AI Suggestion Analyzer</h2>
+<h2>🔮 Last Jodi Based AI Suggestion</h2>
 
 <div class="top">
   <input type="file" id="csv">
   <button onclick="addRow()">➕ Add Row</button>
-  <button onclick="analyze()">🤖 Analyze & Suggest</button>
+  <button onclick="analyze()">🤖 Analyze</button>
   <button onclick="clearAll()">🗑 Clear</button>
 </div>
 
 <div class="wrap">
-
   <div class="tableBox">
-    <table id="dataTable"></table>
+    <table id="table"></table>
   </div>
 
   <div class="resultBox">
-    <h3>📌 AI Result</h3>
-    <div id="result">Upload record & click Analyze</div>
+    <h3>AI Result</h3>
+    <div id="result">Upload record</div>
   </div>
-
 </div>
 
 <script src="script.js"></script>
