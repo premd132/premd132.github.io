@@ -1,90 +1,70 @@
-console.clear();
-alert("🔥 NEW Phase-2 ACTIVE");
+let data=[];
+let chart;
 
-let tableData = [];
-
-function generate(){
-  const input = document.getElementById("dataInput").value.trim();
-  const rows = input.split("\n");
-
-  const table = document.getElementById("chart");
-  table.innerHTML = "";
-  tableData = [];
-
-  rows.forEach((rowText, r)=>{
-    const tr = document.createElement("tr");
-    const cells = rowText.trim().split(/\s+/);
-    while(cells.length < 6) cells.push("**");
-
-    tableData[r] = [];
-
-    cells.forEach((val, c)=>{
-      const td = document.createElement("td");
-      td.textContent = val;
-      td.dataset.row = r;
-      td.dataset.col = c;
-
-      if(val === "**") td.classList.add("blank");
-
-      td.onclick = ()=>{
-        console.log("CLICK:", r, c, val);
-        cellClick(r,c,val);
-      };
-
-      tableData[r][c] = td;
-      tr.appendChild(td);
-    });
-
-    table.appendChild(tr);
-  });
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
 }
 
-/* ------------ CLICK ------------ */
+showPage("analysis");
 
-function cellClick(r,c,val){
-  clearMarks();
+document.getElementById("fileInput").addEventListener("change",function(e){
+  const file=e.target.files[0];
+  if(!file) return;
 
-  if(val === "**"){
-    blankClick(r,c);
-  } else {
-    alert("Jodi clicked: " + val);
-  }
-}
-
-/* ------------ BLANK LOGIC ------------ */
-
-function blankClick(r,c){
-  let families = new Set();
-
-  for(let i=r-1; i>=0 && i>=r-10; i--){
-    let v = tableData[i][c].textContent;
-    if(v !== "**"){
-      families.add(v[0]);
-    }
-  }
-
-  console.log("Families found:", [...families]);
-  drawMarks(c, families);
-}
-
-/* ------------ MARK ------------ */
-
-function drawMarks(col, families){
-  families.forEach(fam=>{
-    for(let r=0; r<tableData.length; r++){
-      let td = tableData[r][col];
-      let v = td.textContent;
-      if(v !== "**" && v.startsWith(fam)){
-        td.classList.add("mark");
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    data=[];
+    ev.target.result.split("\n").forEach(line=>{
+      let c=line.trim().split(",");
+      if(c.length===3){
+        data.push({date:c[0],a:+c[1],b:+c[2]});
       }
+    });
+    drawChart();
+    fillTable();
+  };
+  reader.readAsText(file);
+});
+
+function drawChart(){
+  const ctx=document.getElementById("chart");
+  if(chart) chart.destroy();
+
+  chart=new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:data.map(x=>x.date),
+      datasets:[
+        {
+          label:"Jodi-A",
+          data:data.map(x=>x.a),
+          borderColor:"lime",
+          tension:0.4
+        },
+        {
+          label:"Jodi-B",
+          data:data.map(x=>x.b),
+          borderColor:"orange",
+          tension:0.4
+        }
+      ]
     }
-  });
+  };
 }
 
-/* ------------ CLEAR ------------ */
-
-function clearMarks(){
-  document.querySelectorAll(".mark").forEach(td=>{
-    td.classList.remove("mark");
+function fillTable(){
+  const tb=document.getElementById("tableBody");
+  tb.innerHTML="";
+  data.forEach((x,i)=>{
+    let trend=i>0 && x.a>data[i-1].a ? "UP" : "DOWN";
+    tb.innerHTML+=`
+      <tr>
+        <td>${x.date}</td>
+        <td>${x.a}</td>
+        <td>${x.b}</td>
+        <td>${trend}</td>
+      </tr>
+    `;
   });
 }
