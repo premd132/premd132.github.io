@@ -6,38 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#f1d18a;
-}
+body{margin:0;font-family:Arial;background:#f1d18a}
 h2{text-align:center;margin:10px}
 #top{text-align:center;padding:10px}
 button{padding:6px 10px;margin:4px;font-weight:bold}
 table{border-collapse:collapse;margin:auto;background:#fff}
-td,th{
-  border:1px solid #666;
-  padding:4px;
-  text-align:center;
-  font-size:13px;
-}
+td,th{border:1px solid #666;padding:4px;text-align:center;font-size:13px}
 td[contenteditable]{background:#fff6c9}
 #wrap{display:flex;gap:10px;padding:10px}
 #left{width:65%;overflow:auto}
-#right{
-  width:35%;
-  background:#fff;
-  padding:8px;
-  border:3px solid #000;
-  max-height:80vh;
-  overflow:auto
-}
-.sug{
-  border-left:5px solid green;
-  padding:6px;
-  margin:6px 0;
-  background:#f7f7f7
-}
+#right{width:35%;background:#fff;padding:8px;border:3px solid #000;max-height:80vh;overflow:auto}
+.sug{border-left:5px solid green;padding:6px;margin:6px 0;background:#f7f7f7}
 small{color:#444}
 </style>
 </head>
@@ -54,43 +33,31 @@ small{color:#444}
 </div>
 
 <div id="wrap">
-<div id="left">
-  <div id="tableBox"></div>
-</div>
-
-<div id="right">
-  <b>Last Jodi:</b>
-  <div id="lastJodi">–</div>
-  <hr>
-  <b>Top 8 Suggested Jodi</b>
-  <div id="result"></div>
-</div>
+  <div id="left"><div id="tableBox"></div></div>
+  <div id="right">
+    <b>Last Jodi:</b>
+    <div id="lastJodi">–</div>
+    <hr>
+    <b>Top 8 Suggested Jodi</b>
+    <div id="result"></div>
+  </div>
 </div>
 
 <script>
-/* ================= GLOBAL ================= */
+/* ========= GLOBAL ========= */
 let headers=[], grid=[];
 
-/* ================= FAMILY LOGIC ================= */
+/* ========= FAMILY ========= */
 function family(j){
   let a=parseInt(j[0]), b=parseInt(j[1]);
   const m=n=>(n+10)%10;
-  return [
-    `${a}${b}`,
-    `${b}${a}`,
-    `${m(a+1)}${m(b+1)}`,
-    `${m(a-1)}${m(b-1)}`,
-    `${m(a+5)}${m(b+5)}`
-  ];
+  return [`${a}${b}`,`${b}${a}`,`${m(a+1)}${m(b+1)}`,`${m(a-1)}${m(b-1)}`,`${m(a+5)}${m(b+5)}`];
 }
 
-/* ================= CSV LOAD ================= */
-csv.onchange=e=>{
+/* ========= CSV ========= */
+document.getElementById("csv").onchange=e=>{
   let r=new FileReader();
-  r.onload=()=>{
-    localStorage.setItem("savedCSV",r.result);
-    loadCSV(r.result);
-  };
+  r.onload=()=>{localStorage.setItem("savedCSV",r.result);loadCSV(r.result);}
   r.readAsText(e.target.files[0]);
 };
 
@@ -121,87 +88,42 @@ function renderTable(){
   tableBox.innerHTML=html;
 }
 
-function edit(r,c,v){
-  grid[r][c]=v.trim();
-  save();
-}
-
-function addRow(){
-  grid.push(headers.map(()=>"--"));
-  save(); renderTable();
-}
-
+function edit(r,c,v){grid[r][c]=v.trim();save();}
+function addRow(){grid.push(headers.map(()=>"--"));save();renderTable();}
 function save(){
   let t=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
   localStorage.setItem("savedCSV",t);
 }
 
-/* ================= ANALYSIS ================= */
+/* ========= ANALYZE ========= */
 function analyze(){
-  let freq={}, dayFreq={};
-  let all=[];
-
-  grid.forEach(row=>{
-    row.forEach((v,i)=>{
-      if(/^\d{2}$/.test(v)){
-        freq[v]=(freq[v]||0)+1;
-        let d=headers[i];
-        dayFreq[d]=dayFreq[d]||{};
-        dayFreq[d][v]=(dayFreq[d][v]||0)+1;
-        all.push(v);
-      }
-    });
-  });
-
+  let freq={}, all=[];
+  grid.forEach(row=>row.forEach(v=>{/^\d{2}$/.test(v)&&(freq[v]=(freq[v]||0)+1,all.push(v))}));
   if(all.length<2) return;
 
-  let last=all[all.length-1];
-  let prev=all[all.length-2];
+  let last=all.at(-1), prev=all.at(-2);
   lastJodi.innerHTML=`<b>${last}</b> (prev ${prev})`;
 
-  let famLast=family(last);
-  let famPrev=family(prev);
-
-  let score={};
-
+  let fL=family(last), fP=family(prev), score={};
   Object.keys(freq).forEach(j=>{
-    let s=0;
     if(j===last) return;
-
-    if(famLast.includes(j)) s+=4;
-    if(famPrev.includes(j)) s+=3;
-    s+=freq[j];
-    score[j]=s;
+    score[j]=(fL.includes(j)?4:0)+(fP.includes(j)?3:0)+freq[j];
   });
 
-  let top=Object.entries(score)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,8);
-
-  let out="";
-  top.forEach(([j,s],i)=>{
-    out+=`
+  let top=Object.entries(score).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  result.innerHTML=top.map(([j,s],i)=>`
     <div class="sug">
       <b>${i+1}. ${j}</b><br>
-      <small>
-        Family: ${family(j).join(", ")}<br>
-        Score: ${s}<br>
-        Logic: frequency + family overlap with last (${last}) & prev (${prev})
-      </small>
-    </div>`;
-  });
-
-  result.innerHTML=out;
+      <small>Family: ${family(j).join(", ")}<br>Score: ${s}<br>Logic: frequency + family overlap</small>
+    </div>`).join("");
 }
 
-/* ================= CLEAR ================= */
+/* ========= CLEAR ========= */
 function clearAll(){
   if(!confirm("Clear all data?"))return;
   localStorage.removeItem("savedCSV");
-  headers=[]; grid=[];
-  tableBox.innerHTML="";
-  result.innerHTML="";
-  lastJodi.innerHTML="–";
+  headers=[];grid=[];
+  tableBox.innerHTML="";result.innerHTML="";lastJodi.innerHTML="–";
 }
 </script>
 
