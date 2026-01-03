@@ -2,81 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🔮 Jodi Suggestion Analyzer (FINAL)</title>
+<title>🔮 Jodi Suggestion Analyzer (AI + Day Logic)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f2d28b;
-}
+body{margin:0;font-family:Arial;background:#f2d28b}
 h2{text-align:center;margin:10px}
+#top{text-align:center;padding:10px;background:#eac46b}
+button{padding:6px 12px;margin:4px;font-weight:bold;cursor:pointer}
 
-#top{
-  text-align:center;
-  padding:10px;
-  background:#eac46b;
-}
-button{
-  padding:6px 12px;
-  margin:4px;
-  cursor:pointer;
-  font-weight:bold;
-}
-#wrap{
-  display:flex;
-  gap:10px;
-  padding:10px;
-}
+#wrap{display:flex;gap:10px;padding:10px}
 #tableWrap{
-  width:65%;
-  background:#fff;
-  border:3px solid #000;
-  overflow:auto;
-  max-height:80vh;
+  width:65%;background:#fff;border:3px solid #000;
+  overflow:auto;max-height:80vh
 }
 #right{
-  width:35%;
-  background:#fff;
-  border:3px solid #000;
-  padding:10px;
-  max-height:80vh;
-  overflow:auto;
+  width:35%;background:#fff;border:3px solid #000;
+  padding:10px;max-height:80vh;overflow:auto
 }
 
-table{
-  border-collapse:collapse;
-  width:100%;
-}
-td,th{
-  border:1px solid #999;
-  padding:4px;
-  text-align:center;
-  font-size:13px;
-}
-td[contenteditable]{
-  background:#fff6c7;
-}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #999;padding:4px;text-align:center;font-size:13px}
+td[contenteditable]{background:#fff6c7}
 
-.family{
-  color:#c40000;
-  font-weight:bold;
-}
-.suggest{
-  border-bottom:1px solid #ccc;
-  padding:6px 0;
-}
-.score{
-  font-size:12px;
-  color:#555;
-}
+.suggest{border-bottom:1px solid #ccc;padding:8px 0}
+.family{color:#b40000;font-weight:bold}
+.score{font-size:12px;color:#444}
+.ai{font-size:12px;color:#1b4f72;margin-top:4px}
+.day{font-size:12px;color:#006400;font-weight:bold}
 </style>
 </head>
 
 <body>
 
-<h2>🔮 Jodi Suggestion Analyzer (FINAL)</h2>
+<h2>🔮 Jodi Suggestion Analyzer (AI + Day-wise)</h2>
 
 <div id="top">
   <input type="file" id="csv">
@@ -98,10 +57,9 @@ td[contenteditable]{
 </div>
 
 <script>
-let headers=[];
-let grid=[];
+let headers=[], grid=[];
 
-/* ========= FAMILY / PALTI LOGIC ========= */
+/* ===== FAMILY / PALTI ===== */
 function family(j){
   let a=parseInt(j[0]), b=parseInt(j[1]);
   if(isNaN(a)||isNaN(b)) return [];
@@ -114,10 +72,10 @@ function family(j){
   ];
 }
 
-/* ========= LOAD / SAVE ========= */
+/* ===== LOAD / SAVE ===== */
 window.onload=()=>{
-  let saved=localStorage.getItem("jodiCSV");
-  if(saved) loadCSV(saved);
+  let s=localStorage.getItem("jodiCSV");
+  if(s) loadCSV(s);
 };
 
 csv.onchange=e=>{
@@ -136,7 +94,12 @@ function loadCSV(txt){
   renderTable();
 }
 
-/* ========= TABLE ========= */
+function save(){
+  let t=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
+  localStorage.setItem("jodiCSV",t);
+}
+
+/* ===== TABLE ===== */
 function renderTable(){
   let h="<tr>";
   headers.forEach(x=>h+=`<th>${x}</th>`);
@@ -162,63 +125,79 @@ function addRow(){
   save(); renderTable();
 }
 
-function save(){
-  let txt=headers.join(",")+"\n"+grid.map(r=>r.join(",")).join("\n");
-  localStorage.setItem("jodiCSV",txt);
-}
-
-/* ========= ANALYSIS ========= */
+/* ===== ANALYSIS (DAY + AI) ===== */
 function analyze(){
-  if(!grid.length) return;
+  let freq={}, dayFreq={};
+  let lastJodi=null, lastDay=null;
 
-  let all=[];
-  grid.forEach(r=>r.forEach(v=>{
-    if(/^\d{2}$/.test(v)) all.push(v);
-  }));
+  grid.forEach(row=>{
+    row.forEach((v,i)=>{
+      if(/^\d{2}$/.test(v)){
+        freq[v]=(freq[v]||0)+1;
+        let d=headers[i];
+        dayFreq[d]=dayFreq[d]||{};
+        dayFreq[d][v]=(dayFreq[d][v]||0)+1;
+        lastJodi=v;
+        lastDay=d;
+      }
+    });
+  });
 
-  let last=all[all.length-1];
-  document.getElementById("last").innerHTML=`<b>${last}</b>`;
+  if(!lastJodi) return;
 
-  let freq={};
-  all.forEach(v=>freq[v]=(freq[v]||0)+1);
+  document.getElementById("last").innerHTML=
+    `<b>${lastJodi}</b> <div class="day">Day: ${lastDay}</div>`;
 
-  let fam=family(last);
+  let famLast=family(lastJodi);
   let score={};
 
   Object.keys(freq).forEach(j=>{
     let s=freq[j];
-    if(fam.includes(j)) s+=5;
+    let reason=[];
+
+    if(famLast.includes(j)){
+      s+=5;
+      reason.push("family/palti match with last jodi");
+    }
+
+    if(dayFreq[lastDay] && dayFreq[lastDay][j]){
+      s+=dayFreq[lastDay][j]*3;
+      reason.push(`same day (${lastDay}) repetition`);
+    }
+
     family(j).forEach(x=>{
-      if(freq[x]) s+=freq[x];
+      if(freq[x]){
+        s+=freq[x];
+        reason.push(`family strength from ${x}`);
+      }
     });
-    score[j]=s;
+
+    score[j]={val:s, why:[...new Set(reason)]};
   });
 
   let top=Object.entries(score)
-    .sort((a,b)=>b[1]-a[1])
+    .sort((a,b)=>b[1].val-a[1].val)
     .slice(0,4);
 
   let out="";
-  top.forEach(([j,s],i)=>{
+  top.forEach(([j,o],i)=>{
     out+=`
-      <div class="suggest">
-        <b>${i+1}. ${j}</b><br>
-        <span class="family">Family:</span> ${family(j).join(", ")}<br>
-        <span class="score">Score: ${s}</span>
-      </div>
-    `;
+    <div class="suggest">
+      <b>${i+1}. ${j}</b><br>
+      <span class="family">Family:</span> ${family(j).join(", ")}<br>
+      <span class="score">Score: ${o.val}</span>
+      <div class="ai">🤖 AI Logic: ${o.why.join("; ") || "frequency based pattern"}</div>
+    </div>`;
   });
   result.innerHTML=out;
 }
 
-/* ========= CLEAR ========= */
+/* ===== CLEAR ===== */
 function clearAll(){
-  if(!confirm("Clear all data?")) return;
+  if(!confirm("Clear all data?"))return;
   localStorage.removeItem("jodiCSV");
-  headers=[]; grid=[];
-  tbl.innerHTML="";
-  result.innerHTML="";
-  last.innerHTML="—";
+  headers=[];grid=[];
+  tbl.innerHTML="";result.innerHTML="";last.innerHTML="—";
 }
 </script>
 
