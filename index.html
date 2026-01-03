@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>i-Smart King – Analysis</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>i-Smart King</h1>
+  <p>Advanced Pattern & Trend Analysis</p>
+</header>
+
+<section class="cards">
+  <div onclick="showLine()">📈 Line Analysis</div>
+  <div onclick="showTable()">📋 Table Trick</div>
+</section>
+
+<section class="tools">
+  <input type="date" id="dateFilter">
+  <input type="file" id="fileInput">
+</section>
+
+<canvas id="chart"></canvas>
+<div id="bubbleBox"></div>
+
+<table id="table">
+<thead>
+<tr><th>Date</th><th>Jodi-A</th><th>Jodi-B</th><th>Trend</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script src="script.js"></script>
+</body>
+</html>
