@@ -1,70 +1,121 @@
-let data=[];
-let chart;
+let headers = ["A","B","C","D"];
+let grid = [];
 
-function showPage(id){
-  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
-  document.getElementById(id).style.display="block";
+/* ================= LOAD CSV ================= */
+document.getElementById("csv").onchange = e=>{
+  let r = new FileReader();
+  r.onload = ()=>{
+    parseCSV(r.result);
+    save();
+    render();
+  };
+  r.readAsText(e.target.files[0]);
+};
+
+function parseCSV(txt){
+  let lines = txt.trim().split("\n");
+  grid = lines.map(l=>l.split(","));
 }
 
-showPage("analysis");
+/* ================= TABLE ================= */
+function render(){
+  let t = document.getElementById("dataTable");
+  let html="<tr>";
+  headers.forEach(h=>html+=`<th>${h}</th>`);
+  html+="</tr>";
 
-document.getElementById("fileInput").addEventListener("change",function(e){
-  const file=e.target.files[0];
-  if(!file) return;
+  grid.forEach((r,i)=>{
+    html+="<tr>";
+    r.forEach((v,j)=>{
+      html+=`<td contenteditable onblur="edit(${i},${j},this.innerText)">${v}</td>`;
+    });
+    html+="</tr>";
+  });
+  t.innerHTML=html;
+}
 
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    data=[];
-    ev.target.result.split("\n").forEach(line=>{
-      let c=line.trim().split(",");
-      if(c.length===3){
-        data.push({date:c[0],a:+c[1],b:+c[2]});
+function edit(r,c,v){
+  grid[r][c]=v.trim();
+  save();
+}
+
+function addRow(){
+  grid.push(["","","",""]);
+  save();
+  render();
+}
+
+/* ================= SAVE ================= */
+function save(){
+  localStorage.setItem("jodiData",JSON.stringify(grid));
+}
+
+function load(){
+  let d=localStorage.getItem("jodiData");
+  if(d){
+    grid=JSON.parse(d);
+    render();
+  }
+}
+load();
+
+/* ================= FAMILY ================= */
+function family(j){
+  let a=j[0], b=j[1];
+  return [
+    a+b, b+a,
+    a+a, b+b,
+    (9-a)+""+(9-b)
+  ];
+}
+
+/* ================= AI ANALYZE ================= */
+function analyze(){
+
+  let digitFreq={};
+
+  grid.forEach(r=>{
+    r.forEach(v=>{
+      if(/^\d{2}$/.test(v)){
+        digitFreq[v[0]]=(digitFreq[v[0]]||0)+1;
+        digitFreq[v[1]]=(digitFreq[v[1]]||0)+1;
       }
     });
-    drawChart();
-    fillTable();
-  };
-  reader.readAsText(file);
-});
+  });
 
-function drawChart(){
-  const ctx=document.getElementById("chart");
-  if(chart) chart.destroy();
+  let singles = Object.entries(digitFreq)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(x=>x[0]);
 
-  chart=new Chart(ctx,{
-    type:"line",
-    data:{
-      labels:data.map(x=>x.date),
-      datasets:[
-        {
-          label:"Jodi-A",
-          data:data.map(x=>x.a),
-          borderColor:"lime",
-          tension:0.4
-        },
-        {
-          label:"Jodi-B",
-          data:data.map(x=>x.b),
-          borderColor:"orange",
-          tension:0.4
-        }
-      ]
-    }
-  };
+  let [x,y,z]=singles;
+
+  /* ===== ONLY 8 JODI ===== */
+  let jodi = [
+    x+y, y+x,
+    x+z, z+x,
+    y+z, z+y,
+    x+x, z+z
+  ];
+
+  let html = `
+  <b>🤖 AI Single Ank:</b><br>
+  ${singles.join(" , ")}<br><br>
+
+  <b>🎯 Only 8 Suggested Jodi:</b><br>
+  ${jodi.join(" , ")}<br><br>
+
+  <i>Logic: frequency + controlled family</i>
+  `;
+
+  document.getElementById("result").innerHTML=html;
 }
 
-function fillTable(){
-  const tb=document.getElementById("tableBody");
-  tb.innerHTML="";
-  data.forEach((x,i)=>{
-    let trend=i>0 && x.a>data[i-1].a ? "UP" : "DOWN";
-    tb.innerHTML+=`
-      <tr>
-        <td>${x.date}</td>
-        <td>${x.a}</td>
-        <td>${x.b}</td>
-        <td>${trend}</td>
-      </tr>
-    `;
-  });
+/* ================= CLEAR ================= */
+function clearAll(){
+  if(!confirm("Clear all data?"))return;
+  localStorage.removeItem("jodiData");
+  grid=[];
+  render();
+  document.getElementById("result").innerHTML="Cleared";
 }
