@@ -2,29 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pattern Analyzer – FINAL STABLE</title>
+<title>Pattern Analyzer – Drawing | Block | Blank Box (FINAL)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{margin:0;font-family:Arial;background:#f1d18a}
-h2{text-align:center;margin:10px}
-
-#top{text-align:center;padding:10px}
-button{padding:6px 10px;margin:4px;font-weight:bold}
-
-#wrap{display:flex;gap:10px;padding:10px}
+h2{text-align:center;margin:8px}
+#top{text-align:center;padding:8px}
+button{padding:6px 10px;margin:3px;font-weight:bold}
+#wrap{display:flex;gap:10px;padding:8px}
 #chartWrap{height:80vh;overflow:auto;border:3px solid #000;background:#fff}
 canvas{background:#fff}
-
 #right{width:28%;max-height:80vh;overflow:auto}
 .check{
  background:#fff;
  margin:6px;
  padding:6px;
- border-left:5px solid red;
+ border-left:6px solid red;
  cursor:pointer;
  font-size:13px
 }
-
 #modal{
  display:none;
  position:fixed;
@@ -45,13 +42,14 @@ canvas{background:#fff}
 
 <body>
 
-<h2>📊 Pattern Analyzer – Drawing + Block Pattern (FINAL)</h2>
+<h2>📊 Pattern Analyzer – Drawing + Block + Blank Box (FINAL)</h2>
 
 <div id="top">
 <input type="file" id="csv">
-<button onclick="setMode('draw')">✏️ Drawing Mode</button>
-<button onclick="setMode('block')">🧱 Block Pattern Mode</button>
-<button onclick="resetAll()">🔄 Reset</button>
+<button onclick="setMode('draw')">✏ Drawing Mode</button>
+<button onclick="setMode('block')">🧱 Block Pattern</button>
+<button onclick="setMode('blank')">⬜ Blank Box Mode</button>
+<button onclick="resetAll()">Reset</button>
 </div>
 
 <div id="wrap">
@@ -66,11 +64,10 @@ canvas{background:#fff}
 </div>
 
 <script>
-/* ================= GLOBAL ================= */
+/* ========== GLOBAL ========== */
 let headers=[], grid=[];
-let mode="draw";              // draw | block
-let userPath=[];              // drawing path
-let found=[];                 // matched patterns
+let mode="draw";
+let userPath=[], found=[];
 const BLOCK_ROWS=10;
 
 const cellW=80, cellH=30;
@@ -79,23 +76,31 @@ const ctx=cvs.getContext("2d");
 const pop=document.getElementById("popup");
 const pctx=pop.getContext("2d");
 
-/* ================= FAMILY LOGIC (UNCHANGED) ================= */
+/* ========== FAMILY LOGIC (UNCHANGED) ========== */
 function family(j){
  if(!j || j.length<2) return [];
  let a=parseInt(j[0]), b=parseInt(j[1]);
- if(isNaN(a)||isNaN(b)) return [];
  const m=n=>(n+10)%10;
  return [
   `${a}${b}`,`${b}${a}`,
-  `${m(a+1)}${m(b+3)}`,`${m(b+3)}${m(a+1)}`,
+  `${m(a+1)}${m(b+3)}`,
+  `${m(b+3)}${m(a+1)}`,
   `${m(a-5)}${m(b-5)}`
  ];
 }
 
-/* ================= LOAD CSV ================= */
+/* ========== LOAD CSV ========== */
+window.onload=()=>{
+ let s=localStorage.getItem("savedCSV");
+ if(s) loadCSV(s);
+};
+
 csv.onchange=e=>{
  let r=new FileReader();
- r.onload=()=>loadCSV(r.result);
+ r.onload=()=>{
+  localStorage.setItem("savedCSV",r.result);
+  loadCSV(r.result);
+ };
  r.readAsText(e.target.files[0]);
 };
 
@@ -103,38 +108,40 @@ function loadCSV(txt){
  let lines=txt.trim().split("\n");
  headers=lines.shift().split(",");
  grid=lines.map(l=>l.split(","));
- resizeCanvas();
+ drawAll();
+}
+
+function drawAll(){
+ cvs.width=headers.length*cellW+100;
+ cvs.height=grid.length*cellH+60;
  drawChart();
 }
 
-/* ================= CANVAS ================= */
-function resizeCanvas(){
- cvs.width=headers.length*cellW+100;
- cvs.height=grid.length*cellH+60;
-}
-
+/* ========== DRAW CHART ========== */
 function drawChart(){
  ctx.clearRect(0,0,cvs.width,cvs.height);
  ctx.font="bold 12px Arial";
  headers.forEach((h,i)=>ctx.fillText(h,80+i*cellW,20));
-
  grid.forEach((r,ri)=>{
   r.forEach((v,ci)=>{
-   let x=60+ci*cellW, y=40+ri*cellH;
+   let x=60+ci*cellW,y=40+ri*cellH;
+   ctx.strokeStyle="#0a7";
    ctx.strokeRect(x,y,cellW,cellH);
-   ctx.fillText(v,x+cellW/2-8,y+18);
+   if(v && v!=="**"){
+    ctx.fillStyle="#000";
+    ctx.fillText(v,x+cellW/2-8,y+18);
+   }
   });
  });
 }
 
-/* ================= MODE ================= */
+/* ========== MODE SWITCH ========== */
 function setMode(m){
  mode=m;
- userPath=[];
- found=[];
+ userPath=[]; found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
  drawChart();
- alert(m==="draw"?"Drawing Mode ON":"Block Pattern Mode ON");
+ alert(m.toUpperCase()+" MODE ON");
 }
 
 function resetAll(){
@@ -143,92 +150,106 @@ function resetAll(){
  drawChart();
 }
 
-/* ================= CLICK ================= */
+/* ========== CANVAS CLICK (BLANK FIXED) ========== */
 cvs.onclick=e=>{
  let r=cvs.getBoundingClientRect();
  let col=Math.floor((e.clientX-r.left-60)/cellW);
  let row=Math.floor((e.clientY-r.top-40)/cellH);
- if(!grid[row] || !grid[row][col]) return;
+ if(!grid[row]) return;
 
- if(mode==="draw") handleDrawing(row,col);
- else handleBlockPattern(row,col);
+ if(mode==="draw") handleDraw(row,col);
+ if(mode==="block") handleBlock(row,col);
+ if(mode==="blank") handleBlank(row,col);
 };
 
-/* ================= DRAWING MODE ================= */
-function handleDrawing(row,col){
- userPath.push({r:row,c:col,val:grid[row][col]});
- drawChart(); drawUserPath(userPath);
- if(userPath.length>1) searchByPath(userPath);
+/* ========== DRAWING MODE ========== */
+function handleDraw(r,c){
+ let v=grid[r][c];
+ if(!v || v==="**") return;
+ userPath.push({r,c,val:v});
+ drawUserPath(userPath);
+ if(userPath.length>1) searchPattern(userPath);
 }
 
-function drawUserPath(path){
- path.forEach((p,i)=>{
-  let x=60+p.c*cellW+cellW/2;
-  let y=40+p.r*cellH+cellH/2;
-  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
-  ctx.strokeStyle="red";ctx.stroke();
-  ctx.fillText(p.val,x-8,y-14);
+/* ========== BLANK BOX MODE ========== */
+function handleBlank(r,c){
+ let start=Math.max(0,r-BLOCK_ROWS);
+ userPath=[];
+ for(let i=start;i<r;i++){
+  let v=grid[i][c];
+  if(v && v!=="**"){
+   userPath.push({r:i,c,val:v});
+  }
+ }
+ drawUserPath(userPath);
+ if(userPath.length>1) searchPattern(userPath);
+}
+
+/* ========== BLOCK MODE ========== */
+function handleBlock(r,c){
+ let base=grid[r][c];
+ if(!base || base==="**") return;
+ userPath=[{r,c,val:base}];
+ for(let i=1;i<BLOCK_ROWS;i++){
+  if(grid[r+i] && grid[r+i][c]){
+   userPath.push({r:r+i,c,val:grid[r+i][c]});
+  }
+ }
+ drawUserPath(userPath);
+ searchPattern(userPath);
+}
+
+/* ========== DRAW PATH ========== */
+function drawUserPath(p){
+ drawChart();
+ p.forEach((pt,i)=>{
+  let x=60+pt.c*cellW+cellW/2;
+  let y=40+pt.r*cellH+cellH/2;
+  ctx.beginPath();
+  ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.strokeStyle="red";
+  ctx.stroke();
+  ctx.fillText(pt.val,x-8,y-14);
   if(i){
-   let q=path[i-1];
+   let pr=p[i-1];
    ctx.beginPath();
-   ctx.moveTo(60+q.c*cellW+cellW/2,40+q.r*cellH+cellH/2);
+   ctx.moveTo(60+pr.c*cellW+cellW/2,40+pr.r*cellH+cellH/2);
    ctx.lineTo(x,y);
-   ctx.strokeStyle="green";ctx.stroke();
+   ctx.strokeStyle="green";
+   ctx.stroke();
   }
  });
 }
 
-/* ================= BLOCK PATTERN MODE ================= */
-function handleBlockPattern(row,col){
- userPath=[{r:row,c:col,val:grid[row][col]}];
- drawChart(); drawUserPath(userPath);
-
+/* ========== SEARCH PATTERN ========== */
+function searchPattern(base){
  found=[];
  document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
-
- for(let start=row-BLOCK_ROWS; start<=row-1; start++){
-  if(start<0) continue;
-  let fam=family(grid[row][col]);
-  fam.forEach(f=>{
-   if(grid[start][col]===f){
-    found.push([{r:start,c:col,val:f},{r:row,c:col,val:grid[row][col]}]);
-   }
-  });
+ let dr=[],dc=[];
+ for(let i=1;i<base.length;i++){
+  dr.push(base[i].r-base[i-1].r);
+  dc.push(base[i].c-base[i-1].c);
  }
- renderCheckLines();
-}
-
-/* ================= SEARCH ================= */
-function searchByPath(path){
- found=[];
- document.getElementById("right").innerHTML="<b>Pattern Check Lines</b>";
-
- let dr=[], dc=[];
- for(let i=1;i<path.length;i++){
-  dr.push(path[i].r-path[i-1].r);
-  dc.push(path[i].c-path[i-1].c);
- }
-
- for(let br=0;br<grid.length;br++){
-  for(let bc=0;bc<headers.length;bc++){
-   let pts=[], ok=true;
-   for(let i=0;i<path.length;i++){
-    let rr=br+dr.slice(0,i).reduce((a,b)=>a+b,0);
-    let cc=bc+dc.slice(0,i).reduce((a,b)=>a+b,0);
+ for(let r=0;r<grid.length;r++){
+  for(let c=0;c<headers.length;c++){
+   let pts=[],ok=true;
+   for(let i=0;i<base.length;i++){
+    let rr=r+(dr.slice(0,i).reduce((a,b)=>a+b,0));
+    let cc=c+(dc.slice(0,i).reduce((a,b)=>a+b,0));
     if(!grid[rr]||!grid[rr][cc]||
-       !family(path[i].val).includes(grid[rr][cc])){
-       ok=false; break;
+       !family(base[i].val).includes(grid[rr][cc])){
+        ok=false;break;
     }
     pts.push({r:rr,c:cc,val:grid[rr][cc]});
    }
    if(ok) found.push(pts);
   }
  }
- renderCheckLines();
+ renderChecks();
 }
 
-/* ================= CHECK LINES ================= */
-function renderCheckLines(){
+/* ========== CHECK LINES ========== */
+function renderChecks(){
  found.forEach((p,i)=>{
   let d=document.createElement("div");
   d.className="check";
@@ -239,18 +260,16 @@ function renderCheckLines(){
 }
 
 function showPattern(p){
- drawChart(); drawUserPath(p);
+ drawUserPath(p);
  showPopup(p);
 }
 
-/* ================= POPUP ================= */
 function showPopup(p){
  let minR=Math.min(...p.map(x=>x.r));
  let maxR=Math.max(...p.map(x=>x.r))+1;
  let cropY=40+minR*cellH;
  let h=(maxR-minR)*cellH+40;
- pop.width=cvs.width;
- pop.height=h;
+ pop.width=cvs.width; pop.height=h;
  pctx.drawImage(cvs,0,cropY,cvs.width,h,0,0,cvs.width,h);
  modal.style.display="flex";
 }
