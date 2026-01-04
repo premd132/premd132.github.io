@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pattern Engine – FINAL</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Pattern Engine – FINAL</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -23,19 +23,15 @@
   <table id="grid"></table>
 
   <div id="panel">
-    <b>Mode:</b> <span id="modeLabel">Basic</span><br><br>
-    Blank cell पर click करो<br>
-    Double-click से edit test करो
+    <b>Mode:</b> <span id="modeLabel">BASIC</span><br><br>
+    👉 Blank cell पर click = Analysis<br>
+    👉 Cell पर **double tap** = Edit
   </div>
 </div>
 
 <canvas id="cv"></canvas>
 
-<!-- CORE -->
 <script src="engine.js"></script>
-<script src="patternEngine.js"></script>
-
-<!-- LOGIC ENGINES -->
 <script src="pattern_engine_basic.js"></script>
 <script src="pattern_engine_family.js"></script>
 <script src="pattern_engine_photo.js"></script>
