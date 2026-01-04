@@ -173,3 +173,18 @@ window.addRow = addRow;
 window.clearGrid = clearGrid;
 /* LOAD SAVED ON START */
 loadSaved();
+// ===== INIT GRID ON LOAD =====
+function initEmptyGrid(rows = 30, cols = 6) {
+  data = [];
+  for (let i = 0; i < rows; i++) {
+    const row = [];
+    for (let j = 0; j < cols; j++) row.push("");
+    data.push(row);
+  }
+  render();
+}
+
+// First time load
+if (data.length === 0) {
+  initEmptyGrid();
+}
