@@ -19,18 +19,20 @@
   <button onclick="clearGrid()">Clear</button>
 </div>
 
-<div class="container">
-  <table id="grid" border="1"></table>
+<div class="wrap">
+  <table id="grid"></table>
 
-  <div class="side-panel" id="panel">
+  <div id="panel">
     <b>Mode:</b> <span id="modeLabel">Basic</span><br><br>
-    Cell पर click / double-click करके test करो
+    Blank cell पर click करो<br>
+    Double-click से edit test करो
   </div>
 </div>
 
 <canvas id="cv"></canvas>
 
 <!-- CORE -->
+<script src="engine.js"></script>
 <script src="patternEngine.js"></script>
 
 <!-- LOGIC ENGINES -->
