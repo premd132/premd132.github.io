@@ -1,72 +1,53 @@
-// ===============================
-// BLANK BOX CLICK HANDLER
-// ===============================
-function blankPattern(r, c) {
-  clearMarks();
+// ========= PHASE 2 : PATTERN ENGINE =========
 
-  // 1️⃣ Base pattern (last 8–9 rows)
-  let base = [];
-  for (let i = r - 1; i >= 0 && base.length < 9; i--) {
-    if (grid[i][c] !== "**") base.push(grid[i][c]);
+// pattern = selected blank cell ke upar ke 10 row ka structure
+function scanPatterns(grid, r, c){
+  let pattern = [];
+
+  for(let i=1;i<=10;i++){
+    if(r-i < 0) break;
+
+    const center = grid[r-i][c];
+    const left   = c-1 >= 0 ? grid[r-i][c-1] : null;
+    const right  = c+1 < 6 ? grid[r-i][c+1] : null;
+
+    pattern.push({
+      row: r-i,
+      c,
+      center,
+      left,
+      right
+    });
   }
-
-  if (base.length < 4) {
-    alert("Pattern kam hai");
-    return;
-  }
-
-  let foundCount = 0;
-
-  // 2️⃣ Search same pattern in full history
-  for (let i = 0; i < rows; i++) {
-    let ok = true;
-
-    for (let k = 0; k < base.length; k++) {
-      if (!grid[i + k] || grid[i + k][c] === "**") {
-        ok = false;
-        break;
-      }
-      if (!sameFamily(base[k], grid[i + k][c])) {
-        ok = false;
-        break;
-      }
-    }
-
-    if (ok) {
-      foundCount++;
-      markLine(i, c, base.length); // 🔵 blue line + under mark
-    }
-  }
-
-  // 3️⃣ AI popup ONLY if pattern found
-  if (foundCount > 0) {
-    aiSuggest(base, foundCount);
-  } else {
-    alert("Koi matching pattern nahi mila");
-  }
+  return pattern;
 }
 
-// ===============================
-// AI JODI SUGGESTION
-// ===============================
-function aiSuggest(base, count) {
-  let set = new Set();
+// poore record me isi pattern ko dhoondhna
+function searchPatternInRecord(grid, pattern){
+  let hits = [];
 
-  base.forEach(v => {
-    let a = parseInt(v[0]);
-    let b = parseInt(v[1]);
-    if (isNaN(a) || isNaN(b)) return;
+  for(let r=10; r<grid.length-1; r++){
+    for(let c=0; c<6; c++){
 
-    set.add(`${a}${(b + 1) % 10}`);
-    set.add(`${(a + 1) % 10}${b}`);
-    set.add(`${(a + 9) % 10}${b}`);
-  });
+      let match=true;
 
-  let res = [...set].slice(0, 4);
+      for(let i=0;i<pattern.length;i++){
+        const p = pattern[i];
+        const rr = r-i;
 
-  alert(
-    "🤖 AI Strong Jodi\n\n" +
-    "Patterns Found: " + count + "\n\n" +
-    res.join(" , ")
-  );
+        if(!grid[rr]) { match=false; break; }
+
+        if(p.center && grid[rr][c] !== p.center) match=false;
+        if(p.left && c-1>=0 && grid[rr][c-1] !== p.left) match=false;
+        if(p.right && c+1<6 && grid[rr][c+1] !== p.right) match=false;
+
+        if(!match) break;
+      }
+
+      if(match){
+        hits.push({ r: r+1, c });
+      }
+    }
+  }
+  return hits;
 }
