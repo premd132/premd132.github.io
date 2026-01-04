@@ -52,9 +52,17 @@ function render(){
       td.onclick = ()=> clickCell(r,c);
 
       /* double tap = edit */
-      td.ondblclick = ()=>{
-        td.contentEditable = true;
-        td.focus();
+      /* CLICK */
+td.onclick = ()=>{
+  if(!data[r][c]) {
+    // blank = analysis
+    clickCell(r,c);
+  } else {
+    // filled = edit
+    td.contentEditable = true;
+    td.focus();
+  }
+};
       };
 
       /* save after edit */
