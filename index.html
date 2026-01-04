@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Pattern Engine – FINAL</title>
@@ -7,27 +7,25 @@
 </head>
 <body>
 
-<h2>📊 Pattern Engine – FINAL (Photo Style)</h2>
+<h2>📊 Family Pattern Engine (FINAL)</h2>
 
-<div class="top-bar">
-  <input type="file" id="csvFile">
+<div class="top">
+  <input type="file" id="csv">
   <button onclick="addRow()">+ Add Row</button>
-  <button onclick="clearGrid()">Clear</button>
 </div>
 
-<div class="wrapper">
-  <div class="grid-wrap">
-    <canvas id="drawCanvas"></canvas>
+<div class="wrap">
+  <div class="gridWrap">
+    <canvas id="cv"></canvas>
     <table id="grid"></table>
   </div>
 
-  <div class="side-panel" id="result">
-    <b>Selected Cell</b><br>
-    Click blank box to analyze<br><br>
+  <div class="panel" id="panel">
+    Blank cell पर click करो
   </div>
 </div>
 
-<script src="engine.js"></script>
 <script src="patternEngine.js"></script>
+<script src="engine.js"></script>
 </body>
 </html>
