@@ -1,33 +1,34 @@
-const FAMILY = {
- "45":["45","54","40","04","59","95","09","90"]
-};
+function familyEngine(data, r, c) {
+  const family = n => {
+    const a = n[0], b = n[1];
+    return [
+      a + b,
+      a + "0",
+      "0" + b,
+      b + a,
+      b + "9",
+      "9" + b,
+      "9" + a,
+      a + "9"
+    ];
+  };
 
-function familyEngine(data,r,c){
-  let last = null;
-  for(let i=r-1;i>=0;i--){
-    if(data[i][c]){ last=data[i][c]; break; }
-  }
-  if(!last || !FAMILY[last]){
-    return {points:[], html:"Family not found"};
-  }
+  let found = [];
+  let points = [];
 
-  let fam = FAMILY[last];
-  let hits=[];
-  let pts=[];
+  for (let i = r - 1; i >= Math.max(0, r - 10); i--) {
+    const v = data[i][c];
+    if (!v) continue;
 
-  data.forEach((row,i)=>{
-    row.forEach((v,j)=>{
-      if(fam.includes(v)){
-        hits.push(v);
-        pts.push({r:i,c:j});
-      }
+    family(v).forEach(f => {
+      found.push(f);
     });
-  });
 
-  return{
-    points:pts,
-    html:`<b>Family Pattern</b><br>
-    Base: ${last}<br>
-    Family: ${fam.join(", ")}`
+    points.push({ r: i, c });
   }
+
+  const singles = [...new Set(found.map(f => f[0]))].slice(0, 3);
+  const jodi = found.slice(0, 8);
+
+  return { singles, jodi, points };
 }
