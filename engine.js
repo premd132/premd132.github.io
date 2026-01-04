@@ -110,6 +110,7 @@ function clickCell(r,c){
   }
   else if(MODE==="photo"){
     res = photoEngine(data,r,c);
+    else if(MODE==="hp80") res = hp80Engine(data,r,c);
   }
 
   draw(res.points);
