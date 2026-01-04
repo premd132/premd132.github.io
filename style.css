@@ -24,6 +24,8 @@ td{
   text-align:center;
   font-weight:bold;
   cursor:pointer;
+  user-select: text;        /* 👈 ADD */
+  -webkit-user-select:text;/* 👈 ADD
 }
 
 td.blank{
