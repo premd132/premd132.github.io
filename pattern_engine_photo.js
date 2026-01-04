@@ -1,22 +1,16 @@
-function photoEngine(data, r, c) {
-  let singles = [];
-  let jodi = [];
-  let points = [];
-
-  for (let i = 1; i <= 6; i++) {
-    if (data[r - i] && data[r - i][c]) {
-      points.push({ r: r - i, c });
-      singles.push(data[r - i][c][0]);
-    }
-
-    if (data[r - i] && data[r - i][c + 1]) {
-      points.push({ r: r - i, c: c + 1 });
-      singles.push(data[r - i][c + 1][1]);
-    }
+function photoEngine(data,r,c){
+  let singles=["0","5","9"];
+  let points=[];
+  for(let i=r-1;i>=0 && i>=r-10;i--){
+    points.push({r:i,c});
   }
 
-  singles = [...new Set(singles)].slice(0, 3);
-  singles.forEach(s => jodi.push(s + s));
+  let jodi=[];
+  singles.forEach(a=>{
+    singles.forEach(b=>{
+      if(jodi.length<8) jodi.push(a+b);
+    });
+  });
 
-  return { singles, jodi, points };
+  return {points,singles,jodi};
 }
