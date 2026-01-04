@@ -4,13 +4,27 @@ let selectedCell = null;
 
 const table = document.getElementById("grid");
 const result = document.getElementById("result");
+const csvInput = document.getElementById("csvFile");
 
-// create initial grid
-for(let i=0;i<40;i++){
-  grid.push(["","","","","",""]);
-}
-render();
+// ========== CSV LOAD ==========
+csvInput.addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
 
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    const lines = evt.target.result.trim().split("\n");
+    grid = [];
+    lines.forEach(line=>{
+      const cols = line.split(",").slice(0,6);
+      grid.push(cols);
+    });
+    render();
+  };
+  reader.readAsText(file);
+});
+
+// ========== GRID ==========
 function render(){
   table.innerHTML="";
   grid.forEach((row,r)=>{
@@ -55,7 +69,6 @@ function highlightUpward(r,c,n){
   }
 }
 
-// ================= PHASE 2 =================
 function onBlankCellClick(r,c){
   const patterns = scanPatterns(grid,r,c);
   const matches = searchPatternInRecord(grid,patterns);
@@ -72,7 +85,7 @@ function onBlankCellClick(r,c){
   result.innerHTML=
     "<b>Pattern Found</b><br>"+
     "Check Lines: "+matches.length+
-    "<br>(Photo style match)";
+    "<br>(Photo style logic)";
 }
 
 function clearMarks(){
@@ -88,8 +101,5 @@ function addRow(){
 
 function clearGrid(){
   grid=[];
-  for(let i=0;i<40;i++){
-    grid.push(["","","","","",""]);
-  }
   render();
 }
