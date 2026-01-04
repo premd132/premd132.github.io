@@ -1,89 +1,110 @@
 const csv = document.getElementById("csv");
-const grid=document.getElementById("grid");
-const cv=document.getElementById("cv");
-const ctx=cv.getContext("2d");
-const panel=document.getElementById("panel");
-let data=[];
-// ================= SAVE / LOAD DATA =================
-function saveData(){
-  localStorage.setItem("pattern_data", JSON.stringify(data));
+const grid = document.getElementById("grid");
+const panel = document.getElementById("panel");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+let data = [];
+let MODE = "basic";
+
+// ===== MODE SWITCH =====
+function setMode(m){
+  MODE = m;
+  panel.innerHTML = "<b>Mode:</b> "+m;
 }
 
-function loadSaved(){
-  const saved = localStorage.getItem("pattern_data");
-  if(saved){
-    data = JSON.parse(saved);
-    render();
-  }
+// ===== SAVE / LOAD =====
+function save(){
+  localStorage.setItem("final_data", JSON.stringify(data));
 }
-// CSV
-csv.onchange=e=>{
-  const r=new FileReader();
-  r.onload=()=>{
-    data=r.result.trim().split("\n").map(l=>l.split(","));
+
+function load(){
+  const d = localStorage.getItem("final_data");
+  if(d){ data = JSON.parse(d); render(); }
+}
+
+// ===== CSV =====
+csv.onchange = e=>{
+  const r = new FileReader();
+  r.onload = ()=>{
+    data = r.result.trim().split("\n").map(r=>r.split(","));
     render();
-saveData();
-  };
+    save();
+  }
   r.readAsText(e.target.files[0]);
 };
 
+// ===== RENDER GRID =====
 function render(){
   grid.innerHTML="";
   data.forEach((row,r)=>{
-    const tr=document.createElement("tr");
+    const tr = document.createElement("tr");
     row.forEach((v,c)=>{
-      const td=document.createElement("td");
-      td.innerText=v||"";
+      const td = document.createElement("td");
+      td.innerText = v;
       if(!v) td.classList.add("blank");
-      td.onclick=()=>clickCell(r,c);
-      // Double click to edit
-td.ondblclick = ()=>{
-  td.contentEditable = true;
-  td.focus();
-};
 
-// Save after edit
-td.onblur = ()=>{
-  td.contentEditable = false;
-  data[r][c] = td.innerText.trim();
-  saveData();
-};
+      // CLICK
+      td.onclick = ()=> clickCell(r,c);
+
+      // EDIT MODE
+      td.ondblclick = ()=>{
+        td.contentEditable=true;
+        td.focus();
+      };
+      td.onblur = ()=>{
+        td.contentEditable=false;
+        data[r][c]=td.innerText.trim();
+        save();
+      };
+
       tr.appendChild(td);
     });
     grid.appendChild(tr);
   });
-  cv.width=grid.offsetWidth;
-  cv.height=grid.offsetHeight;
+  cv.width = grid.offsetWidth;
+  cv.height = grid.offsetHeight;
 }
 
+// ===== ADD ROW =====
 function addRow(){
   data.push(["","","","","",""]);
-  render();
-  saveData();
+  render(); save();
 }
 
+// ===== CLEAR =====
+function clearAll(){
+  if(confirm("Clear all?")){
+    data=[];
+    save();
+    render();
+  }
+}
+
+// ===== CELL CLICK =====
 function clickCell(r,c){
-  // if(data[r][c]) return;
+  if(data[r][c]) return;
+
   ctx.clearRect(0,0,cv.width,cv.height);
 
-  const pat=detectPattern(data,r,c);
-  const res=searchPast(data,pat.strongFam);
+  let res;
+  if(MODE==="basic") res = basicEngine(data,r,c);
+  if(MODE==="family") res = familyEngine(data,r,c);
+  if(MODE==="photo") res = photoEngine(data,r,c);
 
-  pat.points.forEach(p=>{
-    const td=grid.rows[p.r].cells[p.c];
-    const x=td.offsetLeft+27;
-    const y=td.offsetTop+15;
-    ctx.beginPath();
-    ctx.arc(x,y,10,0,Math.PI*2);
-    ctx.strokeStyle="red";
-    ctx.stroke();
-  });
-
-  panel.innerHTML=
-    "<b>Pattern Found</b><br>"+
-    "Strong Singles: "+res.topSingles.join(", ")+"<br><br>"+
-    "<b>Final 8 Jodi</b><br>"+
-    res.jodi.join(", ");
+  draw(res.points);
+  panel.innerHTML = res.html;
 }
-// load saved data on refresh
-loadSaved();
+
+// ===== DRAW =====
+function draw(points){
+  ctx.strokeStyle="red";
+  ctx.beginPath();
+  points.forEach(p=>{
+    const td = grid.rows[p.r].cells[p.c];
+    ctx.lineTo(td.offsetLeft+20, td.offsetTop+14);
+  });
+  ctx.stroke();
+}
+
+load();
