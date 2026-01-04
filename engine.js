@@ -1,110 +1,125 @@
 const csv = document.getElementById("csv");
 const grid = document.getElementById("grid");
-const panel = document.getElementById("panel");
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
+const panel = document.getElementById("panel");
 
 let data = [];
-let MODE = "basic";
 
-// ===== MODE SWITCH =====
-function setMode(m){
-  MODE = m;
-  panel.innerHTML = "<b>Mode:</b> "+m;
+/* ---------------- SAVE / LOAD ---------------- */
+function saveData() {
+  localStorage.setItem("pattern_data", JSON.stringify(data));
 }
 
-// ===== SAVE / LOAD =====
-function save(){
-  localStorage.setItem("final_data", JSON.stringify(data));
-}
-
-function load(){
-  const d = localStorage.getItem("final_data");
-  if(d){ data = JSON.parse(d); render(); }
-}
-
-// ===== CSV =====
-csv.onchange = e=>{
-  const r = new FileReader();
-  r.onload = ()=>{
-    data = r.result.trim().split("\n").map(r=>r.split(","));
+function loadSaved() {
+  const saved = localStorage.getItem("pattern_data");
+  if (saved) {
+    data = JSON.parse(saved);
     render();
-    save();
   }
+}
+
+/* ---------------- CSV UPLOAD ---------------- */
+csv.onchange = (e) => {
+  const r = new FileReader();
+  r.onload = () => {
+    data = r.result.trim().split("\n").map(l => l.split(","));
+    render();
+    saveData();
+  };
   r.readAsText(e.target.files[0]);
 };
 
-// ===== RENDER GRID =====
-function render(){
-  grid.innerHTML="";
-  data.forEach((row,r)=>{
+/* ---------------- RENDER GRID ---------------- */
+function render() {
+  grid.innerHTML = "";
+
+  data.forEach((row, r) => {
     const tr = document.createElement("tr");
-    row.forEach((v,c)=>{
+
+    row.forEach((val, c) => {
       const td = document.createElement("td");
-      td.innerText = v;
-      if(!v) td.classList.add("blank");
+      td.innerText = val || "";
+      td.dataset.r = r;
+      td.dataset.c = c;
 
-      // CLICK
-      td.onclick = ()=> clickCell(r,c);
+      if (!val || val === "**") td.classList.add("blank");
 
-      // EDIT MODE
-      td.ondblclick = ()=>{
-        td.contentEditable=true;
-        td.focus();
-      };
-      td.onblur = ()=>{
-        td.contentEditable=false;
-        data[r][c]=td.innerText.trim();
-        save();
-      };
+      /* ---------- CLICK (pattern) ---------- */
+      td.addEventListener("click", () => clickCell(r, c));
+
+      /* ---------- EDIT MODE (MOBILE + PC) ---------- */
+      let pressTimer;
+
+      td.addEventListener("touchstart", () => {
+        pressTimer = setTimeout(() => enableEdit(td), 500);
+      });
+
+      td.addEventListener("touchend", () => clearTimeout(pressTimer));
+
+      td.addEventListener("dblclick", () => enableEdit(td));
 
       tr.appendChild(td);
     });
+
     grid.appendChild(tr);
   });
+
   cv.width = grid.offsetWidth;
   cv.height = grid.offsetHeight;
 }
 
-// ===== ADD ROW =====
-function addRow(){
-  data.push(["","","","","",""]);
-  render(); save();
+/* ---------------- ENABLE EDIT ---------------- */
+function enableEdit(td) {
+  td.contentEditable = true;
+  td.classList.add("editing");
+  td.focus();
+
+  const range = document.createRange();
+  range.selectNodeContents(td);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  td.onblur = () => {
+    td.contentEditable = false;
+    td.classList.remove("editing");
+
+    const r = td.dataset.r;
+    const c = td.dataset.c;
+    data[r][c] = td.innerText.trim();
+    saveData();
+  };
 }
 
-// ===== CLEAR =====
-function clearAll(){
-  if(confirm("Clear all?")){
-    data=[];
-    save();
-    render();
-  }
+/* ---------------- ADD ROW ---------------- */
+function addRow() {
+  data.push(["", "", "", "", "", ""]);
+  render();
+  saveData();
 }
 
-// ===== CELL CLICK =====
-function clickCell(r,c){
-  if(data[r][c]) return;
-
-  ctx.clearRect(0,0,cv.width,cv.height);
-
-  let res;
-  if(MODE==="basic") res = basicEngine(data,r,c);
-  if(MODE==="family") res = familyEngine(data,r,c);
-  if(MODE==="photo") res = photoEngine(data,r,c);
-
-  draw(res.points);
-  panel.innerHTML = res.html;
+/* ---------------- CLEAR ---------------- */
+function clearGrid() {
+  if (!confirm("Clear all data?")) return;
+  data = [];
+  saveData();
+  render();
 }
 
-// ===== DRAW =====
-function draw(points){
-  ctx.strokeStyle="red";
-  ctx.beginPath();
-  points.forEach(p=>{
-    const td = grid.rows[p.r].cells[p.c];
-    ctx.lineTo(td.offsetLeft+20, td.offsetTop+14);
-  });
-  ctx.stroke();
+/* ---------------- CLICK CELL (PATTERN) ---------------- */
+function clickCell(r, c) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  const res = detectPattern(data, r, c);
+
+  panel.innerHTML =
+    `<b>Pattern Found</b><br>
+     Strong Singles: ${res.topSingles.join(", ")}<br><br>
+     <b>Final 8 Jodi</b><br>
+     ${res.jodi.join(", ")}`;
 }
 
-load();
+/* ---------------- INIT ---------------- */
+loadSaved();
