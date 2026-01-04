@@ -48,7 +48,15 @@ td.selected{
 td.pattern{
   background:#b7e4ff;
 }
+td.pattern {
+  background:#b3e5fc;
+}
 
+td.hit {
+  background:#ff5252;
+  color:#fff;
+  font-weight:bold;
+}
 td.hit{
   background:#9bff9b;
 }
