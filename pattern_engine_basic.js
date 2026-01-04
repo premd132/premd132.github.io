@@ -1,21 +1,30 @@
-function basicEngine(data, r, c) {
-  let freq = {};
-  let points = [];
+function basicEngine(data,r,c){
+  let singlesCount={};
+  let points=[];
 
-  for (let i = r - 1; i >= Math.max(0, r - 10); i--) {
-    const v = data[i][c];
-    if (!v) continue;
-
-    freq[v] = (freq[v] || 0) + 1;
-    points.push({ r: i, c });
+  for(let i=r-1;i>=0 && i>=r-10;i--){
+    for(let j=0;j<6;j++){
+      let v=data[i][j];
+      if(v){
+        v.split("").forEach(d=>{
+          singlesCount[d]=(singlesCount[d]||0)+1;
+        });
+        points.push({r:i,c:j});
+      }
+    }
   }
 
-  const sorted = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+  let singles = Object.entries(singlesCount)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(x=>x[0]);
 
-  const singles = sorted.map(s => s[0]);
-  const jodi = singles.map(a => a + a);
+  let jodi=[];
+  singles.forEach(a=>{
+    singles.forEach(b=>{
+      if(jodi.length<8) jodi.push(a+b);
+    });
+  });
 
-  return { singles, jodi, points };
+  return {points,singles,jodi};
 }
