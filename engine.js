@@ -22,6 +22,8 @@ csv.onchange=e=>{
   r.onload=()=>{
     data=r.result.trim().split("\n").map(l=>l.split(","));
     render();
+    render();
+saveData();
   };
   r.readAsText(e.target.files[0]);
 };
