@@ -168,6 +168,8 @@ function draw(points) {
     ctx.stroke();
   });
 }
-
+window.setMode = setMode;
+window.addRow = addRow;
+window.clearGrid = clearGrid;
 /* LOAD SAVED ON START */
 loadSaved();
