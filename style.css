@@ -1,15 +1,11 @@
 body{
   font-family: Arial;
-  background:#f6d58d;
+  background:#f6d98b;
 }
 
-.top, .menu{
-  margin:10px;
-}
-
-button{
-  padding:6px 10px;
+.top-bar button{
   margin:3px;
+  padding:6px 10px;
 }
 
 .wrap{
@@ -17,44 +13,33 @@ button{
 }
 
 table{
-  border-collapse: collapse;
-  table {
-  border-collapse: collapse;
-  background: #fff;
+  border-collapse:collapse;
+  background:#fff;
 }
 
-td {
-  width: 40px;
-  height: 32px;
-  text-align: center;
-  border: 1px solid #444;
-  cursor: pointer;
-  font-weight: bold;
-}
-}
-
-td,th{
-  border:1px solid #999;
-  width:42px;
-  height:28px;
+td{
+  width:40px;
+  height:30px;
+  border:1px solid #555;
   text-align:center;
+  font-weight:bold;
+  cursor:pointer;
 }
 
 td.blank{
-  background:#eef;
-  cursor:pointer;
+  background:#eaf3ff;
 }
 
 #panel{
   width:260px;
   background:#fff;
-  padding:10px;
   margin-left:10px;
+  padding:10px;
 }
 
 canvas{
   position:absolute;
-  left:0;
   top:0;
+  left:0;
   pointer-events:none;
 }
