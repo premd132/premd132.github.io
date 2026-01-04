@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Pattern Engine – Phase 1 & 2</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Pattern Engine – Phase 1 & 2</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-<h2>📊 Pattern Engine – Phase 1 (Signal Selection)</h2>
+
+<h2>📊 Pattern Engine – Phase 1 (Selection) → Phase 2 (Prediction)</h2>
 
 <div class="top-bar">
   <input type="file" id="csvFile">
-  <button onclick="addRow()">➕ Add Row</button>
-  <button onclick="clearGrid()">🧹 Clear</button>
+  <button onclick="addRow()">+ Add Row</button>
+  <button onclick="clearGrid()">Clear</button>
 </div>
 
 <div class="container">
@@ -20,17 +20,17 @@
 
   <div class="side-panel" id="result">
     <b>Selected Cell</b><br>
-    Row: -<br>
-    Day: -<br>
-    Value: -<br><br>
-    Blank cell par click karo  
-    <br>Upar ke 10 row ka pattern scan hoga
+    Row: <span id="r"></span><br>
+    Col: <span id="c"></span><br>
+    Value: <span id="v"></span><br><br>
+
+    <b>Phase-2 Result</b>
+    <div id="phase2">Blank cell par click karo</div>
   </div>
 </div>
 
 <script src="patternDetector.js"></script>
-<script src="engine.js"></script>
 <script src="patternEngine.js"></script>
+<script src="engine.js"></script>
 </body>
 </html>
-<input type="file" id="csvFile">
