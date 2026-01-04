@@ -2,30 +2,40 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Pattern Engine – FINAL</title>
+<title>Final Pattern Engine</title>
 <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h2>📊 Family Pattern Engine (FINAL)</h2>
+<h2>🧠 Final Pattern Engine (All Logic)</h2>
 
 <div class="top">
   <input type="file" id="csv">
   <button onclick="addRow()">+ Add Row</button>
+  <button onclick="clearAll()">Clear</button>
+</div>
+
+<div class="menu">
+  <button onclick="setMode('basic')">1️⃣ Basic</button>
+  <button onclick="setMode('family')">2️⃣ Family</button>
+  <button onclick="setMode('photo')">3️⃣ Photo</button>
 </div>
 
 <div class="wrap">
-  <div class="gridWrap">
-    <canvas id="cv"></canvas>
-    <table id="grid"></table>
-  </div>
-
-  <div class="panel" id="panel">
-    Blank cell पर click करो
+  <table id="grid"></table>
+  <div id="panel">
+    <b>Result</b><br>
+    Blank cell par click karo
   </div>
 </div>
 
-<script src="patternEngine.js"></script>
+<canvas id="cv"></canvas>
+
 <script src="engine.js"></script>
+<script src="pattern_engine_basic.js"></script>
+<script src="pattern_engine_family.js"></script>
+<script src="pattern_engine_photo.js"></script>
+
 </body>
 </html>
