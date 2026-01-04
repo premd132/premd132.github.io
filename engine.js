@@ -197,6 +197,16 @@ function forceInit() {
     }
   }
   render();
+ // ==== FORCE FIRST RENDER ====
+document.addEventListener("DOMContentLoaded", () => {
+  if (!data || data.length === 0) {
+    data = [];
+    for (let i = 0; i < 25; i++) {
+      data.push(["", "", "", "", "", ""]);
+    }
+  }
+  render();
+});
 }
 
 // Run on load
