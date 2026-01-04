@@ -188,3 +188,16 @@ function initEmptyGrid(rows = 30, cols = 6) {
 if (data.length === 0) {
   initEmptyGrid();
 }
+// ================= FORCE GRID INIT =================
+function forceInit() {
+  if (!data || data.length === 0) {
+    data = [];
+    for (let i = 0; i < 25; i++) {
+      data.push(["", "", "", "", "", ""]);
+    }
+  }
+  render();
+}
+
+// Run on load
+setTimeout(forceInit, 100);
