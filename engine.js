@@ -1,105 +1,92 @@
-const days = ["Mon","Tue","Wed","Thu","Fri","Sat"];
-let grid = [];
-let selectedCell = null;
-
-const table = document.getElementById("grid");
+const grid = document.getElementById("grid");
+const canvas = document.getElementById("drawCanvas");
+const ctx = canvas.getContext("2d");
 const result = document.getElementById("result");
-const csvInput = document.getElementById("csvFile");
 
-// ========== CSV LOAD ==========
-csvInput.addEventListener("change", e=>{
-  const file = e.target.files[0];
-  if(!file) return;
+let data = [];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
 
+function resizeCanvas() {
+  canvas.width = grid.offsetWidth;
+  canvas.height = grid.offsetHeight;
+}
+window.onload = resizeCanvas;
+
+document.getElementById("csvFile").addEventListener("change", e=>{
   const reader = new FileReader();
-  reader.onload = evt=>{
-    const lines = evt.target.result.trim().split("\n");
-    grid = [];
-    lines.forEach(line=>{
-      const cols = line.split(",").slice(0,6);
-      grid.push(cols);
-    });
+  reader.onload = () => {
+    data = reader.result.trim().split("\n").map(r=>r.split(","));
     render();
   };
-  reader.readAsText(file);
+  reader.readAsText(e.target.files[0]);
 });
 
-// ========== GRID ==========
 function render(){
-  table.innerHTML="";
-  grid.forEach((row,r)=>{
-    const tr=document.createElement("tr");
-    row.forEach((val,c)=>{
-      const td=document.createElement("td");
-      td.textContent=val;
-      if(val==="") td.classList.add("blank");
-      td.onclick=()=>onCellClick(r,c);
+  grid.innerHTML = "";
+  resizeCanvas();
+  data.forEach((row,r)=>{
+    const tr = document.createElement("tr");
+    row.forEach((v,c)=>{
+      const td = document.createElement("td");
+      td.innerText = v || "";
+      if(!v) td.classList.add("blank");
+      td.onclick = ()=>cellClick(r,c);
       tr.appendChild(td);
     });
-    table.appendChild(tr);
-  });
-}
-
-function onCellClick(r,c){
-  clearMarks();
-  selectedCell={r,c};
-
-  if(grid[r][c]===""){
-    onBlankCellClick(r,c);
-  }else{
-    highlightUpward(r,c,10);
-    updatePanel(r,c,grid[r][c]);
-  }
-}
-
-function updatePanel(r,c,val){
-  result.innerHTML=`
-  <b>Selected Cell</b><br>
-  Row: ${r}<br>
-  Day: ${days[c]}<br>
-  Value: ${val}
-  `;
-}
-
-function highlightUpward(r,c,n){
-  for(let i=1;i<=n;i++){
-    if(r-i>=0){
-      table.rows[r-i].cells[c].classList.add("pattern");
-    }
-  }
-}
-
-function onBlankCellClick(r,c){
-  const patterns = scanPatterns(grid,r,c);
-  const matches = searchPatternInRecord(grid,patterns);
-
-  if(matches.length===0){
-    result.innerHTML="❌ No pattern found";
-    return;
-  }
-
-  matches.forEach(m=>{
-    table.rows[m.r].cells[m.c].classList.add("hit");
-  });
-
-  result.innerHTML=
-    "<b>Pattern Found</b><br>"+
-    "Check Lines: "+matches.length+
-    "<br>(Photo style logic)";
-}
-
-function clearMarks(){
-  document.querySelectorAll("td").forEach(td=>{
-    td.classList.remove("pattern","hit","selected");
+    grid.appendChild(tr);
   });
 }
 
 function addRow(){
-  grid.push(["","","","","",""]);
+  data.push(["","","","","",""]);
   render();
 }
 
 function clearGrid(){
-  grid=[];
+  data=[];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   render();
+}
+
+function cellClick(r,c){
+  if(data[r][c]) return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const pattern = analyzePattern(data,r,c);
+  drawPattern(pattern);
+
+  result.innerHTML = `
+    <b>Check Lines</b><br>
+    Pattern 1: ${pattern.line1.join(" → ")}<br>
+    Pattern 2: ${pattern.line2.join(" → ")}<br>
+    Pattern 3: ${pattern.line3.join(" → ")}<br><br>
+    <b>Suggestion</b><br>
+    ${pattern.suggestion.join(", ")}
+  `;
+}
+
+function drawPattern(p){
+  ctx.strokeStyle="red";
+  ctx.lineWidth=2;
+
+  p.points.forEach(pt=>{
+    const td = grid.rows[pt.r].cells[pt.c];
+    const x = td.offsetLeft + td.offsetWidth/2;
+    const y = td.offsetTop + td.offsetHeight/2;
+
+    ctx.beginPath();
+    ctx.arc(x,y,12,0,Math.PI*2);
+    ctx.stroke();
+  });
+
+  for(let i=0;i<p.points.length-1;i++){
+    const a=p.points[i], b=p.points[i+1];
+    const ta=grid.rows[a.r].cells[a.c];
+    const tb=grid.rows[b.r].cells[b.c];
+    ctx.beginPath();
+    ctx.moveTo(ta.offsetLeft+27, ta.offsetTop+15);
+    ctx.lineTo(tb.offsetLeft+27, tb.offsetTop+15);
+    ctx.stroke();
+  }
 }
