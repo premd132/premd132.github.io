@@ -1,3 +1,4 @@
+const csv = document.getElementById("csv");
 const grid=document.getElementById("grid");
 const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
