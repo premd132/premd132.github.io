@@ -2,188 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pattern Engine – Phase 1</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f2d28b;
-}
-h2{
-  text-align:center;
-  margin:10px 0;
-}
-#top{
-  text-align:center;
-  margin-bottom:8px;
-}
-button,input{
-  padding:6px 10px;
-  font-size:14px;
-  margin:3px;
-}
-
-#wrap{
-  display:flex;
-  gap:10px;
-  padding:10px;
-}
-
-#gridWrap{
-  width:70%;
-  overflow:auto;
-  background:#fff;
-  border:3px solid #000;
-  height:75vh;
-}
-
-#info{
-  width:30%;
-  background:#fff;
-  border:3px solid #000;
-  padding:8px;
-  font-size:14px;
-}
-
-table{
-  border-collapse:collapse;
-  width:100%;
-}
-th,td{
-  border:1px solid #999;
-  padding:6px;
-  text-align:center;
-  font-weight:bold;
-  font-size:13px;
-  cursor:pointer;
-}
-
-th{
-  background:#eee;
-}
-
-td.blank{
-  background:#fff5f5;
-}
-
-td.clicked{
-  outline:3px solid red;
-}
-
-td.signal{
-  background:#d1ecff;
-}
-
-.note{
-  font-size:12px;
-  color:#333;
-  margin-top:6px;
-}
-</style>
+<title>Pattern Engine – Phase 1 & 2</title>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
 <h2>📊 Pattern Engine – Phase 1 (Signal Selection)</h2>
 
-<div id="top">
-  <input type="file" id="csv">
+<div class="top-bar">
+  <input type="file" id="csvFile">
   <button onclick="addRow()">➕ Add Row</button>
-  <button onclick="clearAll()">🗑 Clear</button>
+  <button onclick="clearGrid()">🧹 Clear</button>
 </div>
 
-<div id="wrap">
-  <div id="gridWrap">
-    <table id="grid"></table>
-  </div>
+<div class="container">
+  <table id="grid"></table>
 
-  <div id="info">
-    <b>Selected Cell</b>
-    <div id="selected">None</div>
-    <div class="note">
-      • Kisi bhi cell par click karo<br>
-      • Uske upar ki 10 rows highlight hongi<br>
-      • Ye area future pattern signal hoga
-    </div>
+  <div class="side-panel" id="result">
+    <b>Selected Cell</b><br>
+    Row: -<br>
+    Day: -<br>
+    Value: -<br><br>
+    Blank cell par click karo  
+    <br>Upar ke 10 row ka pattern scan hoga
   </div>
 </div>
 
-<script>
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
-let data = [];
-
-/* -------- CSV LOAD -------- */
-csv.onchange = e=>{
-  const r = new FileReader();
-  r.onload = ()=>{
-    const lines = r.result.trim().split("\n");
-    data = lines.map(l=>l.split(","));
-    render();
-  };
-  r.readAsText(e.target.files[0]);
-};
-
-/* -------- TABLE RENDER -------- */
-function render(){
-  let html = "<tr>";
-  DAYS.forEach(d=>html+=`<th>${d}</th>`);
-  html += "</tr>";
-
-  data.forEach((row,r)=>{
-    html += "<tr>";
-    DAYS.forEach((_,c)=>{
-      let val = (row[c] || "").trim();
-      let cls = val==="**" ? "blank" : "";
-      html += `<td class="${cls}" onclick="cellClick(${r},${c},this)">${val}</td>`;
-    });
-    html += "</tr>";
-  });
-
-  grid.innerHTML = html;
-}
-
-/* -------- CELL CLICK -------- */
-function cellClick(r,c,td){
-  clearHighlight();
-
-  td.classList.add("clicked");
-
-  // highlight upar ki 10 rows
-  for(let i=1;i<=10;i++){
-    let rr = r - i;
-    if(rr < 0) break;
-    let cell = grid.rows[rr+1].cells[c];
-    cell.classList.add("signal");
-  }
-
-  selected.innerHTML = `
-    Row: ${r+1}<br>
-    Day: ${DAYS[c]}<br>
-    Value: ${td.innerText || "(blank)"}
-  `;
-}
-
-/* -------- ADD ROW -------- */
-function addRow(){
-  data.push(["**","**","**","**","**","**"]);
-  render();
-}
-
-/* -------- CLEAR -------- */
-function clearHighlight(){
-  document.querySelectorAll(".clicked").forEach(x=>x.classList.remove("clicked"));
-  document.querySelectorAll(".signal").forEach(x=>x.classList.remove("signal"));
-}
-
-function clearAll(){
-  if(!confirm("Clear full record?")) return;
-  data=[];
-  grid.innerHTML="";
-  selected.innerText="None";
-}
-</script>
-
+<script src="patternDetector.js"></script>
+<script src="engine.js"></script>
+<script src="patternEngine.js"></script>
 </body>
 </html>
