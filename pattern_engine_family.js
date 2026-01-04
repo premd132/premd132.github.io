@@ -1,34 +1,27 @@
-function familyEngine(data, r, c) {
-  const family = n => {
-    const a = n[0], b = n[1];
-    return [
-      a + b,
-      a + "0",
-      "0" + b,
-      b + a,
-      b + "9",
-      "9" + b,
-      "9" + a,
-      a + "9"
-    ];
-  };
+function familyEngine(data,r,c){
+  const fam = n=>[
+    n, n.split("").reverse().join("")
+  ];
 
-  let found = [];
-  let points = [];
+  let singles=[];
+  let points=[];
 
-  for (let i = r - 1; i >= Math.max(0, r - 10); i--) {
-    const v = data[i][c];
-    if (!v) continue;
-
-    family(v).forEach(f => {
-      found.push(f);
-    });
-
-    points.push({ r: i, c });
+  for(let i=r-1;i>=0 && i>=r-10;i--){
+    let v=data[i][c];
+    if(v){
+      singles.push(...v.split(""));
+      points.push({r:i,c});
+    }
   }
 
-  const singles = [...new Set(found.map(f => f[0]))].slice(0, 3);
-  const jodi = found.slice(0, 8);
+  singles=[...new Set(singles)].slice(0,3);
 
-  return { singles, jodi, points };
+  let jodi=[];
+  singles.forEach(s=>{
+    fam(s+s).forEach(j=>{
+      if(jodi.length<8) jodi.push(j);
+    });
+  });
+
+  return {points,singles,jodi};
 }
