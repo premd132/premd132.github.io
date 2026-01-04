@@ -2,194 +2,186 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Last Jodi Based AI Suggestion (FINAL)</title>
+<title>Pattern Engine – Phase 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{margin:0;font-family:Arial;background:#f3d58f}
-h2{text-align:center;margin:10px}
-#top{text-align:center;padding:8px}
-button{padding:6px 10px;margin:4px;font-size:14px}
-table{border-collapse:collapse;width:100%;background:#fff}
-td,th{border:1px solid #999;padding:4px;text-align:center;font-size:13px}
-#wrapper{display:flex;gap:10px;padding:10px}
-#left{width:65%;overflow:auto;height:75vh;border:3px solid #000}
-#right{width:35%;border:3px solid #000;background:#fff;padding:8px}
-.box{border:2px solid #000;padding:6px;margin:6px 0}
-.sug{font-size:15px;font-weight:bold;color:#b00000}
-.small{font-size:12px;color:#333}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#f2d28b;
+}
+h2{
+  text-align:center;
+  margin:10px 0;
+}
+#top{
+  text-align:center;
+  margin-bottom:8px;
+}
+button,input{
+  padding:6px 10px;
+  font-size:14px;
+  margin:3px;
+}
+
+#wrap{
+  display:flex;
+  gap:10px;
+  padding:10px;
+}
+
+#gridWrap{
+  width:70%;
+  overflow:auto;
+  background:#fff;
+  border:3px solid #000;
+  height:75vh;
+}
+
+#info{
+  width:30%;
+  background:#fff;
+  border:3px solid #000;
+  padding:8px;
+  font-size:14px;
+}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+}
+th,td{
+  border:1px solid #999;
+  padding:6px;
+  text-align:center;
+  font-weight:bold;
+  font-size:13px;
+  cursor:pointer;
+}
+
+th{
+  background:#eee;
+}
+
+td.blank{
+  background:#fff5f5;
+}
+
+td.clicked{
+  outline:3px solid red;
+}
+
+td.signal{
+  background:#d1ecff;
+}
+
+.note{
+  font-size:12px;
+  color:#333;
+  margin-top:6px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🔮 Last Jodi Based AI Suggestion (FINAL)</h2>
+<h2>📊 Pattern Engine – Phase 1 (Signal Selection)</h2>
 
 <div id="top">
-<input type="file" id="csv">
-<button onclick="addRow()">➕ Add Row</button>
-<button onclick="analyze()">🔍 Analyze</button>
-<button onclick="clearAll()">🗑️ Clear</button>
+  <input type="file" id="csv">
+  <button onclick="addRow()">➕ Add Row</button>
+  <button onclick="clearAll()">🗑 Clear</button>
 </div>
 
-<div id="wrapper">
-<div id="left">
-<table id="table"></table>
-</div>
+<div id="wrap">
+  <div id="gridWrap">
+    <table id="grid"></table>
+  </div>
 
-<div id="right">
-<div class="box">
-<b>Last Jodi</b>
-<div id="lastJodi">–</div>
-</div>
-
-<div class="box">
-<b>AI Suggested 8 Jodi</b>
-<div id="result">Upload record</div>
-</div>
-</div>
+  <div id="info">
+    <b>Selected Cell</b>
+    <div id="selected">None</div>
+    <div class="note">
+      • Kisi bhi cell par click karo<br>
+      • Uske upar ki 10 rows highlight hongi<br>
+      • Ye area future pattern signal hoga
+    </div>
+  </div>
 </div>
 
 <script>
-let headers=[], data=[];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
+let data = [];
 
-/* ---------- FAMILY LOGIC ---------- */
-function family(j){
-  let a=parseInt(j[0]), b=parseInt(j[1]);
-  const m=n=>(n+10)%10;
-  return Array.from(new Set([
-    `${a}${b}`, `${b}${a}`,
-    `${m(a+5)}${m(b+5)}`,
-    `${m(b+5)}${m(a+5)}`,
-    `${m(a-5)}${m(b-5)}`,
-    `${m(b-5)}${m(a-5)}`,
-    `${a}${m(b+5)}`,
-    `${m(a+5)}${b}`
-  ]));
-}
-
-/* ---------- LOAD CSV ---------- */
-csv.onchange=e=>{
-  let r=new FileReader();
-  r.onload=()=>loadCSV(r.result);
+/* -------- CSV LOAD -------- */
+csv.onchange = e=>{
+  const r = new FileReader();
+  r.onload = ()=>{
+    const lines = r.result.trim().split("\n");
+    data = lines.map(l=>l.split(","));
+    render();
+  };
   r.readAsText(e.target.files[0]);
 };
 
-function loadCSV(txt){
-  let rows=txt.trim().split("\n").map(r=>r.split(","));
-  headers=rows.shift();
-  data=rows;
-  save();
-  render();
-}
-
-/* ---------- SAVE ---------- */
-function save(){
-  localStorage.setItem("jodiData",JSON.stringify({headers,data}));
-}
-function loadSaved(){
-  let s=localStorage.getItem("jodiData");
-  if(!s) return;
-  let o=JSON.parse(s);
-  headers=o.headers; data=o.data;
-  render();
-}
-window.onload=loadSaved;
-
-/* ---------- TABLE ---------- */
+/* -------- TABLE RENDER -------- */
 function render(){
-  let h="<tr>";
-  headers.forEach(x=>h+=`<th>${x}</th>`);
-  h+="</tr>";
-  data.forEach(r=>{
-    h+="<tr>";
-    headers.forEach((_,i)=>{
-      h+=`<td contenteditable onblur="edit(this)">${r[i]||""}</td>`;
+  let html = "<tr>";
+  DAYS.forEach(d=>html+=`<th>${d}</th>`);
+  html += "</tr>";
+
+  data.forEach((row,r)=>{
+    html += "<tr>";
+    DAYS.forEach((_,c)=>{
+      let val = (row[c] || "").trim();
+      let cls = val==="**" ? "blank" : "";
+      html += `<td class="${cls}" onclick="cellClick(${r},${c},this)">${val}</td>`;
     });
-    h+="</tr>";
+    html += "</tr>";
   });
-  table.innerHTML=h;
+
+  grid.innerHTML = html;
 }
 
-function edit(td){
-  let r=td.parentNode.rowIndex-1;
-  let c=td.cellIndex;
-  data[r][c]=td.innerText.trim();
-  save();
+/* -------- CELL CLICK -------- */
+function cellClick(r,c,td){
+  clearHighlight();
+
+  td.classList.add("clicked");
+
+  // highlight upar ki 10 rows
+  for(let i=1;i<=10;i++){
+    let rr = r - i;
+    if(rr < 0) break;
+    let cell = grid.rows[rr+1].cells[c];
+    cell.classList.add("signal");
+  }
+
+  selected.innerHTML = `
+    Row: ${r+1}<br>
+    Day: ${DAYS[c]}<br>
+    Value: ${td.innerText || "(blank)"}
+  `;
 }
 
+/* -------- ADD ROW -------- */
 function addRow(){
-  data.push(headers.map(()=> ""));
-  save(); render();
+  data.push(["**","**","**","**","**","**"]);
+  render();
+}
+
+/* -------- CLEAR -------- */
+function clearHighlight(){
+  document.querySelectorAll(".clicked").forEach(x=>x.classList.remove("clicked"));
+  document.querySelectorAll(".signal").forEach(x=>x.classList.remove("signal"));
 }
 
 function clearAll(){
-  if(!confirm("Clear all data?"))return;
-  localStorage.clear();
-  headers=[]; data=[];
-  table.innerHTML="";
-  result.innerHTML="Upload record";
-  lastJodi.innerText="–";
-}
-
-/* ---------- ANALYSIS ---------- */
-function analyze(){
-  let last=null, lastDay=null, prev=null;
-
-  for(let r=data.length-1;r>=0;r--){
-    for(let c=headers.length-1;c>=0;c--){
-      let v=(data[r][c]||"").trim();
-      if(/^\d{2}$/.test(v)){
-        if(!last){ last=v; lastDay=c; }
-        else{ prev=v; break; }
-      }
-    }
-    if(prev) break;
-  }
-
-  if(!last){
-    result.innerHTML="No valid jodi";
-    return;
-  }
-
-  lastJodi.innerText=last+" ("+headers[lastDay]+")";
-
-  let fam=family(last);
-  let singleCount={};
-
-  data.forEach(row=>{
-    let v=row[lastDay];
-    if(fam.includes(v)){
-      let next=row[lastDay+1];
-      if(/^\d{2}$/.test(next)){
-        singleCount[next[0]]=(singleCount[next[0]]||0)+1;
-        singleCount[next[1]]=(singleCount[next[1]]||0)+1;
-      }
-    }
-  });
-
-  let topSingles=Object.entries(singleCount)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,3)
-    .map(x=>x[0]);
-
-  let final=new Set();
-  topSingles.forEach(a=>{
-    topSingles.forEach(b=>{
-      if(final.size<8 && a!==b){
-        final.add(a+b);
-        final.add(b+a);
-      }
-    });
-  });
-
-  let out="";
-  [...final].slice(0,8).forEach(j=>{
-    out+=`<div class="sug">${j}</div>
-          <div class="small">Family: ${family(j).join(", ")}</div>`;
-  });
-
-  result.innerHTML=out || "No suggestion";
+  if(!confirm("Clear full record?")) return;
+  data=[];
+  grid.innerHTML="";
+  selected.innerText="None";
 }
 </script>
 
