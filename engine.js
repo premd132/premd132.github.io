@@ -22,7 +22,6 @@ csv.onchange=e=>{
   r.onload=()=>{
     data=r.result.trim().split("\n").map(l=>l.split(","));
     render();
-    render();
 saveData();
   };
   r.readAsText(e.target.files[0]);
@@ -60,10 +59,11 @@ td.onblur = ()=>{
 function addRow(){
   data.push(["","","","","",""]);
   render();
+  saveData();
 }
 
 function clickCell(r,c){
-  if(data[r][c]) return;
+  // if(data[r][c]) return;
   ctx.clearRect(0,0,cv.width,cv.height);
 
   const pat=detectPattern(data,r,c);
@@ -85,3 +85,5 @@ function clickCell(r,c){
     "<b>Final 8 Jodi</b><br>"+
     res.jodi.join(", ");
 }
+// load saved data on refresh
+loadSaved();
