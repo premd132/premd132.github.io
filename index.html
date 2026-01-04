@@ -1,62 +1,160 @@
-function family(j){
-  let a=+j[0], b=+j[1];
-  return new Set([
-    ""+a+b,
-    ""+b+a,
-    ""+a+((b+5)%10),
-    ""+((a+5)%10)+b,
-    ""+a+a,
-    ""+b+b
-  ]);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🔮 Last Jodi Based AI Suggestion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{margin:0;font-family:Arial;background:#f2d28b}
+h2{text-align:center;margin:10px}
+#top{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px}
+button,input{padding:6px 10px;font-size:14px}
+
+#wrap{display:flex;gap:10px;padding:10px}
+#tableWrap{width:60%;overflow:auto;background:#fff;border:2px solid #000}
+#result{width:40%;background:#fff;border:2px solid #000;padding:10px}
+
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #999;padding:4px;text-align:center;font-size:13px}
+td[contenteditable]{background:#fff7cc}
+
+.tag{display:inline-block;padding:3px 6px;margin:3px;border-radius:4px;background:#dff0d8}
+</style>
+</head>
+
+<body>
+
+<h2>🔮 Last Jodi Based AI Suggestion (FINAL)</h2>
+
+<div id="top">
+  <input type="file" id="csv">
+  <button onclick="addRow()">➕ Add Row</button>
+  <button onclick="analyze()">🔍 Analyze</button>
+  <button onclick="clearAll()">🗑 Clear</button>
+</div>
+
+<div id="wrap">
+  <div id="tableWrap">
+    <table id="grid"></table>
+  </div>
+  <div id="result">
+    <b>AI Result</b>
+    <div id="out">Upload record</div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+let headers = ["Mon","Tue","Wed","Thu","Fri","Sat"];
+let data = [];
+
+/* ================= FIXED FAMILY ================= */
+const FAMILY_MAP = {
+  "45": ["40","04","45","54","95","59","09","90"]
+};
+
+/* ================= CSV LOAD ================= */
+csv.onchange = e=>{
+  let r=new FileReader();
+  r.onload=()=>{
+    let lines=r.result.trim().split("\n");
+    data = lines.map(l=>l.split(","));
+    draw();
+  };
+  r.readAsText(e.target.files[0]);
+};
+
+/* ================= TABLE ================= */
+function draw(){
+  let t="<tr>"+headers.map(h=>`<th>${h}</th>`).join("")+"</tr>";
+  data.forEach((r,i)=>{
+    t+="<tr>";
+    headers.forEach((_,j)=>{
+      t+=`<td contenteditable onblur="edit(${i},${j},this.innerText)">${r[j]||""}</td>`;
+    });
+    t+="</tr>";
+  });
+  grid.innerHTML=t;
 }
 
+function edit(r,c,v){
+  data[r][c]=v.trim();
+}
+
+function addRow(){
+  data.push(["","","","","",""]);
+  draw();
+}
+
+function clearAll(){
+  data=[];
+  grid.innerHTML="";
+  out.innerHTML="Cleared";
+}
+
+/* ================= CORE AI LOGIC ================= */
 function analyze(){
-  let last = getLastJodi();
-  if(!last){
-    result.innerHTML="Last jodi not found";
-    return;
+  if(!data.length){ out.innerHTML="No data"; return; }
+
+  // find last jodi + day
+  let lastRow=data[data.length-1];
+  let lastDay=-1,lastJodi=null;
+  for(let i=headers.length-1;i>=0;i--){
+    if(lastRow[i] && lastRow[i]!="**"){
+      lastDay=i; lastJodi=lastRow[i]; break;
+    }
   }
+  if(!lastJodi){ out.innerHTML="Last jodi not found"; return; }
 
-  let fam = family(last);
-  let nextJodiFreq = {};
-  let singleFreq = {};
+  let family = FAMILY_MAP[lastJodi];
+  if(!family){ out.innerHTML="Family not defined for "+lastJodi; return; }
 
-  for(let i=0;i<grid.length-1;i++){
-    for(let j=0;j<grid[i].length;j++){
-      let v = String(grid[i][j]).trim();
-      if(fam.has(v)){
-        let nextRow = grid[i+1];
-        nextRow.forEach(n=>{
-          if(/^\d{2}$/.test(n)){
-            nextJodiFreq[n]=(nextJodiFreq[n]||0)+1;
-            singleFreq[n[0]]=(singleFreq[n[0]]||0)+1;
-            singleFreq[n[1]]=(singleFreq[n[1]]||0)+1;
-          }
+  // scan record (day-wise)
+  let nextJodiFreq={};
+  for(let r=0;r<data.length-1;r++){
+    let v=data[r][lastDay];
+    if(family.includes(v)){
+      let next=data[r+1][lastDay];
+      if(next && next!="**"){
+        next.split("").forEach(d=>{
+          nextJodiFreq[d]=(nextJodiFreq[d]||0)+1;
         });
       }
     }
   }
 
-  let topSingles = Object.entries(singleFreq)
+  // top 3 single ank
+  let singles=Object.entries(nextJodiFreq)
     .sort((a,b)=>b[1]-a[1])
     .slice(0,3)
     .map(x=>x[0]);
 
-  let finalSet = new Set();
-  topSingles.forEach(d=>{
-    Object.keys(nextJodiFreq).forEach(j=>{
-      if(j.includes(d)) finalSet.add(j);
+  // generate EXACT 8 jodi
+  let jodiSet=new Set();
+  singles.forEach(a=>{
+    singles.forEach(b=>{
+      if(jodiSet.size<8 && a!==b){
+        jodiSet.add(a+b);
+      }
     });
   });
 
-  let final = [...finalSet].slice(0,8);
+  // OUTPUT
+  let html=`<b>Last Jodi:</b> ${lastJodi} (${headers[lastDay]})<br><br>`;
+  html+=`<b>Top 3 Single Ank:</b><br>`;
+  singles.forEach(s=>html+=`<span class="tag">${s}</span>`);
+  html+=`<br><br><b>Top 8 Jodi Suggestion:</b><br>`;
+  [...jodiSet].forEach(j=>html+=`<span class="tag">${j}</span>`);
 
-  let html = `<b>Last Jodi:</b> ${last}<br><br>`;
-  html+=`<b>Matched Family:</b> ${[...fam].join(", ")}<br><br>`;
-  html+=`<b>Top 3 Single Ank (Record Based):</b> ${topSingles.join(", ")}<br><br>`;
-  html+=`<b>Suggested Jodi (Only 8):</b><br>`;
+  html+=`<hr><b>AI Explanation</b><br>
+  Day-wise analysis on <b>${headers[lastDay]}</b><br>
+  Family of ${lastJodi} matched in history<br>
+  Next-day behaviour used for prediction`;
 
-  final.forEach(j=>html+=`🔹 ${j}<br>`);
-
-  result.innerHTML = html;
+  out.innerHTML=html;
 }
+</script>
+
+</body>
+</html>
