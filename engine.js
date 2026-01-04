@@ -37,6 +37,18 @@ function render(){
       td.innerText=v||"";
       if(!v) td.classList.add("blank");
       td.onclick=()=>clickCell(r,c);
+      // Double click to edit
+td.ondblclick = ()=>{
+  td.contentEditable = true;
+  td.focus();
+};
+
+// Save after edit
+td.onblur = ()=>{
+  td.contentEditable = false;
+  data[r][c] = td.innerText.trim();
+  saveData();
+};
       tr.appendChild(td);
     });
     grid.appendChild(tr);
