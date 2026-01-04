@@ -4,7 +4,18 @@ const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
 const panel=document.getElementById("panel");
 let data=[];
+// ================= SAVE / LOAD DATA =================
+function saveData(){
+  localStorage.setItem("pattern_data", JSON.stringify(data));
+}
 
+function loadSaved(){
+  const saved = localStorage.getItem("pattern_data");
+  if(saved){
+    data = JSON.parse(saved);
+    render();
+  }
+}
 // CSV
 csv.onchange=e=>{
   const r=new FileReader();
