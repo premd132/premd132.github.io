@@ -6,97 +6,66 @@ const ctx = cv.getContext("2d");
 
 let data = [];
 let currentMode = "basic";
-let clickTimer = null;
 
-/* ================= MODE ================= */
-
-function setMode(mode) {
+/* ===== MODE ===== */
+function setMode(mode){
   currentMode = mode;
   document.getElementById("modeLabel").innerText = mode.toUpperCase();
-  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.clearRect(0,0,cv.width,cv.height);
 }
 
-window.setMode = setMode;
-
-/* ================= SAVE / LOAD ================= */
-
-function saveData() {
+/* ===== SAVE / LOAD ===== */
+function saveData(){
   localStorage.setItem("pattern_data", JSON.stringify(data));
 }
 
-function loadSaved() {
-  const saved = localStorage.getItem("pattern_data");
-  if (saved) {
-    data = JSON.parse(saved);
+function loadSaved(){
+  const s = localStorage.getItem("pattern_data");
+  if(s){
+    data = JSON.parse(s);
     render();
   }
 }
 
-/* ================= CSV LOAD ================= */
-
-csv.onchange = (e) => {
-  const reader = new FileReader();
-  reader.onload = () => {
-    data = reader.result
-      .trim()
-      .split("\n")
-      .map(r => r.split(","));
+/* ===== CSV LOAD ===== */
+csv.onchange = e =>{
+  const r = new FileReader();
+  r.onload = ()=>{
+    data = r.result.trim().split("\n").map(r=>r.split(","));
     render();
     saveData();
   };
-  reader.readAsText(e.target.files[0]);
+  r.readAsText(e.target.files[0]);
 };
 
-/* ================= GRID RENDER ================= */
-
-function render() {
+/* ===== RENDER GRID ===== */
+function render(){
   grid.innerHTML = "";
-
-  data.forEach((row, r) => {
+  data.forEach((row,r)=>{
     const tr = document.createElement("tr");
-
-    row.forEach((val, c) => {
+    row.forEach((val,c)=>{
       const td = document.createElement("td");
       td.innerText = val || "";
-      if (!val) td.classList.add("blank");
+      if(!val) td.classList.add("blank");
 
-      let tapCount = 0;
+      /* single click = analysis */
+      td.onclick = ()=> clickCell(r,c);
 
-      td.addEventListener("click", () => {
-        tapCount++;
-        if (tapCount === 1) {
-          clickTimer = setTimeout(() => {
-            tapCount = 0;
-            if (!td.isContentEditable) {
-              analyzeCell(r, c);
-            }
-          }, 300);
-        }
-      });
+      /* double tap = edit */
+      td.ondblclick = ()=>{
+        td.contentEditable = true;
+        td.focus();
+      };
 
-      td.addEventListener("dblclick", () => {
-        clearTimeout(clickTimer);
-        tapCount = 0;
-        enableEdit(td, r, c);
-      });
-
-      td.addEventListener("touchstart", () => {
-        tapCount++;
-        if (tapCount === 2) {
-          clearTimeout(clickTimer);
-          tapCount = 0;
-          enableEdit(td, r, c);
-        } else {
-          clickTimer = setTimeout(() => {
-            tapCount = 0;
-            analyzeCell(r, c);
-          }, 300);
-        }
-      });
+      /* save after edit */
+      td.onblur = ()=>{
+        td.contentEditable = false;
+        data[r][c] = td.innerText.trim();
+        saveData();
+      };
 
       tr.appendChild(td);
     });
-
     grid.appendChild(tr);
   });
 
@@ -104,86 +73,73 @@ function render() {
   cv.height = grid.offsetHeight;
 }
 
-/* ================= EDIT ================= */
-
-function enableEdit(td, r, c) {
-  td.contentEditable = "true";
-  td.focus();
-
-  td.onblur = () => {
-    td.contentEditable = "false";
-    data[r][c] = td.innerText.trim();
-    saveData();
-  };
+/* ===== ADD ROW ===== */
+function addRow(){
+  data.push(["","","","","",""]);
+  render();
+  saveData();
 }
 
-/* ================= ANALYZE ================= */
+/* ===== CLEAR ===== */
+function clearGrid(){
+  data = [];
+  initGrid();
+  saveData();
+  ctx.clearRect(0,0,cv.width,cv.height);
+}
 
-function analyzeCell(r, c) {
-  ctx.clearRect(0, 0, cv.width, cv.height);
+/* ===== CLICK CELL ===== */
+function clickCell(r,c){
+  if(data[r][c]) return; // only blank
 
+  ctx.clearRect(0,0,cv.width,cv.height);
   let result = null;
 
-  if (currentMode === "basic") result = basicEngine(data, r, c);
-  if (currentMode === "family") result = familyEngine(data, r, c);
-  if (currentMode === "photo") result = photoEngine(data, r, c);
-  if (currentMode === "hp80") result = hp80Engine(data, r, c);
+  if(currentMode==="basic") result = basicEngine(data,r,c);
+  if(currentMode==="family") result = familyEngine(data,r,c);
+  if(currentMode==="photo") result = photoEngine(data,r,c);
+  if(currentMode==="hp80") result = hp80Engine(data,r,c);
 
-  if (!result) {
-    panel.innerHTML = "No pattern found";
+  if(!result){
+    panel.innerHTML="No pattern";
     return;
   }
 
   draw(result.points);
 
-  panel.innerHTML = `
-    <b>Mode:</b> ${currentMode}<br><br>
-    <b>Singles:</b><br>${result.topSingles.join(", ")}<br><br>
-    <b>Final Jodi:</b><br>${result.jodi.join(", ")}
-  `;
+  panel.innerHTML =
+    `<b>Mode:</b> ${currentMode}<br><br>
+     <b>Strong Singles:</b><br>${result.singles.join(" ")}<br><br>
+     <b>Final Jodi:</b><br>${result.jodi.join(" ")}`;
 }
 
-/* ================= DRAW ================= */
-
-function draw(points) {
-  points.forEach(p => {
+/* ===== DRAW ===== */
+function draw(points){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  points.forEach(p=>{
     const cell = grid.rows[p.r].cells[p.c];
-    const x = cell.offsetLeft + cell.offsetWidth / 2;
-    const y = cell.offsetTop + cell.offsetHeight / 2;
-
+    const x = cell.offsetLeft + cell.offsetWidth/2;
+    const y = cell.offsetTop + cell.offsetHeight/2;
     ctx.beginPath();
-    ctx.arc(x, y, 8, 0, Math.PI * 2);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
+    ctx.arc(x,y,10,0,Math.PI*2);
+    ctx.strokeStyle="red";
+    ctx.lineWidth=2;
     ctx.stroke();
   });
 }
 
-/* ================= ROW / CLEAR ================= */
-
-function addRow() {
-  data.push(["", "", "", "", "", ""]);
-  render();
-  saveData();
-}
-
-function clearGrid() {
-  if (!confirm("Clear all data?")) return;
-  data = [];
-  saveData();
-  render();
-}
-
-window.addRow = addRow;
-window.clearGrid = clearGrid;
-
-/* ================= INIT ================= */
-
-if (data.length === 0) {
-  for (let i = 0; i < 25; i++) {
-    data.push(["", "", "", "", "", ""]);
+/* ===== INIT ===== */
+function initGrid(){
+  data=[];
+  for(let i=0;i<25;i++){
+    data.push(["","","","","",""]);
   }
+  render();
 }
 
 loadSaved();
-render();
+if(data.length===0) initGrid();
+
+window.setMode=setMode;
+window.addRow=addRow;
+window.clearGrid=clearGrid;
