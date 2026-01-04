@@ -1,43 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Final Pattern Engine</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Pattern Engine – FINAL</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h2>🧠 Final Pattern Engine (All Logic)</h2>
+<h2>📊 Pattern Engine (Final)</h2>
 
-<div class="top">
+<div class="top-bar">
   <input type="file" id="csv">
   <button onclick="addRow()">+ Add Row</button>
-  <button onclick="clearAll()">Clear</button>
+  <button onclick="setMode('basic')">Basic</button>
+  <button onclick="setMode('family')">Family</button>
+  <button onclick="setMode('photo')">Photo</button>
+  <button onclick="setMode('hp80')">HP-80</button>
+  <button onclick="clearGrid()">Clear</button>
 </div>
 
-<div class="menu">
-  <button onclick="setMode('basic')">1️⃣ Basic</button>
-  <button onclick="setMode('family')">2️⃣ Family</button>
-  <button onclick="setMode('photo')">3️⃣ Photo</button>
-  <button onclick="setMode('hp80')">🔥 HP-80</button>
-</div>
-
-<div class="wrap">
+<div class="container">
   <table id="grid"></table>
-  <div id="panel">
-    <b>Result</b><br>
-    Blank cell par click karo
+
+  <div class="side-panel" id="panel">
+    <b>Mode:</b> <span id="modeLabel">Basic</span><br><br>
+    Cell पर click / double-click करके test करो
   </div>
 </div>
 
 <canvas id="cv"></canvas>
 
+<!-- CORE -->
 <script src="engine.js"></script>
+<script src="patternEngine.js"></script>
+
+<!-- LOGIC ENGINES -->
 <script src="pattern_engine_basic.js"></script>
 <script src="pattern_engine_family.js"></script>
 <script src="pattern_engine_photo.js"></script>
-  <script src="pattern_engine_hp80.js"></script>
+<script src="pattern_engine_hp80.js"></script>
 
 </body>
 </html>
