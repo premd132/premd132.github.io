@@ -1,4 +1,4 @@
-5// ================= ELEMENTS =================
+// ================= ELEMENTS =================
 const csv = document.getElementById("csv");
 const grid = document.getElementById("grid");
 const panel = document.getElementById("panel");
@@ -8,7 +8,7 @@ const ctx = cv.getContext("2d");
 // ================= STATE =================
 let data = [];
 let currentMode = "basic";
-let editMode = false;   // 👈 NEW
+let editMode = false;
 
 // ================= MODE =================
 function setMode(mode) {
@@ -18,7 +18,7 @@ function setMode(mode) {
 }
 window.setMode = setMode;
 
-// ================= EDIT MODE TOGGLE =================
+// ================= EDIT MODE =================
 function toggleEdit() {
   editMode = !editMode;
   alert(editMode ? "Edit Mode ON" : "Edit Mode OFF");
@@ -33,17 +33,31 @@ function saveData() {
 function loadSaved() {
   const saved = localStorage.getItem("pattern_data");
   if (saved) {
-    data = JSON.parse(saved);
+    try {
+      data = JSON.parse(saved);
+    } catch (e) {
+      data = [];
+    }
   }
 }
+
+// ================= MANUAL SAVE =================
+function manualSave() {
+  saveData();
+  alert("Data Saved Successfully ✅");
+}
+window.manualSave = manualSave;
 
 // ================= CSV LOAD =================
 csv.onchange = (e) => {
   const reader = new FileReader();
   reader.onload = () => {
-    data = reader.result.trim().split("\n").map(r => r.split(","));
-    render();
+    data = reader.result
+      .trim()
+      .split("\n")
+      .map(r => r.split(","));
     saveData();
+    render();
   };
   reader.readAsText(e.target.files[0]);
 };
@@ -54,19 +68,6 @@ function render() {
 
   data.forEach((row, r) => {
     const tr = document.createElement("tr");
-
-    // ❌ DELETE ROW BUTTON
-    const del = document.createElement("td");
-    del.innerText = "❌";
-    del.style.cursor = "pointer";
-    del.onclick = () => {
-      if (confirm("Delete this row?")) {
-        data.splice(r, 1);
-        saveData();
-        render();
-      }
-    };
-    tr.appendChild(del);
 
     row.forEach((val, c) => {
       const td = document.createElement("td");
@@ -102,13 +103,23 @@ function render() {
   cv.height = grid.offsetHeight;
 }
 
-// ================= ADD ROW =================
+// ================= ADD / DELETE ROW =================
 function addRow() {
   data.push(["", "", "", "", "", ""]);
-  render();
   saveData();
+  render();
 }
 window.addRow = addRow;
+
+function deleteLastRow() {
+  if (data.length === 0) return;
+  if (confirm("Last row delete kare?")) {
+    data.pop();
+    saveData();
+    render();
+  }
+}
+window.deleteLastRow = deleteLastRow;
 
 // ================= CLEAR =================
 function clearGrid() {
@@ -147,7 +158,7 @@ function draw(points) {
   ctx.clearRect(0, 0, cv.width, cv.height);
 
   points.forEach(p => {
-    const cell = grid.rows[p.r].cells[p.c + 1]; // +1 because delete column
+    const cell = grid.rows[p.r].cells[p.c];
     const x = cell.offsetLeft + cell.offsetWidth / 2;
     const y = cell.offsetTop + cell.offsetHeight / 2;
 
@@ -167,15 +178,14 @@ function initEmptyGrid(rows = 25, cols = 6) {
     for (let j = 0; j < cols; j++) row.push("");
     data.push(row);
   }
+  saveData();
   render();
 }
 
-// ================= START =================
+// ================= START (IMPORTANT) =================
 loadSaved();
-if (data.length === 0) initEmptyGrid();
-function manualSave(){
-  saveData();
-  loadSaved();
-  alert("Data Saved Successfully ✅");
+if (data.length === 0) {
+  initEmptyGrid();
+} else {
+  render();
 }
-window.manualSave = manualSave;
