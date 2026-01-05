@@ -173,3 +173,8 @@ function initEmptyGrid(rows = 25, cols = 6) {
 // ================= START =================
 loadSaved();
 if (data.length === 0) initEmptyGrid();
+function manualSave(){
+  saveData();
+  alert("Data Saved Successfully ✅");
+}
+window.manualSave = manualSave;
