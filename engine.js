@@ -1,4 +1,4 @@
-// ================= ELEMENTS =================
+5// ================= ELEMENTS =================
 const csv = document.getElementById("csv");
 const grid = document.getElementById("grid");
 const panel = document.getElementById("panel");
@@ -175,6 +175,7 @@ loadSaved();
 if (data.length === 0) initEmptyGrid();
 function manualSave(){
   saveData();
+  loadSaved();
   alert("Data Saved Successfully ✅");
 }
 window.manualSave = manualSave;
