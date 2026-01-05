@@ -8,6 +8,7 @@ const ctx = cv.getContext("2d");
 // ================= STATE =================
 let data = [];
 let currentMode = "basic";
+let editMode = false;   // 👈 NEW
 
 // ================= MODE =================
 function setMode(mode) {
@@ -16,6 +17,13 @@ function setMode(mode) {
   ctx.clearRect(0, 0, cv.width, cv.height);
 }
 window.setMode = setMode;
+
+// ================= EDIT MODE TOGGLE =================
+function toggleEdit() {
+  editMode = !editMode;
+  alert(editMode ? "Edit Mode ON" : "Edit Mode OFF");
+}
+window.toggleEdit = toggleEdit;
 
 // ================= SAVE / LOAD =================
 function saveData() {
@@ -33,10 +41,7 @@ function loadSaved() {
 csv.onchange = (e) => {
   const reader = new FileReader();
   reader.onload = () => {
-    data = reader.result
-      .trim()
-      .split("\n")
-      .map(r => r.split(","));
+    data = reader.result.trim().split("\n").map(r => r.split(","));
     render();
     saveData();
   };
@@ -50,31 +55,41 @@ function render() {
   data.forEach((row, r) => {
     const tr = document.createElement("tr");
 
+    // ❌ DELETE ROW BUTTON
+    const del = document.createElement("td");
+    del.innerText = "❌";
+    del.style.cursor = "pointer";
+    del.onclick = () => {
+      if (confirm("Delete this row?")) {
+        data.splice(r, 1);
+        saveData();
+        render();
+      }
+    };
+    tr.appendChild(del);
+
     row.forEach((val, c) => {
       const td = document.createElement("td");
       td.innerText = val || "";
       if (!val) td.classList.add("blank");
 
-      // 🔹 SINGLE CLICK → ANALYSIS (ONLY BLANK)
       td.onclick = () => {
-        if (!data[r][c]) {
-          clickCell(r, c);
-        }
-      };
-
-      // 🔹 DOUBLE CLICK → EDIT (ONLY FILLED)
-      td.ondblclick = () => {
-        if (data[r][c]) {
+        if (editMode) {
           td.contentEditable = true;
           td.focus();
+        } else {
+          if (!data[r][c]) {
+            clickCell(r, c);
+          }
         }
       };
 
-      // 🔹 SAVE AFTER EDIT
       td.onblur = () => {
-        td.contentEditable = false;
-        data[r][c] = td.innerText.trim();
-        saveData();
+        if (editMode) {
+          td.contentEditable = false;
+          data[r][c] = td.innerText.trim();
+          saveData();
+        }
       };
 
       tr.appendChild(td);
@@ -109,7 +124,6 @@ function clickCell(r, c) {
   ctx.clearRect(0, 0, cv.width, cv.height);
 
   let result = null;
-
   if (currentMode === "basic") result = basicEngine(data, r, c);
   if (currentMode === "family") result = familyEngine(data, r, c);
   if (currentMode === "photo") result = photoEngine(data, r, c);
@@ -133,7 +147,7 @@ function draw(points) {
   ctx.clearRect(0, 0, cv.width, cv.height);
 
   points.forEach(p => {
-    const cell = grid.rows[p.r].cells[p.c];
+    const cell = grid.rows[p.r].cells[p.c + 1]; // +1 because delete column
     const x = cell.offsetLeft + cell.offsetWidth / 2;
     const y = cell.offsetTop + cell.offsetHeight / 2;
 
