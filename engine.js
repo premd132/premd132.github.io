@@ -1,96 +1,71 @@
-function getFamily(num){
-  return FAMILY_MAP[num] || null;
-}
-
-// 1) Niche se 3 aur 4 row ke vertical pattern nikalna
-function buildBasePatterns(){
+// 1) Last 6 rows
+function getLastRows(n = 6){
   const rows = [...document.querySelectorAll("#recordTable tbody tr")];
-  const last = rows.slice(-5); // niche ke 5 row
-
-  let patterns = [];
-
-  [3,4].forEach(size=>{
-    for(let col=1; col<=6; col++){
-      for(let i=0; i<=last.length-size; i++){
-        let block = last.slice(i, i+size);
-        let fams = block.map(r=>{
-          let v = r.children[col].innerText.trim();
-          return getFamily(v);
-        });
-        let repeats = fams.filter((f,idx)=>f && fams.indexOf(f)!==idx);
-        if(repeats.length){
-          patterns.push({
-            col,
-            size,
-            fams,
-            shape: fams.map(f=> repeats.includes(f)) // true = circle
-          });
-        }
-      }
-    }
-  });
-  return patterns;
+  return rows.slice(-n);
 }
 
-// 2) Upar ke record me wahi pattern dhundhna
-function scanHistory(pattern){
-  const rows = [...document.querySelectorAll("#recordTable tbody tr")];
-  let found = [];
-
-  for(let i=0;i<=rows.length-pattern.size;i++){
-    let block = rows.slice(i,i+pattern.size);
-    let fams = block.map(r=>{
-      let v = r.children[pattern.col].innerText.trim();
-      return getFamily(v);
-    });
-
-    let ok = true;
-    for(let k=0;k<pattern.size;k++){
-      if(pattern.shape[k]){
-        if(fams.indexOf(fams[k])===fams.lastIndexOf(fams[k])) ok=false;
-      }
-    }
-    if(ok){
-      found.push({start:i, pattern});
-    }
-  }
-  return found;
+// 2) Palti + same
+function sameOrPalti(a,b){
+  if(!a || !b) return false;
+  if(a === b) return true;
+  return a === b.split("").reverse().join("");
 }
 
-// 3) Circle draw karna
-function drawMatch(match){
+// 3) Main analysis (button se chalega)
+function runAnalysis(){
   clearDrawing();
   const rows = [...document.querySelectorAll("#recordTable tbody tr")];
-  const {start, pattern} = match;
-  for(let i=0;i<pattern.size;i++){
-    if(pattern.shape[i]){
-      let td = rows[start+i].children[pattern.col];
-      td.classList.add("circle");
-    }
+  const last = rows.slice(-6);
+  const box = document.getElementById("checkLines");
+  box.innerHTML = "";
+
+  let checkNo = 1;
+
+  for(let col=1; col<=6; col++){
+    let fams = last.map(r => getFamily(r.children[col].innerText.trim()));
+    let used = {};
+
+    fams.forEach((f,i)=>{
+      fams.forEach((g,j)=>{
+        if(i!==j && f===g){
+          if(!used[f]){
+            used[f]=true;
+            makeCheck(col,f,checkNo++);
+          }
+        }
+      });
+    });
   }
 }
 
-// 4) Run button
-function runStep4(){
+// 4) Check line banana
+function makeCheck(col,fam,no){
+  const rows = [...document.querySelectorAll("#recordTable tbody tr")];
   const box = document.getElementById("checkLines");
-  box.innerHTML="";
 
-  const bases = buildBasePatterns();
-  let count = 1;
+  let found = [];
 
-  bases.forEach(p=>{
-    const hits = scanHistory(p);
-    hits.forEach(h=>{
-      let div = document.createElement("div");
-      div.className="check-line";
-      div.innerText = `Check ${count} | Col ${p.col} | ${p.size} Row Pattern`;
-      div.onclick = ()=>drawMatch(h);
-      box.appendChild(div);
-      count++;
-    });
+  rows.forEach((r,ri)=>{
+    const v = r.children[col].innerText.trim();
+    if(getFamily(v)===fam){
+      found.push({row:ri,col});
+    }
   });
 
-  if(count===1){
-    box.innerHTML="<i>No pattern found</i>";
+  if(found.length>=1){
+    const div=document.createElement("div");
+    div.className="check-line";
+    div.innerText=`Check ${no} | Col ${col} | Family ${fam}`;
+    div.onclick=()=>draw(found);
+    box.appendChild(div);
   }
+}
+
+// 5) Circle draw
+function draw(list){
+  clearDrawing();
+  list.forEach((p)=>{
+    const td=document.querySelectorAll("#recordTable tbody tr")[p.row].children[p.col];
+    td.classList.add("circle");
+  });
 }
