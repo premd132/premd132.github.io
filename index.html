@@ -1,43 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Pattern Engine (Final)</title>
+  <title>Family Pattern Analyzer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h2>📊 Pattern Engine (Final)</h2>
+<h2>Mon–Sat Pattern Analyzer</h2>
 
-<div class="top-bar">
-  <button onclick="manualSave()">Save Data</button>
-  <button onclick="toggleEdit()">Edit Mode</button>
-  <input type="file" id="csv">
-  <button onclick="addRow()">+ Add Row</button>
-  <button onclick="setMode('basic')">Basic</button>
-  <button onclick="setMode('family')">Family</button>
-  <button onclick="setMode('photo')">Photo</button>
-  <button onclick="setMode('hp80')">HP-80</button>
-  <button onclick="clearGrid()">Clear</button>
-</div>
+<input type="file" id="csvFile" accept=".csv">
+<button onclick="runAnalysis()">Run Analysis</button>
 
-<div class="wrap">
-  <table id="grid"></table>
+<table id="recordTable" border="1">
+  <thead>
+    <tr>
+      <th>Week</th>
+      <th>Mon</th><th>Tue</th><th>Wed</th>
+      <th>Thu</th><th>Fri</th><th>Sat</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-  <div id="panel">
-    <b>Mode:</b> <span id="modeLabel">BASIC</span><br><br>
-    👉 Blank cell पर click = analysis  
-    ✏️ Double tap = edit
-  </div>
-</div>
+<h3>✔ Check Lines</h3>
+<div id="checkLines"></div>
 
-<canvas id="cv"></canvas>
-
+<script src="storage.js"></script>
+<script src="family.js"></script>
 <script src="engine.js"></script>
-<script src="pattern_engine_basic.js"></script>
-<script src="pattern_engine_family.js"></script>
-<script src="pattern_engine_photo.js"></script>
-<script src="pattern_engine_hp80.js"></script>
-
 </body>
 </html>
