@@ -1,33 +1,149 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Family Pattern Analyzer</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Pattern System</title>
+<style>
+table{border-collapse:collapse;font-size:12px}
+td,th{border:1px solid #999;padding:4px;text-align:center;min-width:32px}
+.blank{background:#eee;cursor:pointer}
+.circle{border:3px solid red;border-radius:50%}
+#checks{background:#e8ffe8;margin:6px;padding:6px}
+button{margin:5px;padding:6px}
+</style>
 </head>
 <body>
 
-<h2>Mon–Sat Pattern Analyzer</h2>
+<h2>Pattern System</h2>
 
-<input type="file" id="csvFile" accept=".csv">
-<button onclick="runAnalysis()">Run Analysis</button>
+<input type="file" id="csvFile">
+<button onclick="addRow()">Add Row</button>
 
-<table id="recordTable" border="1">
-  <thead>
-    <tr>
-      <th>Week</th>
-      <th>Mon</th><th>Tue</th><th>Wed</th>
-      <th>Thu</th><th>Fri</th><th>Sat</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<table id="tbl"></table>
 
 <h3>✔ Check Lines</h3>
-<div id="checkLines"></div>
+<div id="checks"></div>
 
-<script src="storage.js"></script>
-<script src="family.js"></script>
-<script src="engine.js"></script>
+<script>
+// ===== FAMILY DATA =====
+const families={
+"12":["12","17","21","26","62","67","71","76"],
+"13":["13","18","31","36","63","68","81","86"],
+"14":["14","19","41","46","64","69","91","96"],
+"15":["01","06","10","15","51","56","60","65"],
+"23":["23","28","32","37","73","78","82","87"],
+"24":["24","29","42","47","74","79","92","97"],
+"25":["02","07","20","25","52","57","70","75"],
+"34":["34","39","43","48","84","89","93","98"],
+"35":["03","08","30","35","53","58","80","85"],
+"45":["04","09","40","45","54","59","90","95"],
+"HR":["05","16","27","38","49","50","61","72","83","94"],
+"FR":["00","11","22","33","44","55","66","77","88","99"]
+};
+
+// ===== HELPERS =====
+function norm(v){
+ if(v===""||v==="**") return "**";
+ v=String(v);
+ return v.length==1?"0"+v:v;
+}
+function getFamily(v){
+ for(let k in families) if(families[k].includes(v)) return k;
+ return "NA";
+}
+
+// ===== DATA =====
+let data=[
+["51","91","41","57","19","95"],
+["05","90","74","06","19","63"],
+["90","34","82","09","28","19"],
+["72","34","21","32","21","42"],
+["58","84","00","67","06","98"],
+["03","82","29","90","14","66"],
+["02","40","92","85","00","88"],
+["39","94","33","58","11","63"],
+["91","69","60","71","85","20"],
+["95","28","11","29","28","18"],
+["47","83","45","80","33","18"],
+["96","25","78","59","30","94"],
+["**","**","**","**","**","**"]
+];
+data=data.map(r=>r.map(norm));
+
+// ===== RENDER =====
+function draw(){
+ let t="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>";
+ data.forEach((r,ri)=>{
+  t+="<tr>";
+  r.forEach((c,ci)=>{
+   if(c=="**")
+    t+=`<td class="blank" onclick="makePattern(${ri},${ci})">**</td>`;
+   else
+    t+=`<td onclick="editCell(${ri},${ci})" id="c-${ri}-${ci}">${c}</td>`;
+  });
+  t+="</tr>";
+ });
+ document.getElementById("tbl").innerHTML=t;
+}
+draw();
+
+// ===== EDIT CELL =====
+function editCell(r,c){
+ let v=prompt("Edit value",data[r][c]);
+ if(v!==null){
+  data[r][c]=norm(v);
+  draw();
+ }
+}
+
+// ===== ADD ROW =====
+function addRow(){
+ data.push(["**","**","**","**","**","**"]);
+ draw();
+}
+
+// ===== CSV UPLOAD =====
+document.getElementById("csvFile").addEventListener("change",e=>{
+ let f=e.target.files[0];
+ if(!f) return;
+ let r=new FileReader();
+ r.onload=()=>{
+  let rows=r.result.trim().split("\n");
+  data=rows.map(x=>x.split(",").map(norm));
+  draw();
+ };
+ r.readAsText(f);
+});
+
+// ===== PATTERN LOGIC =====
+function clearCircles(){
+ document.querySelectorAll(".circle").forEach(x=>x.classList.remove("circle"));
+}
+
+function makePattern(r,c){
+ clearCircles();
+ if(r<3){alert("3 row se kam me pattern nahi banega");return;}
+
+ let f1=getFamily(data[r-1][c]);
+ let f2=getFamily(data[r-2][c]);
+ let f3=getFamily(data[r-3][c]);
+ let pattern=[f3,f2,f1];
+
+ document.getElementById("checks").innerHTML=
+ "Picked families: "+pattern.join(" → ");
+
+ // search vertical same pattern
+ for(let i=0;i<=r-3;i++){
+  let a=getFamily(data[i][c]);
+  let b=getFamily(data[i+1][c]);
+  let d=getFamily(data[i+2][c]);
+  if(a==pattern[0] && b==pattern[1] && d==pattern[2]){
+   document.getElementById(`c-${i}-${c}`)?.classList.add("circle");
+   document.getElementById(`c-${i+1}-${c}`)?.classList.add("circle");
+   document.getElementById(`c-${i+2}-${c}`)?.classList.add("circle");
+  }
+ }
+}
+</script>
 </body>
 </html>
