@@ -5,24 +5,22 @@
 <title>Pattern System</title>
 <style>
 table{border-collapse:collapse;font-size:12px}
-td,th{border:1px solid #999;padding:4px;text-align:center;min-width:32px}
+td,th{border:1px solid #999;padding:4px;text-align:center}
 .blank{background:#eee;cursor:pointer}
 .circle{border:3px solid red;border-radius:50%}
-#checks{background:#e8ffe8;margin:6px;padding:6px}
-button{margin:5px;padding:6px}
+#checks{background:#e8ffe8;margin:8px;padding:8px}
 </style>
 </head>
 <body>
 
 <h2>Pattern System</h2>
-
 <input type="file" id="csvFile">
 <button onclick="addRow()">Add Row</button>
-
+<br><br>
 <table id="tbl"></table>
 
 <h3>✔ Check Lines</h3>
-<div id="checks"></div>
+<div id="checks">Click blank cell to generate pattern</div>
 
 <script>
 // ===== FAMILY DATA =====
@@ -41,9 +39,8 @@ const families={
 "FR":["00","11","22","33","44","55","66","77","88","99"]
 };
 
-// ===== HELPERS =====
 function norm(v){
- if(v===""||v==="**") return "**";
+ if(v==="**"||v==="") return "**";
  v=String(v);
  return v.length==1?"0"+v:v;
 }
@@ -52,7 +49,7 @@ function getFamily(v){
  return "NA";
 }
 
-// ===== DATA =====
+// ===== SAMPLE DATA =====
 let data=[
 ["51","91","41","57","19","95"],
 ["05","90","74","06","19","63"],
@@ -76,10 +73,8 @@ function draw(){
  data.forEach((r,ri)=>{
   t+="<tr>";
   r.forEach((c,ci)=>{
-   if(c=="**")
-    t+=`<td class="blank" onclick="makePattern(${ri},${ci})">**</td>`;
-   else
-    t+=`<td onclick="editCell(${ri},${ci})" id="c-${ri}-${ci}">${c}</td>`;
+    if(c=="**") t+=`<td class="blank" onclick="makePattern(${ci})">**</td>`;
+    else t+=`<td id="c-${ri}-${ci}">${c}</td>`;
   });
   t+="</tr>";
  });
@@ -87,63 +82,64 @@ function draw(){
 }
 draw();
 
-// ===== EDIT CELL =====
-function editCell(r,c){
- let v=prompt("Edit value",data[r][c]);
- if(v!==null){
-  data[r][c]=norm(v);
-  draw();
+// ===== MAIN LOGIC =====
+function makePattern(col){
+ clearCircles();
+
+ let picked=[];
+ for(let i=data.length-1;i>=0 && picked.length<3;i--){
+   let v=data[i][col];
+   if(v!="**"){
+     picked.push(getFamily(v));
+   }
  }
+ if(picked.length<3 || picked.includes("NA")){
+   document.getElementById("checks").innerHTML="Invalid pattern (NA or less rows)";
+   return;
+ }
+ picked=picked.reverse(); // top to bottom
+
+ // search
+ for(let i=0;i<=data.length-3;i++){
+   let f1=getFamily(data[i][col]);
+   let f2=getFamily(data[i+1][col]);
+   let f3=getFamily(data[i+2][col]);
+   if(f1==picked[0] && f2==picked[1] && f3==picked[2]){
+     mark(i,col); mark(i+1,col); mark(i+2,col);
+   }
+ }
+
+ document.getElementById("checks").innerHTML=
+   "Picked families: "+picked.join(" → ");
+}
+
+function mark(r,c){
+ let el=document.getElementById(`c-${r}-${c}`);
+ if(el) el.classList.add("circle");
+}
+function clearCircles(){
+ document.querySelectorAll(".circle").forEach(x=>x.classList.remove("circle"));
 }
 
 // ===== ADD ROW =====
 function addRow(){
- data.push(["**","**","**","**","**","**"]);
+ let row=[];
+ for(let i=0;i<6;i++) row.push("**");
+ data.push(row);
  draw();
 }
 
 // ===== CSV UPLOAD =====
 document.getElementById("csvFile").addEventListener("change",e=>{
  let f=e.target.files[0];
- if(!f) return;
  let r=new FileReader();
  r.onload=()=>{
-  let rows=r.result.trim().split("\n");
-  data=rows.map(x=>x.split(",").map(norm));
+  let lines=r.result.trim().split(/\r?\n/);
+  data=lines.map(l=>l.split(",").map(x=>norm(x.trim())));
   draw();
  };
  r.readAsText(f);
 });
-
-// ===== PATTERN LOGIC =====
-function clearCircles(){
- document.querySelectorAll(".circle").forEach(x=>x.classList.remove("circle"));
-}
-
-function makePattern(r,c){
- clearCircles();
- if(r<3){alert("3 row se kam me pattern nahi banega");return;}
-
- let f1=getFamily(data[r-1][c]);
- let f2=getFamily(data[r-2][c]);
- let f3=getFamily(data[r-3][c]);
- let pattern=[f3,f2,f1];
-
- document.getElementById("checks").innerHTML=
- "Picked families: "+pattern.join(" → ");
-
- // search vertical same pattern
- for(let i=0;i<=r-3;i++){
-  let a=getFamily(data[i][c]);
-  let b=getFamily(data[i+1][c]);
-  let d=getFamily(data[i+2][c]);
-  if(a==pattern[0] && b==pattern[1] && d==pattern[2]){
-   document.getElementById(`c-${i}-${c}`)?.classList.add("circle");
-   document.getElementById(`c-${i+1}-${c}`)?.classList.add("circle");
-   document.getElementById(`c-${i+2}-${c}`)?.classList.add("circle");
-  }
- }
-}
 </script>
 </body>
 </html>
