@@ -192,29 +192,31 @@ function showOne(shape,n){
 /* ===== AI SUGGESTION ===== */
 function showAISuggestions(shape){
  let digitCount={},jodiCount={};
+ let h = shape.length;
+
  topMatches.forEach(m=>{
-  let idx=m.index;
-  for(let i=0;i<shape.length;i++){
-   for(let j=0;j<5;j++){
-    if(shape[i][j]){
-     let v=data[idx+i][j];
-     if(v!="**"){
-      jodiCount[v]=(jodiCount[v]||0)+1;
-      digitCount[v[0]]=(digitCount[v[0]]||0)+1;
-      digitCount[v[1]]=(digitCount[v[1]]||0)+1;
-     }
-    }
+  let nextRow = m.index + h;   // pattern ke baad wali row
+  if(nextRow >= data.length) return;
+
+  for(let j=0;j<5;j++){
+   let v = data[nextRow][j];
+   if(v!="**"){
+    jodiCount[v]=(jodiCount[v]||0)+1;
+    digitCount[v[0]]=(digitCount[v[0]]||0)+1;
+    digitCount[v[1]]=(digitCount[v[1]]||0)+1;
    }
   }
  });
+
  let topD=Object.entries(digitCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
  let topJ=Object.entries(jodiCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
- let html="Top 2 Single Ank:<br>";
+
+ let html="Next Row Based Guess<br><br>Top 2 Single Ank:<br>";
  topD.forEach(d=>html+=d[0]+" ("+d[1]+") &nbsp; ");
  html+="<br><br>Top 2 Jodi:<br>";
  topJ.forEach(j=>html+=j[0]+" ("+j[1]+") &nbsp; ");
  document.getElementById("ai").innerHTML=html;
-}
+     }
 </script>
 </body>
 </html>
