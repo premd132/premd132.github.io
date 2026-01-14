@@ -125,7 +125,11 @@ function makePattern(r,c){
  let base="**";
  for(let i=r;i>=0;i--){if(data[i][c]!="**"){base=data[i][c];break;}}
  if(base=="**") return;
-
+function makePattern(r,c){
+ targetCol = c;   // blank ka column yaad rakho
+ let base="**";
+ ...
+}
  let shape=[];
  for(let i=Math.max(0,r-4);i<=r;i++){
   let row=[];
