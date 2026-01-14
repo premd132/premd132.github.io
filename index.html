@@ -8,33 +8,18 @@ body{font-family:Arial}
 table{border-collapse:collapse;font-size:13px}
 td,th{border:1px solid #999;padding:5px;text-align:center;font-weight:600}
 .blank{background:#eee;cursor:pointer}
+.anchor{background:#ffeaa7}
 
-/* Circle base */
-.circle{
-  border:3px solid red;
-  border-radius:50%;
-}
+.circle{border:3px solid red;border-radius:50%}
 
-/* Family Colors */
-.f12{border-color:#e74c3c}
-.f13{border-color:#9b59b6}
-.f14{border-color:#3498db}
-.f15{border-color:#16a085}
-.f23{border-color:#f39c12}
-.f24{border-color:#d35400}
-.f25{border-color:#1abc9c}
-.f34{border-color:#2c3e50}
-.f35{border-color:#27ae60}
-.f45{border-color:#8e44ad}
-.fHR{border-color:#c0392b}
-.fFR{border-color:#000}
+/* Family colors */
+.f12{border-color:#e74c3c}.f13{border-color:#9b59b6}.f14{border-color:#3498db}
+.f15{border-color:#16a085}.f23{border-color:#f39c12}.f24{border-color:#d35400}
+.f25{border-color:#1abc9c}.f34{border-color:#2c3e50}.f35{border-color:#27ae60}
+.f45{border-color:#8e44ad}.fHR{border-color:#c0392b}.fFR{border-color:#000}
 
 #checks div{background:#e8ffe8;margin:4px;padding:6px;cursor:pointer}
-#popup{
- position:fixed;left:0;right:0;bottom:0;
- background:#fff;border-top:3px solid #000;
- display:none;max-height:50%;overflow:auto
-}
+#popup{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:3px solid #000;display:none;max-height:50%;overflow:auto}
 button{margin:4px}
 </style>
 </head>
@@ -44,10 +29,11 @@ button{margin:4px}
 <input type="file" id="csv">
 <button onclick="addRow()">Add Row</button>
 <button onclick="saveData()">Save</button>
+<p id="modeInfo"></p>
 
 <table id="tbl"></table>
 
-<h3>✔ Check Lines</h3>
+<h3>✔ Check Lines (Top 3)</h3>
 <div id="checks"></div>
 
 <div id="popup">
@@ -56,6 +42,7 @@ button{margin:4px}
 </div>
 
 <script>
+/* ===== FAMILY LIST ===== */
 const families={
 "12":["12","17","21","26","62","67","71","76"],
 "13":["13","18","31","36","63","68","81","86"],
@@ -71,16 +58,11 @@ const families={
 "FR":["00","11","22","33","44","55","66","77","88","99"]
 };
 
-function norm(v){
- if(v==""||v=="**")return "**";
- v=String(v);
- return v.length==1?"0"+v:v;
-}
-function fam(v){
- for(let k in families) if(families[k].includes(v)) return k;
- return "NA";
-}
+function fam(v){for(let k in families) if(families[k].includes(v)) return k; return "NA";}
+function famClass(v){let f=fam(v); return f=="NA"?"":"f"+f;}
+function norm(v){if(v==""||v=="**")return "**";v=String(v);return v.length==1?"0"+v:v;}
 
+/* ===== DATA ===== */
 let data=JSON.parse(localStorage.getItem("pdata")||"[]");
 if(data.length==0){
  data=[
@@ -92,13 +74,30 @@ if(data.length==0){
 }
 data=data.map(r=>r.map(norm));
 
+/* ===== STATE ===== */
+let activeMark=null;     // for main table marking
+let lastMatches=[], topMatches=[];
+let anchorMode=false, anchorBlank=null;
+
+/* ===== DRAW ===== */
 function draw(){
  let t="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>";
  data.forEach((r,ri)=>{
   t+="<tr>";
   r.forEach((c,ci)=>{
-   if(c=="**") t+=`<td class='blank' onclick="makePattern(${ri},${ci})">**</td>`;
-   else t+=`<td contenteditable oninput="edit(${ri},${ci},this)">${c}</td>`;
+   let cls="";
+   if(activeMark){
+     let {start,shape}=activeMark;
+     let i=ri-start;
+     if(i>=0 && i<shape.length && shape[i][ci]){
+       cls="class='circle "+famClass(c)+"'";
+     }
+   }
+   if(anchorBlank && anchorBlank.r==ri && anchorBlank.c==ci) cls="class='anchor'";
+   if(c=="**")
+     t+=`<td class="blank" onclick="selectBlank(${ri},${ci})">**</td>`;
+   else
+     t+=`<td ${cls} contenteditable oninput="edit(${ri},${ci},this)" onclick="cellTouch(${ri},${ci})">${c}</td>`;
   });
   t+="</tr>";
  });
@@ -107,117 +106,82 @@ function draw(){
 function edit(r,c,el){data[r][c]=norm(el.innerText)}
 draw();
 
+/* ===== ADD / SAVE / CSV ===== */
 function addRow(){data.push(["","","","","",""]);draw();}
 function saveData(){localStorage.setItem("pdata",JSON.stringify(data));alert("Saved");}
-
 csv.onchange=e=>{
  let fr=new FileReader();
- fr.onload=()=>{
-  data=fr.result.trim().split("\n").map(r=>r.split(",").map(norm));
-  draw();
- };
+ fr.onload=()=>{data=fr.result.trim().split("\n").map(r=>r.split(",").map(norm));draw();};
  fr.readAsText(e.target.files[0]);
 };
 
-let lastMatches=[];
-
+/* ===== ORIGINAL PATTERN (blank click builds last-rows pattern) ===== */
 function makePattern(r,c){
- let len=5;
- let start=Math.max(0,r-len+1);
- let rows=data.slice(start,r+1);
-
+ let len=5,start=Math.max(0,r-len+1),rows=data.slice(start,r+1);
  let shape=[];
  for(let i=0;i<rows.length;i++){
-  let fams={};
-  rows[i].forEach(v=>{
-   if(v!="**"){
-    let f=fam(v);
-    fams[f]=(fams[f]||0)+1;
-   }
-  });
-  let rowShape=[];
-  rows[i].forEach(v=>{
-   if(v=="**") rowShape.push(0);
-   else rowShape.push(fams[fam(v)]>1?1:0);
-  });
-  shape.push(rowShape);
+  let fams={}; rows[i].forEach(v=>{if(v!="**"){let f=fam(v);fams[f]=(fams[f]||0)+1;}});
+  let row=[]; rows[i].forEach(v=>{if(v=="**")row.push(0);else row.push(fams[fam(v)]>1?1:0);});
+  shape.push(row);
  }
  searchPattern(shape);
 }
 
-function sameShape(a,b){
- for(let i=0;i<a.length;i++)
-  for(let j=0;j<6;j++)
-   if(a[i][j]!=b[i][j]) return false;
- return true;
-}
-function sameFamilyShape(a,b){
- for(let i=0;i<a.length;i++)
-  for(let j=0;j<6;j++)
-   if(a[i][j]==1 && b[i][j]!=1) return false;
- return true;
-}
+/* ===== COMPARE ===== */
+function sameShape(a,b){for(let i=0;i<a.length;i++)for(let j=0;j<6;j++)if(a[i][j]!=b[i][j])return false;return true;}
+function sameFamilyShape(a,b){for(let i=0;i<a.length;i++)for(let j=0;j<6;j++)if(a[i][j]==1&&b[i][j]!=1)return false;return true;}
 
+/* ===== SEARCH FOR ORIGINAL PATTERN ===== */
 function searchPattern(shape){
  lastMatches=[];
  let h=shape.length;
  for(let i=0;i<=data.length-h;i++){
   let test=[];
   for(let k=0;k<h;k++){
-   let fams={};
-   data[i+k].forEach(v=>{
-    if(v!="**"){
-     let f=fam(v);
-     fams[f]=(fams[f]||0)+1;
-    }
-   });
-   let row=[];
-   data[i+k].forEach(v=>{
-    if(v=="**") row.push(0);
-    else row.push(fams[fam(v)]>1?1:0);
-   });
+   let fams={}; data[i+k].forEach(v=>{if(v!="**"){let f=fam(v);fams[f]=(fams[f]||0)+1;}});
+   let row=[]; data[i+k].forEach(v=>{if(v=="**")row.push(0);else row.push(fams[fam(v)]>1?1:0);});
    test.push(row);
   }
-  if(sameShape(shape,test)){
-   lastMatches.push({index:i,type:"exact"});
-  }else if(sameFamilyShape(shape,test)){
-   lastMatches.push({index:i,type:"family"});
-  }
+  if(sameShape(shape,test)) lastMatches.push({index:i,type:"exact",row:i});
+  else if(sameFamilyShape(shape,test)) lastMatches.push({index:i,type:"family",row:i});
  }
  showChecks(shape);
 }
 
+/* ===== STRENGTH + TOP 3 ===== */
+function calcStrength(m){
+ let total=data.length;
+ let recency=total-m.row;
+ let freq=lastMatches.filter(x=>x.type==m.type).length;
+ return (freq*10)+(100-recency);
+}
 function showChecks(shape){
  checks.innerHTML="";
  if(lastMatches.length==0){checks.innerHTML="<i>No match</i>";return;}
- lastMatches.forEach((m,idx)=>{
+ lastMatches.forEach(m=>m.strength=calcStrength(m));
+ lastMatches.sort((a,b)=>b.strength-a.strength);
+ topMatches=lastMatches.slice(0,3);
+ topMatches.forEach((m,idx)=>{
   let d=document.createElement("div");
-  d.innerText=(idx+1)+". "+m.type+" match (click)";
+  d.innerText=(idx+1)+". "+m.type+" | Strength:"+m.strength+" (click)";
   d.onclick=()=>showOne(shape,idx);
   checks.appendChild(d);
  });
 }
 
-/* ===== FAMILY COLOR HELPER ===== */
-function famClass(v){
- let f=fam(v);
- if(f=="NA") return "";
- return "f"+f;
-}
-
-/* ===== POPUP WITH COLORED CIRCLES ===== */
+/* ===== POPUP + MAIN TABLE MARKING ===== */
 function showOne(shape,n){
- let idx=lastMatches[n].index;
- let h=shape.length;
- let html="<h4>Match "+(n+1)+" - "+lastMatches[n].type+"</h4><table>";
+ let idx=topMatches[n].index;
+ activeMark={start:idx,shape:shape};
+ draw();
+
+ let h=shape.length,html="<h4>Match "+(n+1)+"</h4><table>";
  for(let i=0;i<h+1;i++){
   html+="<tr>";
   if(data[idx+i]){
    data[idx+i].forEach((v,j)=>{
     let cls="";
-    if(i<h && shape[i][j]){
-      cls="class='circle "+famClass(v)+"'";
-    }
+    if(i<h&&shape[i][j]) cls="class='circle "+famClass(v)+"'";
     html+=`<td ${cls}>${v}</td>`;
    });
   }
@@ -227,8 +191,53 @@ function showOne(shape,n){
  popData.innerHTML=html;
  popup.style.display="block";
 }
+function closePop(){popup.style.display="none";}
 
-function closePop(){popup.style.display="none"}
+/* =====================================================
+   ========== NEW ADD-ON: ANCHOR MODE ==================
+   ===================================================== */
+
+/* Step 1: Blank select → anchor mode */
+function selectBlank(r,c){
+ anchorMode=true;
+ anchorBlank={r,c};
+ modeInfo.innerHTML="Anchor Mode: Now click any base jodi";
+}
+
+/* Step 2: Touch base jodi */
+function cellTouch(r,c){
+ if(!anchorMode) return;
+
+ let shape={
+   center:fam(data[r][c]),
+   up: r>0 ? fam(data[r-1][c]) : null,
+   down: r<data.length-1 ? fam(data[r+1][c]) : null,
+   left: c>0 ? fam(data[r][c-1]) : null,
+   right: c<5 ? fam(data[r][c+1]) : null
+ };
+ anchorMode=false;
+ anchorBlank=null;
+ modeInfo.innerHTML="";
+ searchAnchorPattern(shape);
+ draw();
+}
+
+/* Step 3: Search whole record by anchor shape */
+function searchAnchorPattern(shape){
+ lastMatches=[];
+ for(let i=0;i<data.length;i++){
+  for(let j=0;j<6;j++){
+   if(fam(data[i][j])!=shape.center) continue;
+   let ok=true;
+   if(shape.up && (i==0 || fam(data[i-1][j])!=shape.up)) ok=false;
+   if(shape.down && (i==data.length-1 || fam(data[i+1][j])!=shape.down)) ok=false;
+   if(shape.left && (j==0 || fam(data[i][j-1])!=shape.left)) ok=false;
+   if(shape.right && (j==5 || fam(data[i][j+1])!=shape.right)) ok=false;
+   if(ok) lastMatches.push({index:i,type:"anchor",row:i});
+  }
+ }
+ showChecks([[1,1,1,1,1,1]]); // dummy shape for listing
+}
 </script>
 </body>
 </html>
