@@ -75,10 +75,10 @@ function smartMatch(a,b){
 let data=JSON.parse(localStorage.getItem("pdata")||"null");
 if(!data){
  data=[
- ["51","91","41","57","19","95"],
- ["05","90","74","06","19","63"],
- ["90","34","82","09","28","19"],
- ["**","**","**","**","**","**"]
+ ["51","91","41","57","19"],
+ ["05","90","74","06","19"],
+ ["90","34","82","09","28"],
+ ["**","**","**","**","**"],
  ];
 }
 data=data.map(r=>r.map(norm));
@@ -86,7 +86,7 @@ data=data.map(r=>r.map(norm));
 /* ===== DRAW ===== */
 let activeMark=null;
 function draw(){
- let h="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>";
+ let h="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th></tr>";
  data.forEach((r,ri)=>{
   h+="<tr>";
   r.forEach((c,ci)=>{
