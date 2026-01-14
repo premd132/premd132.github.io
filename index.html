@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rajdhani Night</title>
+<title>Pattern System</title>
 <style>
 body{font-family:Arial}
 table{border-collapse:collapse;font-size:13px}
@@ -78,7 +78,7 @@ if(!data){
  ["51","91","41","57","19"],
  ["05","90","74","06","19"],
  ["90","34","82","09","28"],
- ["**","**","**","**","**"],
+ ["**","**","**","**","**"]
  ];
 }
 data=data.map(r=>r.map(norm));
@@ -86,7 +86,7 @@ data=data.map(r=>r.map(norm));
 /* ===== DRAW ===== */
 let activeMark=null;
 function draw(){
- let h="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th></tr>";
+ let h="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr>";
  data.forEach((r,ri)=>{
   h+="<tr>";
   r.forEach((c,ci)=>{
@@ -97,7 +97,7 @@ function draw(){
     if(i>=0&&i<shape.length&&shape[i][ci]) cls="circle "+famClass(c);
    }
    if(c=="**")
-  h+=`<td class="blank" contenteditable 
+    h+=`<td class="blank" contenteditable 
         oninput="edit(${ri},${ci},this)" 
         onclick="makePattern(${ri},${ci})">**</td>`;
    else
@@ -110,7 +110,7 @@ function draw(){
 draw();
 
 function edit(r,c,el){data[r][c]=norm(el.innerText.trim());}
-function addRow(){data.push(["","","","","",""].map(norm));draw();}
+function addRow(){data.push(["","","","",""].map(norm));draw();}
 function saveData(){localStorage.setItem("pdata",JSON.stringify(data));alert("Saved");}
 
 csv.onchange=e=>{
@@ -129,7 +129,7 @@ function makePattern(r,c){
  let shape=[];
  for(let i=Math.max(0,r-4);i<=r;i++){
   let row=[];
-  for(let j=0;j<6;j++){
+  for(let j=0;j<5;j++){
    let v=data[i][j];
    row.push(v!="**" && smartMatch(v,base)?1:0);
   }
@@ -146,7 +146,7 @@ function searchPattern(shape,base){
  for(let i=0;i<=data.length-h;i++){
   let ok=true;
   for(let k=0;k<h;k++){
-   for(let j=0;j<6;j++){
+   for(let j=0;j<5;j++){
     if(shape[k][j] && !smartMatch(data[i+k][j],base)){ok=false;break;}
    }
    if(!ok) break;
@@ -195,7 +195,7 @@ function showAISuggestions(shape){
  topMatches.forEach(m=>{
   let idx=m.index;
   for(let i=0;i<shape.length;i++){
-   for(let j=0;j<6;j++){
+   for(let j=0;j<5;j++){
     if(shape[i][j]){
      let v=data[idx+i][j];
      if(v!="**"){
