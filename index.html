@@ -10,13 +10,10 @@ td,th{border:1px solid #999;padding:5px;text-align:center;font-weight:600}
 td[contenteditable]{background:#fffbe6}
 .blank{background:#eee;cursor:pointer}
 .circle{border:3px solid red;border-radius:50%}
-
-/* family colors */
 .f12{border-color:#e74c3c}.f13{border-color:#9b59b6}.f14{border-color:#3498db}
 .f15{border-color:#16a085}.f23{border-color:#f39c12}.f24{border-color:#d35400}
 .f25{border-color:#1abc9c}.f34{border-color:#2c3e50}.f35{border-color:#27ae60}
 .f45{border-color:#8e44ad}.fHR{border-color:#c0392b}.fFR{border-color:#000}
-
 #checks div{background:#e8ffe8;margin:4px;padding:6px;cursor:pointer}
 #popup{position:fixed;left:0;right:0;bottom:0;background:#fff;
 border-top:3px solid #000;display:none;max-height:50%;overflow:auto}
@@ -30,7 +27,6 @@ button{margin:4px}
 <input type="file" id="csv">
 <button onclick="addRow()">Add Row</button>
 <button onclick="saveData()">Save</button>
-
 <table id="tbl"></table>
 
 <h3>✔ Check Lines (Top 3)</h3>
@@ -72,6 +68,7 @@ function smartMatch(a,b){
 }
 
 /* ===== DATA ===== */
+let targetCol=null;
 let data=JSON.parse(localStorage.getItem("pdata")||"null");
 if(!data){
  data=[
@@ -97,9 +94,7 @@ function draw(){
     if(i>=0&&i<shape.length&&shape[i][ci]) cls="circle "+famClass(c);
    }
    if(c=="**")
-    h+=`<td class="blank" contenteditable 
-        oninput="edit(${ri},${ci},this)" 
-        onclick="makePattern(${ri},${ci})">**</td>`;
+    h+=`<td class="blank" contenteditable onclick="makePattern(${ri},${ci})" oninput="edit(${ri},${ci},this)">**</td>`;
    else
     h+=`<td class="${cls}" contenteditable oninput="edit(${ri},${ci},this)">${c}</td>`;
   });
@@ -122,14 +117,13 @@ csv.onchange=e=>{
 /* ===== PATTERN FROM BLANK ===== */
 let lastMatches=[],topMatches=[],lastShape=null;
 function makePattern(r,c){
+ targetCol=c;
  let base="**";
- for(let i=r;i>=0;i--){if(data[i][c]!="**"){base=data[i][c];break;}}
+ for(let i=r;i>=0;i--){
+  if(data[i][c]!="**"){base=data[i][c];break;}
+ }
  if(base=="**") return;
-function makePattern(r,c){
- targetCol = c;   // blank ka column yaad rakho
- let base="**";
- ...
-}
+
  let shape=[];
  for(let i=Math.max(0,r-4);i<=r;i++){
   let row=[];
@@ -163,7 +157,7 @@ function searchPattern(shape,base){
 /* ===== CHECK LINES ===== */
 function showChecks(shape){
  checks.innerHTML="";
- if(lastMatches.length==0){checks.innerHTML="<i>No match</i>";document.getElementById("ai").innerHTML="";return;}
+ if(lastMatches.length==0){checks.innerHTML="<i>No match</i>";ai.innerHTML="";return;}
  topMatches=lastMatches.slice(0,3);
  topMatches.forEach((m,i)=>{
   let d=document.createElement("div");
@@ -174,13 +168,13 @@ function showChecks(shape){
  showAISuggestions(shape);
 }
 
-/* ===== POPUP + MARKING ===== */
+/* ===== POPUP ===== */
 function showOne(shape,n){
  let idx=topMatches[n].index;
  activeMark={start:idx,shape:shape};
  draw();
- let h=shape.length,html="<table>";
- for(let i=0;i<h;i++){
+ let html="<table>";
+ for(let i=0;i<shape.length;i++){
   html+="<tr>";
   data[idx+i].forEach((v,j)=>{
    let cls=shape[i][j]?"circle "+famClass(v):"";
@@ -195,29 +189,24 @@ function showOne(shape,n){
 
 /* ===== AI SUGGESTION ===== */
 function showAISuggestions(shape){
- let digitCount={},jodiCount={};
- let h = shape.length;
-
+ let digitCount={},jodiCount={},h=shape.length;
  topMatches.forEach(m=>{
-  let nextRow = m.index + h;   // pattern ke baad wali row
-  if(nextRow >= data.length) return;
-
-  let v = data[nextRow][targetCol];   // sirf blank wale column ka data
+  let nextRow=m.index+h;
+  if(nextRow>=data.length) return;
+  let v=data[nextRow][targetCol];
   if(v!="**"){
    jodiCount[v]=(jodiCount[v]||0)+1;
    digitCount[v[0]]=(digitCount[v[0]]||0)+1;
    digitCount[v[1]]=(digitCount[v[1]]||0)+1;
   }
  });
-
  let topD=Object.entries(digitCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
  let topJ=Object.entries(jodiCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
-
  let html="Blank Column Based Guess<br><br>Top 2 Single Ank:<br>";
  topD.forEach(d=>html+=d[0]+" ("+d[1]+") &nbsp; ");
  html+="<br><br>Top 2 Jodi:<br>";
  topJ.forEach(j=>html+=j[0]+" ("+j[1]+") &nbsp; ");
- document.getElementById("ai").innerHTML=html;
+ ai.innerHTML=html;
 }
 </script>
 </body>
