@@ -7,25 +7,31 @@
 body{font-family:Arial}
 table{border-collapse:collapse;font-size:13px}
 td,th{border:1px solid #999;padding:5px;text-align:center;font-weight:600}
+td[contenteditable]{background:#fffbe6}
 .blank{background:#eee;cursor:pointer}
 .circle{border:3px solid red;border-radius:50%}
 #checks div{background:#e8ffe8;margin:4px;padding:6px;cursor:pointer}
 #ai,#future{background:#eef;padding:8px;margin-top:6px;font-weight:600}
 #popup{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:3px solid #000;display:none;max-height:50%;overflow:auto}
+button{margin:4px}
 </style>
 </head>
 <body>
 
 <h2>Pattern System</h2>
+<input type="file" id="csv">
+<button onclick="addRow()">Add Row</button>
+<button onclick="saveData()">Save</button>
+
 <table id="tbl"></table>
 
 <h3>✔ Check Lines (Top 3)</h3>
 <div id="checks"></div>
 
-<h3>🤖 AI</h3>
+<h3>🤖 AI Suggestions</h3>
 <div id="ai"></div>
 
-<h3>🔮 Future AI</h3>
+<h3>🔮 Future AI (Table Trick)</h3>
 <div id="future"></div>
 
 <div id="popup">
@@ -35,14 +41,14 @@ td,th{border:1px solid #999;padding:5px;text-align:center;font-weight:600}
 
 <script>
 let targetCol=null;
-const tbl=tbl=document.getElementById("tbl");
+const tbl=document.getElementById("tbl");
 const checks=document.getElementById("checks");
 const ai=document.getElementById("ai");
 const future=document.getElementById("future");
 const popup=document.getElementById("popup");
 const popData=document.getElementById("popData");
 
-/* ===== FAMILY ===== */
+/* FAMILY */
 const families={
 "12":["12","17","21","26","62","67","71","76"],
 "13":["13","18","31","36","63","68","81","86"],
@@ -58,7 +64,9 @@ const families={
 "FR":["00","11","22","33","44","55","66","77","88","99"]
 };
 function fam(v){for(let k in families) if(families[k].includes(v)) return k; return "NA";}
+function famClass(v){let f=fam(v);return f=="NA"?"":"f"+f;}
 function palti(v){return v[1]+v[0];}
+function norm(v){if(v==""||v=="**")return "**";v=String(v);return v.length==1?"0"+v:v;}
 function smartMatch(a,b){
  if(a=="**"||b=="**") return false;
  if(a===b) return true;
@@ -66,28 +74,19 @@ function smartMatch(a,b){
  return fam(a)===fam(b);
 }
 
-/* ===== DATA ===== */
-let data=[
- ["52","58","49","69","79","71"],
- ["71","79","73","87","80","19"],
- ["12","96","79","36","84","97"],
- ["40","85","95","31","15","**"],
- ["**","**","**","**","**","**"],
- ["59","44","59","42","90","08"],
- ["55","02","23","00","05","27"],
- ["91","16","84","20","84","47"],
- ["52","96","53","11","70","82"],
- ["91","97","67","79","09","87"],
- ["78","52","12","72","64","17"],
- ["16","43","78","91","27","30"],
- ["64","30","97","55","97","39"],
- ["33","38","53","32","84","82"],
- ["60","57","36","94","52","68"],
- ["04","46","65","04","04","74"],
- ["77","51","04","**","**","**"]
-];
+/* DATA */
+let data=JSON.parse(localStorage.getItem("pdata")||"null");
+if(!data){
+ data=[
+ ["51","91","41","57","19","95"],
+ ["05","90","74","06","19","63"],
+ ["90","34","82","09","28","19"],
+ ["**","**","**","**","**","**"]
+ ];
+}
+data=data.map(r=>r.map(norm));
 
-/* ===== DRAW ===== */
+/* DRAW */
 let activeMark=null;
 function draw(){
  let h="<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>";
@@ -98,12 +97,12 @@ function draw(){
    if(activeMark){
     let {start,shape}=activeMark;
     let i=ri-start;
-    if(i>=0 && i<shape.length && shape[i][ci]) cls="circle";
+    if(i>=0&&i<shape.length&&shape[i][ci]) cls="circle "+famClass(c);
    }
    if(c=="**")
-    h+=`<td class="blank ${cls}" onclick="makePattern(${ri},${ci})">**</td>`;
+    h+=`<td class="blank" contenteditable oninput="edit(${ri},${ci},this)" onclick="makePattern(${ri},${ci})">**</td>`;
    else
-    h+=`<td class="${cls}">${c}</td>`;
+    h+=`<td class="${cls}" contenteditable oninput="edit(${ri},${ci},this)">${c}</td>`;
   });
   h+="</tr>";
  });
@@ -111,20 +110,16 @@ function draw(){
 }
 draw();
 
-/* ===== PATTERN ===== */
-let lastMatches=[],topMatches=[],lastShape=null;
+function edit(r,c,el){data[r][c]=norm(el.innerText.trim());}
+function addRow(){data.push(["","","","","",""].map(norm));draw();}
+function saveData(){localStorage.setItem("pdata",JSON.stringify(data));alert("Saved");}
 
+/* PATTERN */
+let lastMatches=[],topMatches=[];
 function makePattern(r,c){
  targetCol=c;
- activeMark=null;
- checks.innerHTML="";
- ai.innerHTML="";
- future.innerHTML="";
-
  let base="**";
- for(let i=r;i>=0;i--){
-  if(data[i][c]!="**"){base=data[i][c];break;}
- }
+ for(let i=r;i>=0;i--){if(data[i][c]!="**"){base=data[i][c];break;}}
  if(base=="**") return;
 
  let shape=[];
@@ -136,11 +131,10 @@ function makePattern(r,c){
   }
   shape.push(row);
  }
- lastShape=shape;
  searchPattern(shape,base);
 }
 
-/* ===== SEARCH ===== */
+/* SEARCH */
 function searchPattern(shape,base){
  lastMatches=[];
  let h=shape.length;
@@ -157,31 +151,44 @@ function searchPattern(shape,base){
  showChecks(shape);
 }
 
-/* ===== CHECK LINES ===== */
+/* CHECK LINES */
 function showChecks(shape){
  checks.innerHTML="";
- if(lastMatches.length==0){checks.innerHTML="No match";return;}
+ if(lastMatches.length==0){checks.innerHTML="<i>No match</i>";ai.innerHTML="";future.innerHTML="";return;}
  topMatches=lastMatches.slice(0,3);
  topMatches.forEach((m,i)=>{
   let d=document.createElement("div");
-  d.innerText=(i+1)+". Match";
+  d.innerText=(i+1)+". Match (click)";
   d.onclick=()=>showOne(shape,i);
   checks.appendChild(d);
  });
- showAI(shape);
+ showAISuggestions(shape);
 }
 
-/* ===== POPUP + MARK ===== */
+/* POPUP */
 function showOne(shape,n){
  let idx=topMatches[n].index;
  activeMark={start:idx,shape:shape};
  draw();
+ let h=shape.length,html="<table>";
+ for(let i=0;i<h;i++){
+  html+="<tr>";
+  data[idx+i].forEach((v,j)=>{
+   let cls=shape[i][j]?"circle "+famClass(v):"";
+   html+=`<td class="${cls}">${v}</td>`;
+  });
+  html+="</tr>";
+ }
+ html+="</table>";
+ popData.innerHTML=html;
+ popup.style.display="block";
 }
 
-/* ===== AI + FUTURE AI ===== */
-function showAI(shape){
+/* AI + FUTURE AI */
+function showAISuggestions(shape){
  let digitCount={},jodiCount={};
 
+ // Normal AI
  topMatches.forEach(m=>{
   let idx=m.index;
   for(let i=0;i<shape.length;i++){
@@ -197,20 +204,28 @@ function showAI(shape){
    }
   }
  });
+ let topD=Object.entries(digitCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
+ let topJ=Object.entries(jodiCount).sort((a,b)=>b[1]-a[1]).slice(0,2);
+ ai.innerHTML="Top 2 Single Ank:<br>"+topD.map(d=>d[0]).join(",")+
+              "<br><br>Top 2 Jodi:<br>"+topJ.map(j=>j[0]).join(",");
 
- let topJ=Object.entries(jodiCount).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
- let topD=Object.entries(digitCount).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
-
- ai.innerHTML="Top 2 Jodi: "+topJ.join(",")+"<br>Top 2 Single Ank: "+topD.join(",");
-
- /* ===== FUTURE AI ===== */
+ // ===== FIXED FUTURE AI =====
  let pool=[];
  let h=shape.length;
  topMatches.forEach(m=>{
   let nr=m.index+h;
   while(nr<data.length){
-   if(data[nr][targetCol]!="**"){
-    pool.push(data[nr][targetCol]);
+   let row=data[nr];
+   let hasReal=false;
+   row.forEach(v=>{ if(v!="**") hasReal=true; });
+   if(hasReal){
+    let cols=[targetCol,targetCol-1,targetCol+1];
+    cols.forEach(c=>{
+     if(c>=0 && c<6){
+      let v=row[c];
+      if(v!="**") pool.push(v);
+     }
+    });
     break;
    }
    nr++;
@@ -225,12 +240,11 @@ function showAI(shape){
   dc[v[0]]=(dc[v[0]]||0)+1;
   dc[v[1]]=(dc[v[1]]||0)+1;
  });
+ let fJ=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(",");
+ let fD=Object.entries(dc).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(",");
 
- let fJ=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
- let fD=Object.entries(dc).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
-
- future.innerHTML="Strong 2 Jodi: "+fJ.join(",")+
-                  "<br>Strong 2 Single Ank: "+fD.join(",");
+ future.innerHTML="Strong 2 Jodi:<br>"+fJ+
+                  "<br><br>Strong 2 Single Ank:<br>Open to close<br>"+fD;
 }
 </script>
 </body>
