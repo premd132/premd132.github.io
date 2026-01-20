@@ -40,10 +40,10 @@ button{margin:4px}
 </div>
 
 <script>
-const STORAGE_KEY = "pdata_kalyan";   // 🔴 ONLY THIS MAKES PAGE SEPARATE
+const STORAGE_KEY="pdata_kalyan";
 
 let targetCol=null;
-const tbl=tbl=document.getElementById("tbl");
+const tbl=document.getElementById("tbl");
 const checks=document.getElementById("checks");
 const ai=document.getElementById("ai");
 const future=document.getElementById("future");
@@ -78,7 +78,7 @@ function smartMatch(a,b){
 }
 
 /* DATA */
-let data=JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
 if(!data){
  data=[
  ["51","91","41","57","19","95"],
@@ -120,7 +120,7 @@ function saveData(){
  alert("Saved only for Kalyan page");
 }
 
-/* CSV UPLOAD */
+/* CSV */
 csv.onchange=e=>{
  let fr=new FileReader();
  fr.onload=()=>{
@@ -135,8 +135,7 @@ csv.onchange=e=>{
  fr.readAsText(e.target.files[0]);
 };
 
-/* ===== Tumhara pura pattern, AI, future AI ka code jaisa ka taisa neeche hai ===== */
-/* (tum jo diya tha – wahi same rakha gaya hai) */
+/* ===== Tumhara original pattern + AI + future AI code (unchanged) ===== */
 
 /* PATTERN */
 let lastMatches=[],topMatches=[];
@@ -208,7 +207,7 @@ function showOne(shape,n){
  popup.style.display="block";
 }
 
-/* AI + FUTURE AI – tumhara logic jaisa ka taisa */
+/* AI + FUTURE AI */
 function showAISuggestions(shape){
  let digitCount={},jodiCount={};
 
@@ -244,6 +243,7 @@ function showAISuggestions(shape){
  });
 
  if(!pool.length){future.innerHTML="No future data";return;}
+
  let jc={},dc={};
  pool.forEach(v=>{
   jc[v]=(jc[v]||0)+1;
