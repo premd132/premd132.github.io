@@ -178,7 +178,7 @@ function searchPattern(shape,base){
 function showChecks(shape){
  checks.innerHTML="";
  if(lastMatches.length==0){checks.innerHTML="<i>No match</i>";ai.innerHTML="";future.innerHTML="";return;}
- topMatches=lastMatches.slice(0,3);
+ topMatches=lastMatches.slice(0,4);
  topMatches.forEach((m,i)=>{
   let d=document.createElement("div");
   d.innerText=(i+1)+". Match (click)";
