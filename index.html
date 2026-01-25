@@ -136,7 +136,7 @@ function drawLines(cvsId, tblEl) {
     const last = cells[cells.length-1].getBoundingClientRect();
     const x1 = last.left - tRect.left + last.width/2;
     const y1 = last.top - tRect.top + last.height/2;
-    ctx.strokeStyle = "red"; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "blue"; ctx.lineWidth = 1.5;
     cells.forEach(c => {
         const r = c.getBoundingClientRect();
         ctx.beginPath(); ctx.moveTo(x1,y1);
